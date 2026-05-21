@@ -1,0 +1,30 @@
+---
+title: "nano-agents"
+subtitle: "Agentic AI from scratch, with a Bayesian lens"
+listing:
+  - id: latest-posts
+    contents: posts
+    type: default
+    sort: "date desc"
+    max-items: 5
+    fields: [date, title, description, reading-time]
+    sort-ui: false
+    filter-ui: false
+page-layout: full
+---
+
+::: {.lead}
+This is a self-study series and reference codebase building up the foundations of agentic AI — bandits, MDPs, RLHF, tool use, planning, retrieval, calibration — from the ground up.
+:::
+
+Every algorithm is derived from first principles, implemented in under 500 lines of NumPy or PyTorch, and motivated through a **probabilistic lens**. Decision-making, exploration, retrieval, and reflection all turn out to be approximate inference problems in disguise; the series makes that explicit.
+
+If you've trained a neural network and read a few RL or Bayesian inference papers, you're the target reader.
+
+[Browse all posts →](posts.qmd){.btn .btn-primary}
+[Code on GitHub →](https://github.com/tranbahien/nano-agents){.btn .btn-outline-secondary}
+
+## Latest posts
+
+:::{#latest-posts}
+:::

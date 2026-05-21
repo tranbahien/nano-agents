@@ -1,0 +1,35 @@
+/* nano-agents — minimal custom styles */
+
+:root {
+  --bs-body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.lead {
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: #555;
+  margin-bottom: 1.5rem;
+}
+
+/* Tighter code blocks */
+pre {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Math should not overflow */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+/* Listing pages */
+.quarto-listing-default .listing-title {
+  font-weight: 600;
+}
+
+/* Slightly more breathing room around figures */
+figure {
+  margin: 2rem auto;
+}

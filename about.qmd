@@ -1,0 +1,23 @@
+---
+title: "About"
+about:
+  template: trestles
+  image-shape: round
+  links:
+    - icon: github
+      text: GitHub
+      href: https://github.com/tranbahien
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/tranbahien
+    - text: Google Scholar
+      href: https://scholar.google.com/citations?user=tranbahien
+    - text: Personal site
+      href: https://tranbahien.github.io
+---
+
+I'm **Ba-Hien Tran**, a senior machine learning research scientist at Huawei Paris. My research is in Bayesian deep learning, efficient AI architectures, and probabilistic modeling. I'm a first author at NeurIPS, ICML, ICLR, and JMLR, principal inventor on 30+ patents, and the recipient of the Best PhD Thesis Award from Sorbonne University (2023).
+
+**nano-agents** is my study notebook on agentic AI, written publicly. The goal is to internalize the field through the lens I already know best — probabilistic modeling and Bayesian inference — and to share the derivations and code that emerge along the way.
+
+If something here is wrong, unclear, or could be sharper, please [open an issue](https://github.com/tranbahien/nano-agents/issues).

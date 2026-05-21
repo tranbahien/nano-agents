@@ -1,0 +1,11 @@
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-tools: true
+    code-link: true
+    code-overflow: wrap
+    fig-width: 8
+    fig-height: 5
+
+author: "Ba-Hien Tran"

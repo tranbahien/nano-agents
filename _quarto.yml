@@ -1,0 +1,55 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - "*.qmd"
+    - "posts/*.qmd"
+    - "!README.md"
+
+website:
+  title: "nano-agents"
+  description: "Agentic AI from scratch, with a Bayesian lens"
+  site-url: https://tranbahien.github.io/nano-agents
+  repo-url: https://github.com/tranbahien/nano-agents
+  repo-actions: [edit, issue]
+  page-navigation: true
+  navbar:
+    background: light
+    search: true
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "Posts"
+        href: posts.qmd
+      - text: "About"
+        href: about.qmd
+    right:
+      - icon: github
+        href: https://github.com/tranbahien/nano-agents
+        aria-label: GitHub
+      - icon: rss
+        href: posts.xml
+  page-footer:
+    left: "© 2026 Ba-Hien Tran"
+    right:
+      - icon: github
+        href: https://github.com/tranbahien/nano-agents
+      - text: "RSS"
+        href: posts.xml
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-overflow: wrap
+    highlight-style: github
+    html-math-method: katex
+    fig-cap-location: bottom
+
+execute:
+  freeze: auto
