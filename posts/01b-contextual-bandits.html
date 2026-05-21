@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-20">
+<meta name="description" content="Decision-making under uncertainty, from scratch — 2 of 4. We derive Bayesian linear regression from scratch (with Sherman-Morrison online updates and the variational view), then build LinUCB and Linear Thompson Sampling on top of it. The bridge to RLHF reward models and neural bandits.">
+
+<title>Contextual Bandits: When the Best Action Depends on Who You’re Talking To – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-73c813dbea455b23e33378fe00306777.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#from-best-arm-to-best-arm-for-this-context" id="toc-from-best-arm-to-best-arm-for-this-context" class="nav-link active" data-scroll-target="#from-best-arm-to-best-arm-for-this-context">0. From “best arm” to “best arm for this context”</a></li>
+  <li><a href="#formal-setup" id="toc-formal-setup" class="nav-link" data-scroll-target="#formal-setup">1. Formal setup</a>
+  <ul class="collapse">
+  <li><a href="#linearity-assumption" id="toc-linearity-assumption" class="nav-link" data-scroll-target="#linearity-assumption">1.1 Linearity assumption</a></li>
+  </ul></li>
+  <li><a href="#the-engine-bayesian-linear-regression" id="toc-the-engine-bayesian-linear-regression" class="nav-link" data-scroll-target="#the-engine-bayesian-linear-regression">2. The engine: Bayesian linear regression</a>
+  <ul class="collapse">
+  <li><a href="#the-model" id="toc-the-model" class="nav-link" data-scroll-target="#the-model">2.1 The model</a></li>
+  <li><a href="#deriving-the-posterior" id="toc-deriving-the-posterior" class="nav-link" data-scroll-target="#deriving-the-posterior">2.2 Deriving the posterior</a></li>
+  <li><a href="#visualizing-the-contraction" id="toc-visualizing-the-contraction" class="nav-link" data-scroll-target="#visualizing-the-contraction">2.3 Visualizing the contraction</a></li>
+  <li><a href="#online-updates-and-sherman-morrison" id="toc-online-updates-and-sherman-morrison" class="nav-link" data-scroll-target="#online-updates-and-sherman-morrison">2.4 Online updates and Sherman-Morrison</a></li>
+  <li><a href="#the-variational-kl-view" id="toc-the-variational-kl-view" class="nav-link" data-scroll-target="#the-variational-kl-view">2.5 The variational / KL view</a></li>
+  <li><a href="#predictive-distribution" id="toc-predictive-distribution" class="nav-link" data-scroll-target="#predictive-distribution">2.6 Predictive distribution</a></li>
+  </ul></li>
+  <li><a href="#linucb" id="toc-linucb" class="nav-link" data-scroll-target="#linucb">3. LinUCB</a>
+  <ul class="collapse">
+  <li><a href="#the-algorithm" id="toc-the-algorithm" class="nav-link" data-scroll-target="#the-algorithm">3.1 The algorithm</a></li>
+  <li><a href="#what-the-algorithm-looks-like-in-practice" id="toc-what-the-algorithm-looks-like-in-practice" class="nav-link" data-scroll-target="#what-the-algorithm-looks-like-in-practice">3.2 What the algorithm looks like in practice</a></li>
+  <li><a href="#regret-bound" id="toc-regret-bound" class="nav-link" data-scroll-target="#regret-bound">3.3 Regret bound</a></li>
+  </ul></li>
+  <li><a href="#linear-thompson-sampling" id="toc-linear-thompson-sampling" class="nav-link" data-scroll-target="#linear-thompson-sampling">4. Linear Thompson Sampling</a>
+  <ul class="collapse">
+  <li><a href="#the-algorithm-1" id="toc-the-algorithm-1" class="nav-link" data-scroll-target="#the-algorithm-1">4.1 The algorithm</a></li>
+  <li><a href="#the-each-draw-is-a-hypothesis-view" id="toc-the-each-draw-is-a-hypothesis-view" class="nav-link" data-scroll-target="#the-each-draw-is-a-hypothesis-view">4.2 The “each draw is a hypothesis” view</a></li>
+  <li><a href="#probability-matching-generalized" id="toc-probability-matching-generalized" class="nav-link" data-scroll-target="#probability-matching-generalized">4.3 Probability matching, generalized</a></li>
+  <li><a href="#regret-bound-1" id="toc-regret-bound-1" class="nav-link" data-scroll-target="#regret-bound-1">4.4 Regret bound</a></li>
+  </ul></li>
+  <li><a href="#the-showdown" id="toc-the-showdown" class="nav-link" data-scroll-target="#the-showdown">5. The showdown</a></li>
+  <li><a href="#forward-connections" id="toc-forward-connections" class="nav-link" data-scroll-target="#forward-connections">6. Forward connections</a>
+  <ul class="collapse">
+  <li><a href="#rlhf-reward-models-are-contextual-bandits-sort-of" id="toc-rlhf-reward-models-are-contextual-bandits-sort-of" class="nav-link" data-scroll-target="#rlhf-reward-models-are-contextual-bandits-sort-of">6.1 RLHF reward models are contextual bandits (sort of)</a></li>
+  <li><a href="#neural-bandits-and-deep-uncertainty" id="toc-neural-bandits-and-deep-uncertainty" class="nav-link" data-scroll-target="#neural-bandits-and-deep-uncertainty">6.2 Neural bandits and deep uncertainty</a></li>
+  </ul></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">7. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#how-does-regret-scale-with-dimension" id="toc-how-does-regret-scale-with-dimension" class="nav-link" data-scroll-target="#how-does-regret-scale-with-dimension">7.1 How does regret scale with dimension?</a></li>
+  <li><a href="#calibration-of-the-posterior" id="toc-calibration-of-the-posterior" class="nav-link" data-scroll-target="#calibration-of-the-posterior">7.2 Calibration of the posterior</a></li>
+  <li><a href="#misspecified-model" id="toc-misspecified-model" class="nav-link" data-scroll-target="#misspecified-model">7.3 Misspecified model</a></li>
+  <li><a href="#reproduce-one-figure-from-the-linucb-paper" id="toc-reproduce-one-figure-from-the-linucb-paper" class="nav-link" data-scroll-target="#reproduce-one-figure-from-the-linucb-paper">7.4 Reproduce one figure from the LinUCB paper</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">8. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py" id="toc-regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py" class="nav-link" data-scroll-target="#regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py">8.1 Regret scaling with dimension — <code>experiments/01b_sol1_regret_vs_dim.py</code></a></li>
+  <li><a href="#calibration-experiments01b_sol2_calibration.py" id="toc-calibration-experiments01b_sol2_calibration.py" class="nav-link" data-scroll-target="#calibration-experiments01b_sol2_calibration.py">8.2 Calibration — <code>experiments/01b_sol2_calibration.py</code></a></li>
+  <li><a href="#misspecification-experiments01b_sol3_misspecification.py" id="toc-misspecification-experiments01b_sol3_misspecification.py" class="nav-link" data-scroll-target="#misspecification-experiments01b_sol3_misspecification.py">8.3 Misspecification — <code>experiments/01b_sol3_misspecification.py</code></a></li>
+  <li><a href="#alpha-sweep-experiments01b_sol4_alpha_sweep.py" id="toc-alpha-sweep-experiments01b_sol4_alpha_sweep.py" class="nav-link" data-scroll-target="#alpha-sweep-experiments01b_sol4_alpha_sweep.py">8.4 Alpha sweep — <code>experiments/01b_sol4_alpha_sweep.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">9. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/01b-contextual-bandits.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Contextual Bandits: When the Best Action Depends on Who You’re Talking To</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">bandits</div>
+    <div class="quarto-category">bayesian</div>
+    <div class="quarto-category">contextual</div>
+    <div class="quarto-category">blr</div>
+    <div class="quarto-category">RLHF</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Decision-making under uncertainty, from scratch — 2 of 4. We derive Bayesian linear regression from scratch (with Sherman-Morrison online updates and the variational view), then build LinUCB and Linear Thompson Sampling on top of it. The bridge to RLHF reward models and neural bandits.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 20, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Decision-making under uncertainty, from scratch — 2 of 4.</em></p>
+</blockquote>
+<p>In <a href="../posts/01a-multi-armed-bandits.html">Part 1a</a> we built three algorithms for a world where each arm has a single unknown expected reward. That’s enough for some real problems (A/B testing two website designs), but it’s far from enough for any modern application. Netflix doesn’t recommend the same movie to everyone. A doctor doesn’t prescribe the same dose to every patient. An RLHF reward model doesn’t score every response the same.</p>
+<p>The missing piece is <strong>context</strong> — features describing the situation we’re in. The reward of pulling arm <span class="math inline">k</span> now depends on a context vector <span class="math inline">x_t</span>, and the optimal arm changes with it. This post derives the linear contextual bandit from first principles, builds <strong>LinUCB</strong> and <strong>Linear Thompson Sampling</strong> on top, and lands at the place where reward models for RLHF actually live.</p>
+<p>The mathematical engine for both algorithms is <strong>Bayesian linear regression</strong>. We’ll spend serious time on it — not because the math is hard, but because every Bayesian deep learning method, every uncertainty-aware LLM, every probabilistic agent comes back to it. Treating BLR rigorously here pays off for the rest of the series.</p>
+<hr>
+<section id="from-best-arm-to-best-arm-for-this-context" class="level2">
+<h2 class="anchored" data-anchor-id="from-best-arm-to-best-arm-for-this-context">0. From “best arm” to “best arm for this context”</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_contextual_schematic.png" class="img-fluid figure-img"></p>
+<figcaption>Same four arms, two different contexts, two different best arms. Plain bandits can’t capture this — they assume a single best arm exists.</figcaption>
+</figure>
+</div>
+<p>The figure above shows two contexts <span class="math inline">x_A = (0.8, 0.6)</span> and <span class="math inline">x_B = (-0.7, 0.7)</span>, and the predicted reward <span class="math inline">x^\top \theta_k</span> each of four arms produces under each. Same arms, same parameters; different best arm. For <span class="math inline">x_A</span>, arm 3 wins. For <span class="math inline">x_B</span>, arm 4 wins.</p>
+<p>If we ran the unstructured bandit algorithms from 1a on this data, they’d see a stream of rewards from each arm, average them out, and pick whichever arm had the highest <em>marginal</em> mean. They’d be solving the wrong problem. The marginal-best arm might lose to literally every other arm on every individual context, if the contexts arrive in the wrong proportions.</p>
+<p>This is why context-free UCB1 has linear regret on this kind of problem — we’ll see it explicitly in the regret figure at the end. The algorithm isn’t doing anything wrong given its assumptions; the assumptions just don’t match the world.</p>
+<hr>
+</section>
+<section id="formal-setup" class="level2">
+<h2 class="anchored" data-anchor-id="formal-setup">1. Formal setup</h2>
+<p>A <strong>contextual bandit</strong> is a tuple <span class="math inline">(\mathcal{X}, \mathcal{A}, P_r)</span> where:</p>
+<ul>
+<li><span class="math inline">\mathcal{X}</span> is a context space (we’ll take <span class="math inline">\mathcal{X} = \mathbb{R}^d</span>),</li>
+<li><span class="math inline">\mathcal{A} = \{1, \dots, K\}</span> is the action set, and</li>
+<li><span class="math inline">P_r(\cdot \mid x, a)</span> is the conditional reward distribution given context and action.</li>
+</ul>
+<p>At each timestep <span class="math inline">t</span>:</p>
+<ol type="1">
+<li>The environment reveals context <span class="math inline">x_t \in \mathcal{X}</span>.</li>
+<li>The agent picks action <span class="math inline">a_t \in \mathcal{A}</span>.</li>
+<li>The environment returns reward <span class="math inline">r_t \sim P_r(\cdot \mid x_t, a_t)</span>.</li>
+</ol>
+<p>We want to minimize <strong>regret</strong> relative to the best contextual policy:</p>
+<p><span class="math display">
+R(T) \;\equiv\; \mathbb{E}\!\left[\sum_{t=1}^{T} \max_a \mathbb{E}[r_t \mid x_t, a] \;-\; r_t\right].
+</span></p>
+<p>This is the contextual analogue of the regret we defined for unstructured bandits. It compares the agent’s reward to an oracle that knows the true reward function and picks optimally per-context.</p>
+<section id="linearity-assumption" class="level3">
+<h3 class="anchored" data-anchor-id="linearity-assumption">1.1 Linearity assumption</h3>
+<p>To make progress we need structure. The simplest useful assumption is <strong>linearity</strong>: there exist unknown parameters <span class="math inline">\theta_k \in \mathbb{R}^d</span> such that</p>
+<p><span class="math display">
+\mathbb{E}[r_t \mid x_t, a_t = k] \;=\; x_t^\top \theta_k.
+</span></p>
+<p>Two common parameterizations:</p>
+<ul>
+<li><strong>Disjoint:</strong> each arm has its own <span class="math inline">\theta_k</span>. The K reward functions are independent. Used when arms are heterogeneous (e.g., news articles, where each has its own coefficients on user features).</li>
+<li><strong>Shared (hybrid):</strong> there’s a single <span class="math inline">\theta</span>, but features depend on both context and arm: <span class="math inline">\mathbb{E}[r \mid x, a] = \phi(x, a)^\top \theta</span>. Used when arms share structure (e.g., recommending the same set of items with item-specific features).</li>
+</ul>
+<p>We’ll focus on the disjoint case — it’s conceptually cleaner and the math transfers to the shared case directly. In the implementation, both look identical: maintain the sufficient statistics of a Bayesian linear regression, predict and explore using them.</p>
+<p>Note: realized rewards add noise, <span class="math inline">r_t = x_t^\top \theta_k + \varepsilon_t</span> with <span class="math inline">\varepsilon_t \sim \mathcal{N}(0, \sigma^2)</span>. The Gaussian assumption is convenient (conjugate priors!) but not essential — most of what follows generalizes to sub-Gaussian noise.</p>
+<hr>
+</section>
+</section>
+<section id="the-engine-bayesian-linear-regression" class="level2">
+<h2 class="anchored" data-anchor-id="the-engine-bayesian-linear-regression">2. The engine: Bayesian linear regression</h2>
+<p>Both LinUCB and Linear Thompson Sampling are wrappers around Bayesian linear regression. The algorithm essentially reduces to “fit a Bayesian linear regression to each arm, then do something thoughtful with the resulting posterior.” So we need the posterior.</p>
+<p>This section is the deepest math in the post. The payoff is that <em>every</em> later technique in the curriculum — neural bandits, reward models in RLHF, Bayesian neural networks, calibration of LLMs — reduces in some part to this calculation. Internalize it once, reuse it forever.</p>
+<section id="the-model" class="level3">
+<h3 class="anchored" data-anchor-id="the-model">2.1 The model</h3>
+<p>We observe data <span class="math inline">\mathcal{D} = \{(x_i, y_i)\}_{i=1}^n</span> generated by</p>
+<p><span class="math display">
+y_i \;=\; x_i^\top \theta + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2),
+</span></p>
+<p>with <span class="math inline">\theta \in \mathbb{R}^d</span> unknown. We place a Gaussian prior on <span class="math inline">\theta</span>:</p>
+<p><span class="math display">
+\theta \sim \mathcal{N}(\mu_0, \Sigma_0).
+</span></p>
+<p>A standard choice is <span class="math inline">\mu_0 = 0</span>, <span class="math inline">\Sigma_0 = \lambda^{-1} I</span> — a centered, isotropic prior with precision <span class="math inline">\lambda</span>. Large <span class="math inline">\lambda</span> means a tight prior (strong belief that <span class="math inline">\theta</span> is near 0); small <span class="math inline">\lambda</span> means a vague prior.</p>
+</section>
+<section id="deriving-the-posterior" class="level3">
+<h3 class="anchored" data-anchor-id="deriving-the-posterior">2.2 Deriving the posterior</h3>
+<p>The posterior is also Gaussian — this is the magic of conjugacy. Let me derive it cleanly.</p>
+<p>By Bayes’ rule, <span class="math inline">p(\theta \mid \mathcal{D}) \propto p(\mathcal{D} \mid \theta) \, p(\theta)</span>. Taking logs and dropping constants:</p>
+<p><span class="math display">
+\log p(\theta \mid \mathcal{D}) \;=\; -\frac{1}{2\sigma^2} \sum_{i=1}^{n} (y_i - x_i^\top \theta)^2 \;-\; \frac{1}{2} (\theta - \mu_0)^\top \Sigma_0^{-1} (\theta - \mu_0) \;+\; \text{const}.
+</span></p>
+<p>Both terms are quadratic in <span class="math inline">\theta</span>. The posterior is therefore Gaussian. To find its mean and covariance, expand and collect terms in <span class="math inline">\theta</span>:</p>
+<p><span class="math display">
+\log p(\theta \mid \mathcal{D}) \;=\; -\frac{1}{2} \theta^\top \underbrace{\left[\Sigma_0^{-1} + \sigma^{-2} X^\top X\right]}_{\Sigma_n^{-1}} \theta \;+\; \theta^\top \underbrace{\left[\Sigma_0^{-1} \mu_0 + \sigma^{-2} X^\top y\right]}_{\Sigma_n^{-1} \mu_n} + \text{const},
+</span></p>
+<p>where <span class="math inline">X \in \mathbb{R}^{n \times d}</span> is the design matrix with rows <span class="math inline">x_i^\top</span> and <span class="math inline">y \in \mathbb{R}^n</span> is the response vector. Reading off the coefficients of <span class="math inline">\theta^\top (\cdot) \theta</span> and <span class="math inline">\theta^\top (\cdot)</span> gives the <strong>posterior</strong></p>
+<p><span class="math display">
+\boxed{\;\theta \mid \mathcal{D} \;\sim\; \mathcal{N}(\mu_n, \Sigma_n), \qquad \Sigma_n^{-1} = \Sigma_0^{-1} + \sigma^{-2} X^\top X, \qquad \mu_n = \Sigma_n \big[\Sigma_0^{-1} \mu_0 + \sigma^{-2} X^\top y\big].\;}
+</span></p>
+<p>With the standard isotropic prior <span class="math inline">\mu_0 = 0</span>, <span class="math inline">\Sigma_0 = \lambda^{-1} I</span>, this simplifies to</p>
+<p><span class="math display">
+\Sigma_n^{-1} \;=\; \lambda I + \sigma^{-2} X^\top X, \qquad \mu_n \;=\; \sigma^{-2} \Sigma_n X^\top y \;=\; \left(\lambda \sigma^2 I + X^\top X\right)^{-1} X^\top y.
+</span></p>
+<p>This is the <strong>ridge regression</strong> estimator with regularization <span class="math inline">\lambda \sigma^2</span>. Bayesian linear regression with a zero-mean Gaussian prior <em>is</em> ridge regression — the posterior mean coincides with the MAP estimate, which coincides with the regularized least-squares solution. Three views, one object.</p>
+</section>
+<section id="visualizing-the-contraction" class="level3">
+<h3 class="anchored" data-anchor-id="visualizing-the-contraction">2.3 Visualizing the contraction</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_blr_posterior_evolution.png" class="img-fluid figure-img"></p>
+<figcaption>The Gaussian posterior over θ contracts toward the true parameter as data accumulates. The 95% region (dashed) and 68% region (solid) both shrink at rate 1/√n.</figcaption>
+</figure>
+</div>
+<p>The figure shows the posterior at <span class="math inline">n = 0, 10, 100, 500</span> for a 2D problem with <span class="math inline">\sigma = 0.7</span> noise. Notice how:</p>
+<ul>
+<li>At <span class="math inline">n = 0</span>, the posterior is the prior — wide and centered at zero, with the true parameter <span class="math inline">\theta^\star = (1.2, -0.6)</span> near the boundary.</li>
+<li>By <span class="math inline">n = 10</span>, the posterior has clearly moved toward <span class="math inline">\theta^\star</span>, though with significant uncertainty.</li>
+<li>At <span class="math inline">n = 100</span>, the 95% region is tight and contains the truth.</li>
+<li>At <span class="math inline">n = 500</span>, the posterior is essentially a delta at <span class="math inline">\theta^\star</span>.</li>
+</ul>
+<p>The rate of contraction is <strong><span class="math inline">1/\sqrt{n}</span> per dimension</strong>. Specifically, the posterior covariance <span class="math inline">\Sigma_n = (\lambda I + \sigma^{-2} X^\top X)^{-1}</span>. If <span class="math inline">X^\top X</span> grows like <span class="math inline">n</span> times the identity (true on average for isotropic contexts), then <span class="math inline">\Sigma_n \approx \sigma^2 / n \cdot I</span>. The standard deviation in each direction is <span class="math inline">\sigma / \sqrt{n}</span>. This is the same rate that frequentist concentration inequalities give you — Bayesian and frequentist agree on the <em>amount</em> of information in <span class="math inline">n</span> samples.</p>
+</section>
+<section id="online-updates-and-sherman-morrison" class="level3">
+<h3 class="anchored" data-anchor-id="online-updates-and-sherman-morrison">2.4 Online updates and Sherman-Morrison</h3>
+<p>Bandit algorithms need to update the posterior every step. Recomputing <span class="math inline">\Sigma_n^{-1}</span> from scratch and inverting it takes <span class="math inline">O(n d^2 + d^3)</span> — way too expensive online. We want <strong><span class="math inline">O(d^2)</span> per step</strong>.</p>
+<p>The Sherman-Morrison formula gives it to us. For an invertible matrix <span class="math inline">A</span> and vectors <span class="math inline">u, v</span> with <span class="math inline">1 + v^\top A^{-1} u \neq 0</span>,</p>
+<p><span class="math display">
+(A + u v^\top)^{-1} \;=\; A^{-1} \;-\; \frac{A^{-1} u v^\top A^{-1}}{1 + v^\top A^{-1} u}.
+</span></p>
+<p>In our case, when a new data point <span class="math inline">(x_{n+1}, y_{n+1})</span> arrives, the precision matrix updates as</p>
+<p><span class="math display">
+A_{n+1} \;=\; A_n + \sigma^{-2} x_{n+1} x_{n+1}^\top, \quad \text{where } A_n \equiv \Sigma_n^{-1}.
+</span></p>
+<p>Applying Sherman-Morrison with <span class="math inline">u = v = \sigma^{-1} x_{n+1}</span>:</p>
+<p><span class="math display">
+A_{n+1}^{-1} \;=\; A_n^{-1} \;-\; \frac{A_n^{-1} x_{n+1} x_{n+1}^\top A_n^{-1}}{\sigma^2 + x_{n+1}^\top A_n^{-1} x_{n+1}}.
+</span></p>
+<p>So we maintain <span class="math inline">A_n^{-1}</span> directly, update it in <span class="math inline">O(d^2)</span> per step (one matrix-vector product, one outer product), and never call <code>np.linalg.inv</code> again. The posterior mean <span class="math inline">\mu_n = A_n^{-1} b_n</span> where <span class="math inline">b_n = \sigma^{-2} \sum_i y_i x_i</span> also updates incrementally: <span class="math inline">b_{n+1} = b_n + \sigma^{-2} y_{n+1} x_{n+1}</span>, with <span class="math inline">\mu_{n+1} = A_{n+1}^{-1} b_{n+1}</span>.</p>
+<p>In our reference implementation we use the simpler <code>np.linalg.solve(A, b)</code> because <span class="math inline">d</span> is small and clarity wins over micro-optimization. For production at large <span class="math inline">d</span>, switch to Sherman-Morrison.</p>
+</section>
+<section id="the-variational-kl-view" class="level3">
+<h3 class="anchored" data-anchor-id="the-variational-kl-view">2.5 The variational / KL view</h3>
+<p>Here’s a perspective that becomes essential later in the curriculum. The Bayesian posterior is the unique distribution <span class="math inline">q^\star(\theta)</span> that minimizes the <strong>variational free energy</strong>:</p>
+<p><span class="math display">
+q^\star \;=\; \arg\min_q \;\Big[\, \mathrm{KL}(q \,\|\, p_0) \;-\; \mathbb{E}_{q}[\log p(\mathcal{D} \mid \theta)] \,\Big],
+</span></p>
+<p>where the minimization is over all distributions <span class="math inline">q</span> on <span class="math inline">\theta</span>. When <span class="math inline">q</span> is restricted to Gaussians and the model is conjugate, this optimization is exact: the optimal <span class="math inline">q</span> equals the true posterior <span class="math inline">p(\theta \mid \mathcal{D})</span>. When <span class="math inline">q</span> is restricted to a more limited family (mean-field, low-rank Gaussians, etc.) you get <strong>variational inference</strong> — an approximate posterior that minimizes the same objective.</p>
+<p>Two takeaways:</p>
+<ol type="1">
+<li><p><strong>The Bayesian update is an optimization.</strong> Each step minimizes a tradeoff between (a) staying close to the prior (the KL term) and (b) fitting the data (the expected log-likelihood). Online, the previous posterior becomes the new prior, and each new data point pulls the distribution slightly toward better fit.</p></li>
+<li><p><strong>This is the gateway to variational neural networks.</strong> Replace <span class="math inline">\theta</span> with neural network weights, replace <span class="math inline">p(y \mid x, \theta)</span> with a deep model, restrict <span class="math inline">q</span> to a tractable family (e.g., factorized Gaussian over weights), and you get variational BNNs. The objective is identical. Bayesian linear regression is the simplest non-trivial instance of an idea that scales all the way up.</p></li>
+</ol>
+<p>This isn’t a digression — it’s the through-line from contextual bandits to your PhD topic and to modern Bayesian deep learning. Every uncertainty-aware LLM technique in the literature is some descendant of the variational view applied here.</p>
+</section>
+<section id="predictive-distribution" class="level3">
+<h3 class="anchored" data-anchor-id="predictive-distribution">2.6 Predictive distribution</h3>
+<p>For a new context <span class="math inline">x_*</span>, the predictive distribution of the reward is also Gaussian:</p>
+<p><span class="math display">
+r_* \mid x_*, \mathcal{D} \;\sim\; \mathcal{N}\!\left(\, x_*^\top \mu_n, \; \sigma^2 + x_*^\top \Sigma_n x_* \,\right).
+</span></p>
+<p>The variance has two parts:</p>
+<ul>
+<li><strong><span class="math inline">\sigma^2</span> — irreducible noise.</strong> Even if we knew <span class="math inline">\theta</span> exactly, we couldn’t predict <span class="math inline">r_*</span> exactly because of the noise term <span class="math inline">\varepsilon</span>. This is <strong>aleatoric</strong> uncertainty.</li>
+<li><strong><span class="math inline">x_*^\top \Sigma_n x_*</span> — parameter uncertainty.</strong> Our uncertainty about <span class="math inline">\theta</span> projected into the direction <span class="math inline">x_*</span>. This is <strong>epistemic</strong> uncertainty — it shrinks to 0 as <span class="math inline">n \to \infty</span>.</li>
+</ul>
+<p>Both LinUCB and LinTS use the epistemic piece. UCB bonuses are scaled by <span class="math inline">\sqrt{x_*^\top \Sigma_n x_*}</span>; TS samples from the parameter posterior. The aleatoric noise is fixed and irreducible — we can’t explore it away.</p>
+<p>This decomposition matters in agentic AI. When an LLM is uncertain, you want to know whether it’s because the world is genuinely ambiguous (aleatoric — can’t help by asking again) or because the model is undertrained (epistemic — more data would help). Same math, much bigger problem.</p>
+<hr>
+</section>
+</section>
+<section id="linucb" class="level2">
+<h2 class="anchored" data-anchor-id="linucb">3. LinUCB</h2>
+<p>The LinUCB recipe: at each step <span class="math inline">t</span>, for each arm <span class="math inline">k</span>, compute the <strong>upper confidence bound</strong> on the expected reward <span class="math inline">x_t^\top \theta_k</span>. Pick the arm with the highest UCB.</p>
+<section id="the-algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="the-algorithm">3.1 The algorithm</h3>
+<p>For each arm <span class="math inline">k</span>, maintain the sufficient statistics for arm-<span class="math inline">k</span>’s Bayesian linear regression:</p>
+<p><span class="math display">
+A_k \;\equiv\; \lambda I + \sum_{i:\, a_i = k} x_i x_i^\top, \qquad b_k \;\equiv\; \sum_{i:\, a_i = k} r_i \, x_i,
+</span></p>
+<p>where the sums are over timesteps when arm <span class="math inline">k</span> was pulled. We’ve set <span class="math inline">\sigma = 1</span> to keep notation light. Then the posterior mean and predictive variance are</p>
+<p><span class="math display">
+\hat\theta_k \;=\; A_k^{-1} b_k, \qquad \mathrm{Var}\!\left(x^\top \theta_k \mid \mathcal{D}\right) \;=\; x^\top A_k^{-1} x.
+</span></p>
+<p>LinUCB picks</p>
+<p><span class="math display">
+\boxed{\;a_t \;=\; \arg\max_k \; \left[\, x_t^\top \hat\theta_k \,+\, \alpha \sqrt{x_t^\top A_k^{-1} x_t} \,\right].\;}
+</span></p>
+<p>The first term is the predicted reward — pure exploitation. The second is <span class="math inline">\alpha</span> times the predictive standard deviation — exploration. Just like UCB1, but the bonus is now context-dependent. <strong>Contexts in poorly-explored directions get higher bonuses; well-explored contexts get smaller bonuses.</strong></p>
+<p>The hyperparameter <span class="math inline">\alpha</span> controls exploration aggressiveness. The theory gives <span class="math inline">\alpha = O(\sqrt{\log T})</span>, but in practice <span class="math inline">\alpha = 1</span> is a strong default.</p>
+</section>
+<section id="what-the-algorithm-looks-like-in-practice" class="level3">
+<h3 class="anchored" data-anchor-id="what-the-algorithm-looks-like-in-practice">3.2 What the algorithm looks like in practice</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_linucb_ellipsoid.png" class="img-fluid figure-img"></p>
+<figcaption>LinUCB at n=20 (left) and n=200 (right). The orange line is the upper-confidence index; the blue band is the 95% credible region; the dashed black is the true function. As data accumulates, the band tightens around truth and the bonus shrinks.</figcaption>
+</figure>
+</div>
+<p>This figure uses a scalar feature <span class="math inline">z</span> with <span class="math inline">d = 2</span> (intercept plus <span class="math inline">z</span>), so we can plot the predicted reward as a function of <span class="math inline">z</span>. The shaded blue band is the 95% credible region for the reward; the orange line is the LinUCB upper-confidence index.</p>
+<p>At <span class="math inline">n = 20</span>, the band is visibly wide and the UCB sits noticeably above the posterior mean. The algorithm is uncertain and bonuses are large.</p>
+<p>At <span class="math inline">n = 200</span>, the band is tight, the UCB is barely above the mean, and both have essentially converged to the true function. Exploration has finished its job.</p>
+<p>The bonus is largest in directions where <span class="math inline">x^\top A_k^{-1} x</span> is large — directions where the data didn’t constrain <span class="math inline">\theta_k</span> much. If we’d pulled arm <span class="math inline">k</span> only on contexts living in a 2D subspace of <span class="math inline">\mathbb{R}^d</span>, the predictive variance would be huge for any context outside that subspace, and LinUCB would aggressively pull that arm under such a context to find out. This is <strong>exploration in the direction of information gain</strong> — exactly the right behavior.</p>
+</section>
+<section id="regret-bound" class="level3">
+<h3 class="anchored" data-anchor-id="regret-bound">3.3 Regret bound</h3>
+<p>For LinUCB with appropriate <span class="math inline">\alpha</span>, Abbasi-Yadkori, Pál &amp; Szepesvári (2011) prove</p>
+<p><span class="math display">
+R(T) \;=\; \tilde O\!\left(d \sqrt{T}\right),
+</span></p>
+<p>where <span class="math inline">\tilde O</span> hides logarithmic factors. The matching lower bound for linear contextual bandits is <span class="math inline">\Omega(d \sqrt{T})</span>, so LinUCB is near-optimal.</p>
+<p>Note: this is <strong><span class="math inline">\sqrt{T}</span></strong>, not <span class="math inline">\log T</span>. Why the difference from unstructured bandits? Because we’re learning a <span class="math inline">d</span>-dimensional function instead of <span class="math inline">K</span> scalar means. Statistical learning of a function fundamentally has <span class="math inline">\sqrt{T}</span> rate, and structured bandits inherit it.</p>
+<hr>
+</section>
+</section>
+<section id="linear-thompson-sampling" class="level2">
+<h2 class="anchored" data-anchor-id="linear-thompson-sampling">4. Linear Thompson Sampling</h2>
+<p>The Bayesian counterpart. Instead of optimistic point estimates, <strong>sample</strong> parameters from each arm’s posterior and act greedily under the samples.</p>
+<section id="the-algorithm-1" class="level3">
+<h3 class="anchored" data-anchor-id="the-algorithm-1">4.1 The algorithm</h3>
+<p>Maintain the same <span class="math inline">A_k</span>, <span class="math inline">b_k</span> as LinUCB. At each step:</p>
+<ol type="1">
+<li>For each arm <span class="math inline">k</span>, sample <span class="math inline">\tilde\theta_k \sim \mathcal{N}\!\left(\hat\theta_k, \, v^2 A_k^{-1}\right)</span>.</li>
+<li>Play <span class="math inline">a_t = \arg\max_k x_t^\top \tilde\theta_k</span>.</li>
+<li>Observe <span class="math inline">r_t</span> and update <span class="math inline">A_{a_t}, b_{a_t}</span>.</li>
+</ol>
+<p>The hyperparameter <span class="math inline">v</span> rescales the posterior variance. <span class="math inline">v = 1</span> corresponds to the exact Bayesian Thompson posterior under unit-variance noise. Agrawal &amp; Goyal (2013) show that inflating <span class="math inline">v</span> beyond 1 yields the tightest regret bounds; in practice <span class="math inline">v \in [0.25, 1]</span> usually works well. Smaller <span class="math inline">v</span> → less exploration; larger → more.</p>
+</section>
+<section id="the-each-draw-is-a-hypothesis-view" class="level3">
+<h3 class="anchored" data-anchor-id="the-each-draw-is-a-hypothesis-view">4.2 The “each draw is a hypothesis” view</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_lints_draws.png" class="img-fluid figure-img"></p>
+<figcaption>Each posterior draw (faint blue) is one hypothesis about the world. The agent commits to that hypothesis for one step and acts optimally under it. At n=10 the hypotheses disagree and the algorithm explores; at n=200 they agree and the algorithm exploits.</figcaption>
+</figure>
+</div>
+<p>This figure shows ten posterior draws of the function <span class="math inline">f(z) = \theta_0 + \theta_1 z</span> at two timesteps. Each draw <span class="math inline">\tilde\theta</span> is a possible truth — one of the worlds consistent with the data. The agent picks one (randomly), commits to it for the round, and acts as if that world is real.</p>
+<p>At <span class="math inline">n = 10</span>, the ten hypotheses fan out: some slopes are higher, some lower, intercepts vary. Different hypotheses imply <em>different best arms</em> at a given context. This natural disagreement drives exploration — the agent will visit whichever arm looks best under the sample it drew, and that varies stochastically.</p>
+<p>At <span class="math inline">n = 200</span>, all ten draws cluster tightly around the true function. The agent acts almost as if it knew <span class="math inline">\theta^\star</span>, because all plausible <span class="math inline">\theta</span>’s now agree on what to do.</p>
+<p>Compare to plain Thompson Sampling from 1a, where each “hypothesis” was a single number per arm (a Beta sample). The same idea, scaled to functions: sample the function, act under it.</p>
+</section>
+<section id="probability-matching-generalized" class="level3">
+<h3 class="anchored" data-anchor-id="probability-matching-generalized">4.3 Probability matching, generalized</h3>
+<p>In 1a we showed that Thompson Sampling picks arm <span class="math inline">k</span> with probability equal to the posterior probability that <span class="math inline">k</span> is optimal. The same property holds here, with a contextual twist:</p>
+<p><span class="math display">
+P(a_t = k \mid x_t, \mathcal{D}_t) \;=\; P\!\left(\, k = \arg\max_{j} x_t^\top \theta_j \;\Big|\; x_t, \mathcal{D}_t \,\right).
+</span></p>
+<p>The probability that LinTS picks arm <span class="math inline">k</span> for context <span class="math inline">x_t</span> equals the posterior probability that <span class="math inline">k</span> is the optimal arm at <span class="math inline">x_t</span>. This is a strictly more nuanced statement than the unstructured version: the same arm can have high optimality probability at one context and low at another, and LinTS will track that automatically.</p>
+</section>
+<section id="regret-bound-1" class="level3">
+<h3 class="anchored" data-anchor-id="regret-bound-1">4.4 Regret bound</h3>
+<p>Agrawal &amp; Goyal (2013) prove <span class="math inline">R(T) = \tilde O(d^{3/2} \sqrt{T})</span> for Linear Thompson Sampling — a factor of <span class="math inline">\sqrt{d}</span> worse than LinUCB. In practice the bound is loose and LinTS is often empirically competitive with LinUCB. Which wins depends on the problem.</p>
+<hr>
+</section>
+</section>
+<section id="the-showdown" class="level2">
+<h2 class="anchored" data-anchor-id="the-showdown">5. The showdown</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_contextual_regret_curves.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative regret on a linear contextual bandit with K=5 arms, d=8 features. Context-free UCB1 is linear (it’s solving the wrong problem). The contextual algorithms all curve into sublinear behavior, with LinUCB winning here.</figcaption>
+</figure>
+</div>
+<p>Four algorithms on the same problem:</p>
+<ul>
+<li><strong>Context-free UCB1</strong> ignores <span class="math inline">x_t</span> entirely, treating rewards from each arm as i.i.d. samples from some marginal distribution. Its regret grows linearly — about 4 per step on this problem — because there <em>is</em> no single best arm. The marginal “best” arm is bad on a substantial fraction of contexts.</li>
+<li><strong>Contextual ε-greedy</strong> uses ridge regression to estimate <span class="math inline">\hat\theta_k</span> and acts greedily 90% of the time. It achieves sublinear regret but pays a small fixed exploration tax.</li>
+<li><strong>LinUCB</strong> wins decisively here. Its principled exploration (Hoeffding-style bounds in feature space) is very efficient.</li>
+<li><strong>Linear Thompson Sampling</strong> is also sublinear but slightly behind LinUCB on this particular instance. This is the opposite of what we saw in 1a, and it’s instance-dependent — try different feature dimensions and noise levels and you’ll see the ranking shift.</li>
+</ul>
+<p><strong>The key message: using context buys you orders of magnitude.</strong> At <span class="math inline">T = 2000</span>, the context-free baseline has accumulated ~800 regret; the contextual algorithms have ~10–100. The gap widens with <span class="math inline">T</span> — context-free regret is linear, contextual is sublinear. Asymptotically, the ratio diverges.</p>
+<p>This is the empirical case for why every modern personalization system, recommender, or LLM reward model is contextual.</p>
+<hr>
+</section>
+<section id="forward-connections" class="level2">
+<h2 class="anchored" data-anchor-id="forward-connections">6. Forward connections</h2>
+<p>We’re now at a junction with two important downstream applications. Let me make both explicit because they’re central to the rest of the agentic AI curriculum.</p>
+<section id="rlhf-reward-models-are-contextual-bandits-sort-of" class="level3">
+<h3 class="anchored" data-anchor-id="rlhf-reward-models-are-contextual-bandits-sort-of">6.1 RLHF reward models are contextual bandits (sort of)</h3>
+<p>Reinforcement learning from human feedback trains a <strong>reward model</strong> <span class="math inline">r_\phi(x, y)</span> that scores how good a response <span class="math inline">y</span> is to a prompt <span class="math inline">x</span>. The reward model is fit from preference data: humans see pairs <span class="math inline">(y_1, y_2)</span> for the same prompt <span class="math inline">x</span> and pick which they prefer. The standard model is <strong>Bradley-Terry</strong>:</p>
+<p><span class="math display">
+P(y_1 \succ y_2 \mid x) \;=\; \frac{\exp r_\phi(x, y_1)}{\exp r_\phi(x, y_1) + \exp r_\phi(x, y_2)} \;=\; \sigma\!\big(r_\phi(x, y_1) - r_\phi(x, y_2)\big).
+</span></p>
+<p>Take logs: this is <strong>logistic regression</strong> on the difference of rewards. If <span class="math inline">r_\phi</span> is linear, <span class="math inline">r_\phi(x, y) = \phi(x, y)^\top \theta</span>, you get linear logistic regression — a contextual bandit one-step removed. The features depend on prompt <em>and</em> response, fitting our “shared parameterization” case.</p>
+<p>In practice <span class="math inline">r_\phi</span> is a neural network, so the linear model is too simple. But two ideas from this post transfer directly:</p>
+<ol type="1">
+<li><strong>Uncertainty in the reward model is the same problem we just solved.</strong> Whether you use Bayesian last-layer ridge regression, deep ensembles, or variational neural networks — all of these are approximations to the posterior over <span class="math inline">\theta</span> we computed exactly here. The Bayesian view of RLHF asks: how do we maintain calibrated uncertainty about which response is preferred?</li>
+<li><strong>Exploration in RLHF.</strong> Active learning for reward models — picking which prompts to label next — is exactly an exploration problem over the reward-model posterior. Should you label a prompt where the current model is confident (low information gain) or one where it’s uncertain (high gain)? This is the bandit problem at the data-collection level.</li>
+</ol>
+<p>There’s published work in this direction; there’s also room for more. Calibrated, uncertainty-aware reward modeling is one of the active research areas in safe RL from preferences, and the foundations are exactly what we just built.</p>
+</section>
+<section id="neural-bandits-and-deep-uncertainty" class="level3">
+<h3 class="anchored" data-anchor-id="neural-bandits-and-deep-uncertainty">6.2 Neural bandits and deep uncertainty</h3>
+<p>What if the reward function isn’t linear? Replace <span class="math inline">x^\top \theta_k</span> with a neural network <span class="math inline">f_{\theta_k}(x)</span>. The problem becomes a <strong>neural bandit</strong>.</p>
+<p>The difficulty: we no longer have closed-form posteriors. Several approaches:</p>
+<ul>
+<li><strong>Bootstrap and ensembles</strong> (Osband et al., 2016). Train <span class="math inline">M</span> networks on bootstrapped samples of the data. Use the ensemble disagreement as a proxy for posterior variance. Pick actions by sampling one ensemble member (Bootstrapped Thompson) or by averaging means + ensemble-std bonus (ensemble UCB).</li>
+<li><strong>Bayesian neural networks</strong> (Blundell et al., 2015 and successors). Place a prior on the weights, do variational inference. Same KL view as §2.5, but on a deep model. The variational families are restricted, so the approximation introduces error, but the formalism is identical.</li>
+<li><strong>Neural linear</strong> (Riquelme et al., 2018). Use the neural net as a feature extractor and apply Bayesian linear regression on the last layer. The features are learned but the uncertainty is closed-form. Practical and surprisingly strong; the recommended starting point.</li>
+<li><strong>Laplace approximation</strong> (Daxberger et al., 2021). Fit a deterministic neural net, then approximate the posterior as Gaussian centered at the MAP with covariance equal to the inverse Hessian. Plays nicely with pretrained models.</li>
+</ul>
+<p>The unifying view: any neural bandit is <em>Bayesian linear regression in a richer feature space</em>. The math you built here is the limiting case where the features are fixed. Everything else is a way of learning the features adaptively while still maintaining usable uncertainty.</p>
+<p>This is also the connection point to <strong>calibrated LLMs</strong>. Modern LLMs produce probabilities over tokens, but those probabilities are notoriously miscalibrated. The deepest framing is: the model has implicit uncertainty about its own predictions, and treating that uncertainty as Bayesian — with priors, posteriors, and information-theoretic exploration — turns out to be a productive research direction. Conformal prediction, semantic entropy, ensembles of LLMs: all are coarse approximations to the Bayesian story you’ve now seen exactly.</p>
+<hr>
+</section>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">7. Experiments to actually run</h2>
+<section id="how-does-regret-scale-with-dimension" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-regret-scale-with-dimension">7.1 How does regret scale with dimension?</h3>
+<p>Run LinUCB and LinTS at <span class="math inline">d \in \{2, 5, 10, 25, 50\}</span>, holding everything else fixed. Plot the cumulative regret at <span class="math inline">T = 2000</span> as a function of <span class="math inline">d</span>. You should see roughly linear growth in <span class="math inline">d</span> for LinUCB (consistent with the <span class="math inline">\tilde O(d\sqrt{T})</span> bound). Check whether LinTS follows the predicted <span class="math inline">d^{3/2}</span> scaling.</p>
+<p>The point: dimension matters a lot. Practical applications with many features need either much more data or function-class structure (sparsity, low-rank, etc.).</p>
+</section>
+<section id="calibration-of-the-posterior" class="level3">
+<h3 class="anchored" data-anchor-id="calibration-of-the-posterior">7.2 Calibration of the posterior</h3>
+<p>In a held-out sense, are LinUCB’s 95% credible intervals actually calibrated? At each step, predict the reward and check whether the realized reward falls within the predictive 95% band. Track the coverage rate. Under correct model specification it should converge to 95%; under misspecification it may be far off.</p>
+<p>This is a microcosm of LLM calibration. Models often produce confident-sounding answers whose actual reliability doesn’t match. Testing calibration is the first step toward fixing it.</p>
+</section>
+<section id="misspecified-model" class="level3">
+<h3 class="anchored" data-anchor-id="misspecified-model">7.3 Misspecified model</h3>
+<p>What if the true reward function is non-linear? Generate data with <span class="math inline">r = \sin(x_1) + x_2 + \varepsilon</span> and run LinUCB pretending the model is linear. The algorithm will fit the best linear approximation but its regret will not be <span class="math inline">\tilde O(\sqrt{T})</span> — it will eventually be linear (because no linear approximation gets you to the truth). Empirically observe this. Then think: how would you detect misspecification in real life?</p>
+</section>
+<section id="reproduce-one-figure-from-the-linucb-paper" class="level3">
+<h3 class="anchored" data-anchor-id="reproduce-one-figure-from-the-linucb-paper">7.4 Reproduce one figure from the LinUCB paper</h3>
+<p>Li et al.&nbsp;(2010) ran LinUCB on a Yahoo! news recommendation dataset. The figure showing cumulative clicks vs LinUCB exploration rate is a classic. Replicate it on synthetic data: vary <span class="math inline">\alpha \in \{0.1, 0.5, 1.0, 2.0, 5.0\}</span> and plot how regret depends on the exploration parameter. There’s an optimal <span class="math inline">\alpha</span> — find it.</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">8. Solutions</h2>
+<p>As with the previous post, try first. Once you’ve struggled with each, here are the reference solutions and discussions.</p>
+<section id="regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py" class="level3">
+<h3 class="anchored" data-anchor-id="regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py">8.1 Regret scaling with dimension — <code>experiments/01b_sol1_regret_vs_dim.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_sol1_regret_vs_dim.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative regret at fixed T as a function of feature dimension d (log-log axes). Both LinUCB and LinTS grow with d; the fitted power-law exponents (0.42 and 0.53) are below the theoretical upper bounds (1.0 and 1.5).</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Both algorithms’ final regret grows with <span class="math inline">d</span>. The fitted power-law exponents — LinUCB at <span class="math inline">d^{0.42}</span>, LinTS at <span class="math inline">d^{0.53}</span> — are well below the theoretical bounds of <span class="math inline">\tilde O(d)</span> and <span class="math inline">\tilde O(d^{3/2})</span>. The qualitative ordering (LinTS grows slightly faster than LinUCB) matches theory.</p>
+<p><strong>Why the gap between theory and practice.</strong> Several reasons:</p>
+<ol type="1">
+<li><strong>The bounds are worst-case upper bounds</strong>, not exact rates. They hold over all problem instances; the <em>average</em> instance is much easier. Our random thetas are isotropic; the worst case has thetas adversarially aligned with the contexts.</li>
+<li><strong>Finite-T effects.</strong> The theoretical <span class="math inline">\tilde O(d \sqrt T)</span> has hidden constants and <span class="math inline">\log T</span> factors. At <span class="math inline">T = 600</span> we’re in the regime where lower-order terms still matter.</li>
+<li><strong>The constants depend on <span class="math inline">\sigma</span>, <span class="math inline">\lambda</span>, and the diameter of the parameter space.</strong> Different choices give different constants in front of the same exponent.</li>
+</ol>
+<p><strong>The deeper lesson.</strong> Empirical scaling is often <em>better</em> than worst-case theory predicts, but the <strong>shape</strong> of the scaling — that it grows polynomially, with <span class="math inline">d^{1+}</span> for TS faster than <span class="math inline">d^{1-}</span> for UCB — is what matters for engineering. A 10× increase in feature dimension is not a 10× increase in problem difficulty; for these algorithms it’s only <span class="math inline">10^{0.4}</span>–<span class="math inline">10^{0.5} \approx 2.5</span>–<span class="math inline">3\times</span>. That’s the right intuition for “how much harder does it get if I add features?”</p>
+<p>For practical work: if your features explode in dimension (sparse one-hot encodings, embedding dimensions), this scaling is your friend. If you can keep the <em>effective</em> dimension low (sparsity, low-rank structure), you can do dramatically better than this. Both LinUCB and LinTS have variants that exploit sparsity (LASSO-based; see Bastani &amp; Bayati 2020).</p>
+</section>
+<section id="calibration-experiments01b_sol2_calibration.py" class="level3">
+<h3 class="anchored" data-anchor-id="calibration-experiments01b_sol2_calibration.py">8.2 Calibration — <code>experiments/01b_sol2_calibration.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_sol2_calibration.png" class="img-fluid figure-img"></p>
+<figcaption>Empirical coverage of LinUCB’s 95% predictive interval. Blue: matched noise (algorithm’s σ matches truth) — converges to ~95.3%, well-calibrated. Red: mismatched noise (algorithm assumes σ=1 but truth is σ=0.1) — over-coverage at 100%, intervals are too wide.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Under matched noise — the bandit’s <span class="math inline">\sigma</span> equals the algorithm’s implicit assumption — coverage converges to 95.3%, essentially right on the nominal 95%. The brief over-shoot to ~98% early on is the prior dominating before enough data arrives. Under mismatched noise (algorithm thinks <span class="math inline">\sigma = 1</span>, truth is <span class="math inline">\sigma = 0.1</span>), coverage is <em>100% from the start</em>: every realized reward falls in the predicted interval. The intervals are about <span class="math inline">10\times</span> too wide.</p>
+<p><strong>Why it happens.</strong> LinUCB’s predictive variance is <span class="math inline">\sigma_{\text{alg}}^2 + x^\top A^{-1} x</span>, where the first term is the assumed aleatoric noise and the second is epistemic uncertainty about <span class="math inline">\theta</span>. When <span class="math inline">\sigma_{\text{alg}}^2 \gg \sigma_{\text{true}}^2</span>, you’ve inflated the noise term tenfold. The 95% interval is mostly capturing irreducible noise the algorithm <em>thinks</em> exists but doesn’t. Realized rewards essentially always land inside.</p>
+<p><strong>The deeper lesson — this is the canonical case of <em>calibration</em>.</strong> Calibration asks: when you say “I’m 95% confident,” does that statement bear out empirically? Three failure modes:</p>
+<ul>
+<li><strong>Over-coverage / under-confidence</strong>: stated intervals are too wide. You’re being lazy about your beliefs and missing decisions. <em>This is what we see in the mismatched case.</em></li>
+<li><strong>Under-coverage / over-confidence</strong>: stated intervals are too narrow. You’re being reckless and will be wrong more often than you think.</li>
+<li><strong>Calibration drift</strong>: coverage starts good but degrades as the problem changes (non-stationarity, distribution shift).</li>
+</ul>
+<p>Modern LLMs have all three failure modes, depending on the question type. Calibrating LLM uncertainty — making “the model says 90%” match empirical 90% accuracy — is an active research area. The mathematical machinery is identical to what we just did here. <strong>You have built, in this experiment, the simplest non-trivial calibration test that exists.</strong> Every paper on LLM calibration is doing some version of this.</p>
+<p><strong>What you should build next.</strong> Conformal prediction is a technique that takes any predictive model — including a miscalibrated one — and produces intervals with finite-sample coverage guarantees. It’s a beautifully simple idea worth your time. Once you’ve internalized this experiment, conformal prediction is a 30-minute read away.</p>
+</section>
+<section id="misspecification-experiments01b_sol3_misspecification.py" class="level3">
+<h3 class="anchored" data-anchor-id="misspecification-experiments01b_sol3_misspecification.py">8.3 Misspecification — <code>experiments/01b_sol3_misspecification.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_sol3_misspecification.png" class="img-fluid figure-img"></p>
+<figcaption>LinUCB on a misspecified problem. Blue: linear bandit (correctly specified), regret plateaus near 9. Red: non-linear bandit (rewards depend on sin(ω_k x_1)), regret grows linearly at 0.017/step. The linear approximation has irreducible bias.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> When the model is well-specified (true rewards are linear), LinUCB’s regret plateaus around 9 by <span class="math inline">T = 3000</span> — sublinear and consistent with the <span class="math inline">\tilde O(d \sqrt T)</span> bound. When the model is misspecified (true rewards include <span class="math inline">\sin(\omega_k x_1)</span>, which no linear function captures), regret grows linearly at <span class="math inline">\sim 0.017</span> per step from start to finish. After <span class="math inline">T = 3000</span>, cumulative regret is <span class="math inline">\sim 63</span>, with no sign of plateauing.</p>
+<p><strong>Why it happens.</strong> LinUCB fits the best <em>linear approximation</em> to the true function, since that’s the only thing its model class allows. Call this best linear fit <span class="math inline">\bar\theta_k</span>. The algorithm’s regret with respect to the <em>best linear policy</em> would be sublinear. But the optimal <em>contextual</em> policy uses the true non-linear <span class="math inline">r_k(x)</span>, not its linear approximation. The gap between “best linear policy” and “true optimal policy” is the <strong>approximation error</strong>, and it’s constant per step. Cumulative approximation error grows linearly.</p>
+<p>You can decompose total regret: <span class="math display">
+R_{\text{total}}(T) \;=\; \underbrace{R_{\text{linear}}(T)}_{\tilde O(d\sqrt T) \text{ if linear is correct}} \;+\; \underbrace{R_{\text{approx}}(T)}_{\Omega(T) \text{ if misspecified}}.
+</span></p>
+<p>The second term dominates asymptotically. There’s no algorithm in our linear class that can do better — we’ve hit the ceiling of what the model can express.</p>
+<p><strong>The deeper lesson.</strong> Model class matters more than algorithm. A wrong-class model with a clever algorithm is beaten by a right-class model with a dumb algorithm, eventually. This is why neural bandits and Bayesian deep learning exist: when the truth isn’t linear, you need a richer model class even at the cost of harder inference.</p>
+<p><strong>Misspecification detection.</strong> Can you tell from the regret curve that you’re misspecified, before you know the answer? Yes — look at the second derivative of cumulative regret. Well-specified algorithms should produce regret curves that <em>bend down</em> (sublinear); persistent linearity is a red flag. In practice, you’d also do residual analysis: if your model’s residuals show structure (e.g., correlation with some feature), you’re missing something.</p>
+<p><strong>What you should build next.</strong> Two natural extensions: (a) Replace LinUCB with a neural-linear UCB (last-layer Bayesian regression on a neural feature extractor) and see if regret returns to sublinear. (b) Implement <em>model-class testing</em>: fit several model classes (linear, polynomial degree 2, neural net) and use held-out predictive likelihood to pick. Misspecification stops being a silent killer when you actively look for it.</p>
+</section>
+<section id="alpha-sweep-experiments01b_sol4_alpha_sweep.py" class="level3">
+<h3 class="anchored" data-anchor-id="alpha-sweep-experiments01b_sol4_alpha_sweep.py">8.4 Alpha sweep — <code>experiments/01b_sol4_alpha_sweep.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01b_sol4_alpha_sweep.png" class="img-fluid figure-img"></p>
+<figcaption>LinUCB regret as a function of the exploration parameter α (log-x scale). Classic U-shape: under-exploration (α &lt; 0.5) wastes pulls on suboptimal arms; over-exploration (α &gt; 2) wastes pulls on known-good arms. Optimum near α = 0.5.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Final regret at <span class="math inline">T = 1500</span> has a clear minimum at <span class="math inline">\alpha \approx 0.5</span>, where regret is <span class="math inline">\sim 13</span>. Going to <span class="math inline">\alpha = 0.05</span> (almost no exploration) costs you <span class="math inline">\sim 5</span> extra regret. Going to <span class="math inline">\alpha = 8</span> (massive over-exploration) costs you <span class="math inline">\sim 57</span> extra regret — far worse. The curve is asymmetric: <strong>over-exploration hurts more than under-exploration</strong>, at least on this instance.</p>
+<p><strong>Why the U-shape.</strong> Two competing effects, each unbounded at one end:</p>
+<ul>
+<li><strong><span class="math inline">\alpha</span> too small → exploitation trap.</strong> Without enough bonus to overcome small noise advantages, the algorithm can settle on a suboptimal arm and keep pulling it. Regret is approximately <em>linear</em> until enough random noise eventually causes a switch.</li>
+<li><strong><span class="math inline">\alpha</span> too large → wasted exploration.</strong> Big bonuses mean even well-explored arms keep getting probed. The algorithm keeps trying arms it should already know are bad. Per-pull regret is high; cumulative regret grows fast.</li>
+</ul>
+<p>The optimum is where these two costs balance.</p>
+<p><strong>Why over-exploration is worse here.</strong> At the high-<span class="math inline">\alpha</span> end, every step is genuinely costly — you’re pulling clearly-suboptimal arms by direct choice. At the low-<span class="math inline">\alpha</span> end, you’re <em>not</em> pulling clearly-suboptimal arms; you’re failing to discover that one of your “good” arms is actually better. The first error is constant per step; the second is bounded by the gap between near-tied top arms, which can be small. Hence the asymmetry.</p>
+<p><strong>The deeper lesson — agentic AI implication.</strong> Every exploration mechanism has a tunable temperature: <span class="math inline">\alpha</span> in UCB-like methods, <span class="math inline">v</span> in Thompson, <span class="math inline">\varepsilon</span> in ε-greedy, the entropy bonus in policy gradients, the temperature parameter in LLM decoding. They all have this U-shape. The whole point of the principled methods (Thompson, Bayesian RL) is that <strong>the optimal temperature is set automatically by the posterior</strong> — you don’t have to sweep. But every system still has <em>some</em> knob, and the U-shape governs it.</p>
+<p><strong>Practical guidance.</strong> For a new contextual bandit problem, sweep <span class="math inline">\alpha</span> logarithmically over <span class="math inline">\{0.1, 0.3, 1, 3, 10\}</span> before fixing it. The optimum often sits in <span class="math inline">[0.5, 2.0]</span>; <span class="math inline">\alpha = 1</span> is a strong default if you have no budget for tuning. Thompson Sampling with <span class="math inline">v = 1</span> is even more strongly self-tuning and often a safer choice for production.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">9. Further reading</h2>
+<ul>
+<li><strong>Lattimore &amp; Szepesvári, <em>Bandit Algorithms</em> (2020), Chapters 18–22.</strong> The rigorous treatment of contextual bandits. Worth reading carefully if you want the tight regret proofs.</li>
+<li><strong>Li, Chu, Langford &amp; Schapire, “A Contextual-Bandit Approach to Personalized News Article Recommendation” (WWW 2010).</strong> The original LinUCB paper. Surprisingly readable and full of practical wisdom.</li>
+<li><strong>Abbasi-Yadkori, Pál &amp; Szepesvári, “Improved Algorithms for Linear Stochastic Bandits” (NeurIPS 2011).</strong> The cleanest analysis of LinUCB and the source of the <span class="math inline">\tilde O(d\sqrt{T})</span> bound.</li>
+<li><strong>Agrawal &amp; Goyal, “Thompson Sampling for Contextual Bandits with Linear Payoffs” (ICML 2013).</strong> The contextual TS paper. The variance inflation analysis is the technical crux.</li>
+<li><strong>Bishop, <em>Pattern Recognition and Machine Learning</em> (2006), Chapter 3.</strong> The cleanest exposition of Bayesian linear regression I know of. Worth reading even if you’ve seen it before.</li>
+<li><strong>Riquelme, Tucker &amp; Snoek, “Deep Bayesian Bandits Showdown” (ICLR 2018).</strong> An empirical comparison of neural bandit methods. Neural-linear holds up surprisingly well — read for both the methods and the meta-lesson that simple methods often win.</li>
+<li><strong>Ouyang et al., “Training Language Models to Follow Instructions with Human Feedback” (NeurIPS 2022).</strong> The InstructGPT paper. The reward modeling section is exactly the contextual bandit framing from §6.1.</li>
+</ul>
+<hr>
+<p><strong>Next up — Part 1c: MDPs and the Bellman equations.</strong> We add state transitions. Now the action you take changes the world, not just the reward you receive. Value functions, the Bellman optimality equation, value iteration. Bandits, contextual or not, are MDPs with <span class="math inline">|S| = 1</span>; in 1c we lift that restriction.</p>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Contextual Bandits: When the Best Action Depends on Who You're Talking To"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Decision-making under uncertainty, from scratch — 2 of 4. We derive Bayesian linear regression from scratch (with Sherman-Morrison online updates and the variational view), then build LinUCB and Linear Thompson Sampling on top of it. The bridge to RLHF reward models and neural bandits."</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-20"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [bandits, bayesian, contextual, blr, RLHF]</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/01b_contextual_regret_curves.png</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Decision-making under uncertainty, from scratch — 2 of 4.*</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>In <span class="co">[</span><span class="ot">Part 1a</span><span class="co">](01a-multi-armed-bandits.qmd)</span> we built three algorithms for a world where each arm has a single unknown expected reward. That's enough for some real problems (A/B testing two website designs), but it's far from enough for any modern application. Netflix doesn't recommend the same movie to everyone. A doctor doesn't prescribe the same dose to every patient. An RLHF reward model doesn't score every response the same.</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>The missing piece is **context** — features describing the situation we're in. The reward of pulling arm $k$ now depends on a context vector $x_t$, and the optimal arm changes with it. This post derives the linear contextual bandit from first principles, builds **LinUCB** and **Linear Thompson Sampling** on top, and lands at the place where reward models for RLHF actually live.</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>The mathematical engine for both algorithms is **Bayesian linear regression**. We'll spend serious time on it — not because the math is hard, but because every Bayesian deep learning method, every uncertainty-aware LLM, every probabilistic agent comes back to it. Treating BLR rigorously here pays off for the rest of the series.</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. From "best arm" to "best arm for this context"</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="al">![Same four arms, two different contexts, two different best arms. Plain bandits can't capture this — they assume a single best arm exists.](../figures/01b_contextual_schematic.png)</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>The figure above shows two contexts $x_A = (0.8, 0.6)$ and $x_B = (-0.7, 0.7)$, and the predicted reward $x^\top \theta_k$ each of four arms produces under each. Same arms, same parameters; different best arm. For $x_A$, arm 3 wins. For $x_B$, arm 4 wins.</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>If we ran the unstructured bandit algorithms from 1a on this data, they'd see a stream of rewards from each arm, average them out, and pick whichever arm had the highest *marginal* mean. They'd be solving the wrong problem. The marginal-best arm might lose to literally every other arm on every individual context, if the contexts arrive in the wrong proportions.</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>This is why context-free UCB1 has linear regret on this kind of problem — we'll see it explicitly in the regret figure at the end. The algorithm isn't doing anything wrong given its assumptions; the assumptions just don't match the world.</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Formal setup</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>A **contextual bandit** is a tuple $(\mathcal{X}, \mathcal{A}, P_r)$ where:</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\mathcal{X}$ is a context space (we'll take $\mathcal{X} = \mathbb{R}^d$),</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\mathcal{A} = <span class="sc">\{</span>1, \dots, K<span class="sc">\}</span>$ is the action set, and</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$P_r(\cdot \mid x, a)$ is the conditional reward distribution given context and action.</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>At each timestep $t$:</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>The environment reveals context $x_t \in \mathcal{X}$.</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>The agent picks action $a_t \in \mathcal{A}$.</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>The environment returns reward $r_t \sim P_r(\cdot \mid x_t, a_t)$.</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>We want to minimize **regret** relative to the best contextual policy:</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>R(T) \;\equiv\; \mathbb{E}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot">\sum_{t=1}^{T} \max_a \mathbb{E}[r_t \mid x_t, a] \;-\; r_t\right</span><span class="co">]</span>.</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>This is the contextual analogue of the regret we defined for unstructured bandits. It compares the agent's reward to an oracle that knows the true reward function and picks optimally per-context.</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1.1 Linearity assumption</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>To make progress we need structure. The simplest useful assumption is **linearity**: there exist unknown parameters $\theta_k \in \mathbb{R}^d$ such that</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>\mathbb{E}<span class="co">[</span><span class="ot">r_t \mid x_t, a_t = k</span><span class="co">]</span> \;=\; x_t^\top \theta_k.</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>Two common parameterizations:</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Disjoint:** each arm has its own $\theta_k$. The K reward functions are independent. Used when arms are heterogeneous (e.g., news articles, where each has its own coefficients on user features).</span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Shared (hybrid):** there's a single $\theta$, but features depend on both context and arm: $\mathbb{E}<span class="co">[</span><span class="ot">r \mid x, a</span><span class="co">]</span> = \phi(x, a)^\top \theta$. Used when arms share structure (e.g., recommending the same set of items with item-specific features).</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>We'll focus on the disjoint case — it's conceptually cleaner and the math transfers to the shared case directly. In the implementation, both look identical: maintain the sufficient statistics of a Bayesian linear regression, predict and explore using them.</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>Note: realized rewards add noise, $r_t = x_t^\top \theta_k + \varepsilon_t$ with $\varepsilon_t \sim \mathcal{N}(0, \sigma^2)$. The Gaussian assumption is convenient (conjugate priors!) but not essential — most of what follows generalizes to sub-Gaussian noise.</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. The engine: Bayesian linear regression</span></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>Both LinUCB and Linear Thompson Sampling are wrappers around Bayesian linear regression. The algorithm essentially reduces to "fit a Bayesian linear regression to each arm, then do something thoughtful with the resulting posterior." So we need the posterior.</span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>This section is the deepest math in the post. The payoff is that *every* later technique in the curriculum — neural bandits, reward models in RLHF, Bayesian neural networks, calibration of LLMs — reduces in some part to this calculation. Internalize it once, reuse it forever.</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 The model</span></span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>We observe data $\mathcal{D} = <span class="sc">\{</span>(x_i, y_i)<span class="sc">\}</span>_{i=1}^n$ generated by</span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a>y_i \;=\; x_i^\top \theta + \varepsilon_i, \qquad \varepsilon_i \sim \mathcal{N}(0, \sigma^2),</span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>with $\theta \in \mathbb{R}^d$ unknown. We place a Gaussian prior on $\theta$:</span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a>\theta \sim \mathcal{N}(\mu_0, \Sigma_0).</span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a>A standard choice is $\mu_0 = 0$, $\Sigma_0 = \lambda^{-1} I$ — a centered, isotropic prior with precision $\lambda$. Large $\lambda$ means a tight prior (strong belief that $\theta$ is near 0); small $\lambda$ means a vague prior.</span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 Deriving the posterior</span></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a>The posterior is also Gaussian — this is the magic of conjugacy. Let me derive it cleanly.</span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>By Bayes' rule, $p(\theta \mid \mathcal{D}) \propto p(\mathcal{D} \mid \theta) \, p(\theta)$. Taking logs and dropping constants:</span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a>\log p(\theta \mid \mathcal{D}) \;=\; -\frac{1}{2\sigma^2} \sum_{i=1}^{n} (y_i - x_i^\top \theta)^2 \;-\; \frac{1}{2} (\theta - \mu_0)^\top \Sigma_0^{-1} (\theta - \mu_0) \;+\; \text{const}.</span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a>Both terms are quadratic in $\theta$. The posterior is therefore Gaussian. To find its mean and covariance, expand and collect terms in $\theta$:</span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>\log p(\theta \mid \mathcal{D}) \;=\; -\frac{1}{2} \theta^\top \underbrace{\left<span class="co">[</span><span class="ot">\Sigma_0^{-1} + \sigma^{-2} X^\top X\right</span><span class="co">]</span>}_{\Sigma_n^{-1}} \theta \;+\; \theta^\top \underbrace{\left[\Sigma_0^{-1} \mu_0 + \sigma^{-2} X^\top y\right]}_{\Sigma_n^{-1} \mu_n} + \text{const},</span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a>where $X \in \mathbb{R}^{n \times d}$ is the design matrix with rows $x_i^\top$ and $y \in \mathbb{R}^n$ is the response vector. Reading off the coefficients of $\theta^\top (\cdot) \theta$ and $\theta^\top (\cdot)$ gives the **posterior**</span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>\boxed{\;\theta \mid \mathcal{D} \;\sim\; \mathcal{N}(\mu_n, \Sigma_n), \qquad \Sigma_n^{-1} = \Sigma_0^{-1} + \sigma^{-2} X^\top X, \qquad \mu_n = \Sigma_n \big<span class="co">[</span><span class="ot">\Sigma_0^{-1} \mu_0 + \sigma^{-2} X^\top y\big</span><span class="co">]</span>.\;}</span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>With the standard isotropic prior $\mu_0 = 0$, $\Sigma_0 = \lambda^{-1} I$, this simplifies to</span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>\Sigma_n^{-1} \;=\; \lambda I + \sigma^{-2} X^\top X, \qquad \mu_n \;=\; \sigma^{-2} \Sigma_n X^\top y \;=\; \left(\lambda \sigma^2 I + X^\top X\right)^{-1} X^\top y.</span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>This is the **ridge regression** estimator with regularization $\lambda \sigma^2$. Bayesian linear regression with a zero-mean Gaussian prior *is* ridge regression — the posterior mean coincides with the MAP estimate, which coincides with the regularized least-squares solution. Three views, one object.</span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.3 Visualizing the contraction</span></span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a><span class="al">![The Gaussian posterior over θ contracts toward the true parameter as data accumulates. The 95% region (dashed) and 68% region (solid) both shrink at rate 1/√n.](../figures/01b_blr_posterior_evolution.png)</span></span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>The figure shows the posterior at $n = 0, 10, 100, 500$ for a 2D problem with $\sigma = 0.7$ noise. Notice how:</span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>At $n = 0$, the posterior is the prior — wide and centered at zero, with the true parameter $\theta^\star = (1.2, -0.6)$ near the boundary.</span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>By $n = 10$, the posterior has clearly moved toward $\theta^\star$, though with significant uncertainty.</span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>At $n = 100$, the 95% region is tight and contains the truth.</span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>At $n = 500$, the posterior is essentially a delta at $\theta^\star$.</span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>The rate of contraction is **$1/\sqrt{n}$ per dimension**. Specifically, the posterior covariance $\Sigma_n = (\lambda I + \sigma^{-2} X^\top X)^{-1}$. If $X^\top X$ grows like $n$ times the identity (true on average for isotropic contexts), then $\Sigma_n \approx \sigma^2 / n \cdot I$. The standard deviation in each direction is $\sigma / \sqrt{n}$. This is the same rate that frequentist concentration inequalities give you — Bayesian and frequentist agree on the *amount* of information in $n$ samples.</span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.4 Online updates and Sherman-Morrison</span></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>Bandit algorithms need to update the posterior every step. Recomputing $\Sigma_n^{-1}$ from scratch and inverting it takes $O(n d^2 + d^3)$ — way too expensive online. We want **$O(d^2)$ per step**.</span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a>The Sherman-Morrison formula gives it to us. For an invertible matrix $A$ and vectors $u, v$ with $1 + v^\top A^{-1} u \neq 0$,</span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a>(A + u v^\top)^{-1} \;=\; A^{-1} \;-\; \frac{A^{-1} u v^\top A^{-1}}{1 + v^\top A^{-1} u}.</span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a>In our case, when a new data point $(x_{n+1}, y_{n+1})$ arrives, the precision matrix updates as</span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>A_{n+1} \;=\; A_n + \sigma^{-2} x_{n+1} x_{n+1}^\top, \quad \text{where } A_n \equiv \Sigma_n^{-1}.</span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>Applying Sherman-Morrison with $u = v = \sigma^{-1} x_{n+1}$:</span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>A_{n+1}^{-1} \;=\; A_n^{-1} \;-\; \frac{A_n^{-1} x_{n+1} x_{n+1}^\top A_n^{-1}}{\sigma^2 + x_{n+1}^\top A_n^{-1} x_{n+1}}.</span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>So we maintain $A_n^{-1}$ directly, update it in $O(d^2)$ per step (one matrix-vector product, one outer product), and never call <span class="in">`np.linalg.inv`</span> again. The posterior mean $\mu_n = A_n^{-1} b_n$ where $b_n = \sigma^{-2} \sum_i y_i x_i$ also updates incrementally: $b_{n+1} = b_n + \sigma^{-2} y_{n+1} x_{n+1}$, with $\mu_{n+1} = A_{n+1}^{-1} b_{n+1}$.</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>In our reference implementation we use the simpler <span class="in">`np.linalg.solve(A, b)`</span> because $d$ is small and clarity wins over micro-optimization. For production at large $d$, switch to Sherman-Morrison.</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.5 The variational / KL view</span></span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>Here's a perspective that becomes essential later in the curriculum. The Bayesian posterior is the unique distribution $q^\star(\theta)$ that minimizes the **variational free energy**:</span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>q^\star \;=\; \arg\min_q \;\Big<span class="co">[</span><span class="ot">\, \mathrm{KL}(q \,\|\, p_0) \;-\; \mathbb{E}_{q}[\log p(\mathcal{D} \mid \theta)] \,\Big</span><span class="co">]</span>,</span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>where the minimization is over all distributions $q$ on $\theta$. When $q$ is restricted to Gaussians and the model is conjugate, this optimization is exact: the optimal $q$ equals the true posterior $p(\theta \mid \mathcal{D})$. When $q$ is restricted to a more limited family (mean-field, low-rank Gaussians, etc.) you get **variational inference** — an approximate posterior that minimizes the same objective.</span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a>Two takeaways:</span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**The Bayesian update is an optimization.** Each step minimizes a tradeoff between (a) staying close to the prior (the KL term) and (b) fitting the data (the expected log-likelihood). Online, the previous posterior becomes the new prior, and each new data point pulls the distribution slightly toward better fit.</span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**This is the gateway to variational neural networks.** Replace $\theta$ with neural network weights, replace $p(y \mid x, \theta)$ with a deep model, restrict $q$ to a tractable family (e.g., factorized Gaussian over weights), and you get variational BNNs. The objective is identical. Bayesian linear regression is the simplest non-trivial instance of an idea that scales all the way up.</span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>This isn't a digression — it's the through-line from contextual bandits to your PhD topic and to modern Bayesian deep learning. Every uncertainty-aware LLM technique in the literature is some descendant of the variational view applied here.</span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.6 Predictive distribution</span></span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a>For a new context $x_*$, the predictive distribution of the reward is also Gaussian:</span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>r_* \mid x_*, \mathcal{D} \;\sim\; \mathcal{N}\!\left(\, x_*^\top \mu_n, \; \sigma^2 + x_*^\top \Sigma_n x_* \,\right).</span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a>The variance has two parts:</span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\sigma^2$ — irreducible noise.** Even if we knew $\theta$ exactly, we couldn't predict $r_*$ exactly because of the noise term $\varepsilon$. This is **aleatoric** uncertainty.</span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$x_*^\top \Sigma_n x_*$ — parameter uncertainty.** Our uncertainty about $\theta$ projected into the direction $x_*$. This is **epistemic** uncertainty — it shrinks to 0 as $n \to \infty$.</span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a>Both LinUCB and LinTS use the epistemic piece. UCB bonuses are scaled by $\sqrt{x_*^\top \Sigma_n x_*}$; TS samples from the parameter posterior. The aleatoric noise is fixed and irreducible — we can't explore it away.</span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a>This decomposition matters in agentic AI. When an LLM is uncertain, you want to know whether it's because the world is genuinely ambiguous (aleatoric — can't help by asking again) or because the model is undertrained (epistemic — more data would help). Same math, much bigger problem.</span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. LinUCB</span></span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a>The LinUCB recipe: at each step $t$, for each arm $k$, compute the **upper confidence bound** on the expected reward $x_t^\top \theta_k$. Pick the arm with the highest UCB.</span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 The algorithm</span></span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a>For each arm $k$, maintain the sufficient statistics for arm-$k$'s Bayesian linear regression:</span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a>A_k \;\equiv\; \lambda I + \sum_{i:\, a_i = k} x_i x_i^\top, \qquad b_k \;\equiv\; \sum_{i:\, a_i = k} r_i \, x_i,</span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a>where the sums are over timesteps when arm $k$ was pulled. We've set $\sigma = 1$ to keep notation light. Then the posterior mean and predictive variance are</span>
+<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a>\hat\theta_k \;=\; A_k^{-1} b_k, \qquad \mathrm{Var}<span class="sc">\!</span>\left(x^\top \theta_k \mid \mathcal{D}\right) \;=\; x^\top A_k^{-1} x.</span>
+<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a>LinUCB picks</span>
+<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a>\boxed{\;a_t \;=\; \arg\max_k \; \left<span class="co">[</span><span class="ot">\, x_t^\top \hat\theta_k \,+\, \alpha \sqrt{x_t^\top A_k^{-1} x_t} \,\right</span><span class="co">]</span>.\;}</span>
+<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-224"><a href="#cb1-224" aria-hidden="true" tabindex="-1"></a>The first term is the predicted reward — pure exploitation. The second is $\alpha$ times the predictive standard deviation — exploration. Just like UCB1, but the bonus is now context-dependent. **Contexts in poorly-explored directions get higher bonuses; well-explored contexts get smaller bonuses.**</span>
+<span id="cb1-225"><a href="#cb1-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-226"><a href="#cb1-226" aria-hidden="true" tabindex="-1"></a>The hyperparameter $\alpha$ controls exploration aggressiveness. The theory gives $\alpha = O(\sqrt{\log T})$, but in practice $\alpha = 1$ is a strong default.</span>
+<span id="cb1-227"><a href="#cb1-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-228"><a href="#cb1-228" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 What the algorithm looks like in practice</span></span>
+<span id="cb1-229"><a href="#cb1-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-230"><a href="#cb1-230" aria-hidden="true" tabindex="-1"></a><span class="al">![LinUCB at n=20 (left) and n=200 (right). The orange line is the upper-confidence index; the blue band is the 95% credible region; the dashed black is the true function. As data accumulates, the band tightens around truth and the bonus shrinks.](../figures/01b_linucb_ellipsoid.png)</span></span>
+<span id="cb1-231"><a href="#cb1-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-232"><a href="#cb1-232" aria-hidden="true" tabindex="-1"></a>This figure uses a scalar feature $z$ with $d = 2$ (intercept plus $z$), so we can plot the predicted reward as a function of $z$. The shaded blue band is the 95% credible region for the reward; the orange line is the LinUCB upper-confidence index.</span>
+<span id="cb1-233"><a href="#cb1-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-234"><a href="#cb1-234" aria-hidden="true" tabindex="-1"></a>At $n = 20$, the band is visibly wide and the UCB sits noticeably above the posterior mean. The algorithm is uncertain and bonuses are large.</span>
+<span id="cb1-235"><a href="#cb1-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-236"><a href="#cb1-236" aria-hidden="true" tabindex="-1"></a>At $n = 200$, the band is tight, the UCB is barely above the mean, and both have essentially converged to the true function. Exploration has finished its job.</span>
+<span id="cb1-237"><a href="#cb1-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-238"><a href="#cb1-238" aria-hidden="true" tabindex="-1"></a>The bonus is largest in directions where $x^\top A_k^{-1} x$ is large — directions where the data didn't constrain $\theta_k$ much. If we'd pulled arm $k$ only on contexts living in a 2D subspace of $\mathbb{R}^d$, the predictive variance would be huge for any context outside that subspace, and LinUCB would aggressively pull that arm under such a context to find out. This is **exploration in the direction of information gain** — exactly the right behavior.</span>
+<span id="cb1-239"><a href="#cb1-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-240"><a href="#cb1-240" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.3 Regret bound</span></span>
+<span id="cb1-241"><a href="#cb1-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-242"><a href="#cb1-242" aria-hidden="true" tabindex="-1"></a>For LinUCB with appropriate $\alpha$, Abbasi-Yadkori, Pál &amp; Szepesvári (2011) prove</span>
+<span id="cb1-243"><a href="#cb1-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-244"><a href="#cb1-244" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-245"><a href="#cb1-245" aria-hidden="true" tabindex="-1"></a>R(T) \;=\; \tilde O<span class="sc">\!</span>\left(d \sqrt{T}\right),</span>
+<span id="cb1-246"><a href="#cb1-246" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-247"><a href="#cb1-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-248"><a href="#cb1-248" aria-hidden="true" tabindex="-1"></a>where $\tilde O$ hides logarithmic factors. The matching lower bound for linear contextual bandits is $\Omega(d \sqrt{T})$, so LinUCB is near-optimal.</span>
+<span id="cb1-249"><a href="#cb1-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-250"><a href="#cb1-250" aria-hidden="true" tabindex="-1"></a>Note: this is **$\sqrt{T}$**, not $\log T$. Why the difference from unstructured bandits? Because we're learning a $d$-dimensional function instead of $K$ scalar means. Statistical learning of a function fundamentally has $\sqrt{T}$ rate, and structured bandits inherit it.</span>
+<span id="cb1-251"><a href="#cb1-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-252"><a href="#cb1-252" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-253"><a href="#cb1-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-254"><a href="#cb1-254" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Linear Thompson Sampling</span></span>
+<span id="cb1-255"><a href="#cb1-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-256"><a href="#cb1-256" aria-hidden="true" tabindex="-1"></a>The Bayesian counterpart. Instead of optimistic point estimates, **sample** parameters from each arm's posterior and act greedily under the samples.</span>
+<span id="cb1-257"><a href="#cb1-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-258"><a href="#cb1-258" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 The algorithm</span></span>
+<span id="cb1-259"><a href="#cb1-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-260"><a href="#cb1-260" aria-hidden="true" tabindex="-1"></a>Maintain the same $A_k$, $b_k$ as LinUCB. At each step:</span>
+<span id="cb1-261"><a href="#cb1-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-262"><a href="#cb1-262" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>For each arm $k$, sample $\tilde\theta_k \sim \mathcal{N}<span class="sc">\!</span>\left(\hat\theta_k, \, v^2 A_k^{-1}\right)$.</span>
+<span id="cb1-263"><a href="#cb1-263" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Play $a_t = \arg\max_k x_t^\top \tilde\theta_k$.</span>
+<span id="cb1-264"><a href="#cb1-264" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Observe $r_t$ and update $A_{a_t}, b_{a_t}$.</span>
+<span id="cb1-265"><a href="#cb1-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-266"><a href="#cb1-266" aria-hidden="true" tabindex="-1"></a>The hyperparameter $v$ rescales the posterior variance. $v = 1$ corresponds to the exact Bayesian Thompson posterior under unit-variance noise. Agrawal &amp; Goyal (2013) show that inflating $v$ beyond 1 yields the tightest regret bounds; in practice $v \in <span class="co">[</span><span class="ot">0.25, 1</span><span class="co">]</span>$ usually works well. Smaller $v$ → less exploration; larger → more.</span>
+<span id="cb1-267"><a href="#cb1-267" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-268"><a href="#cb1-268" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 The "each draw is a hypothesis" view</span></span>
+<span id="cb1-269"><a href="#cb1-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-270"><a href="#cb1-270" aria-hidden="true" tabindex="-1"></a><span class="al">![Each posterior draw (faint blue) is one hypothesis about the world. The agent commits to that hypothesis for one step and acts optimally under it. At n=10 the hypotheses disagree and the algorithm explores; at n=200 they agree and the algorithm exploits.](../figures/01b_lints_draws.png)</span></span>
+<span id="cb1-271"><a href="#cb1-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-272"><a href="#cb1-272" aria-hidden="true" tabindex="-1"></a>This figure shows ten posterior draws of the function $f(z) = \theta_0 + \theta_1 z$ at two timesteps. Each draw $\tilde\theta$ is a possible truth — one of the worlds consistent with the data. The agent picks one (randomly), commits to it for the round, and acts as if that world is real.</span>
+<span id="cb1-273"><a href="#cb1-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-274"><a href="#cb1-274" aria-hidden="true" tabindex="-1"></a>At $n = 10$, the ten hypotheses fan out: some slopes are higher, some lower, intercepts vary. Different hypotheses imply *different best arms* at a given context. This natural disagreement drives exploration — the agent will visit whichever arm looks best under the sample it drew, and that varies stochastically.</span>
+<span id="cb1-275"><a href="#cb1-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-276"><a href="#cb1-276" aria-hidden="true" tabindex="-1"></a>At $n = 200$, all ten draws cluster tightly around the true function. The agent acts almost as if it knew $\theta^\star$, because all plausible $\theta$'s now agree on what to do.</span>
+<span id="cb1-277"><a href="#cb1-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-278"><a href="#cb1-278" aria-hidden="true" tabindex="-1"></a>Compare to plain Thompson Sampling from 1a, where each "hypothesis" was a single number per arm (a Beta sample). The same idea, scaled to functions: sample the function, act under it.</span>
+<span id="cb1-279"><a href="#cb1-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-280"><a href="#cb1-280" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.3 Probability matching, generalized</span></span>
+<span id="cb1-281"><a href="#cb1-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-282"><a href="#cb1-282" aria-hidden="true" tabindex="-1"></a>In 1a we showed that Thompson Sampling picks arm $k$ with probability equal to the posterior probability that $k$ is optimal. The same property holds here, with a contextual twist:</span>
+<span id="cb1-283"><a href="#cb1-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-284"><a href="#cb1-284" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-285"><a href="#cb1-285" aria-hidden="true" tabindex="-1"></a>P(a_t = k \mid x_t, \mathcal{D}_t) \;=\; P\!\left(\, k = \arg\max_{j} x_t^\top \theta_j \;\Big|\; x_t, \mathcal{D}_t \,\right).</span>
+<span id="cb1-286"><a href="#cb1-286" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-287"><a href="#cb1-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-288"><a href="#cb1-288" aria-hidden="true" tabindex="-1"></a>The probability that LinTS picks arm $k$ for context $x_t$ equals the posterior probability that $k$ is the optimal arm at $x_t$. This is a strictly more nuanced statement than the unstructured version: the same arm can have high optimality probability at one context and low at another, and LinTS will track that automatically.</span>
+<span id="cb1-289"><a href="#cb1-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-290"><a href="#cb1-290" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.4 Regret bound</span></span>
+<span id="cb1-291"><a href="#cb1-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-292"><a href="#cb1-292" aria-hidden="true" tabindex="-1"></a>Agrawal &amp; Goyal (2013) prove $R(T) = \tilde O(d^{3/2} \sqrt{T})$ for Linear Thompson Sampling — a factor of $\sqrt{d}$ worse than LinUCB. In practice the bound is loose and LinTS is often empirically competitive with LinUCB. Which wins depends on the problem.</span>
+<span id="cb1-293"><a href="#cb1-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-294"><a href="#cb1-294" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-295"><a href="#cb1-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-296"><a href="#cb1-296" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. The showdown</span></span>
+<span id="cb1-297"><a href="#cb1-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-298"><a href="#cb1-298" aria-hidden="true" tabindex="-1"></a><span class="al">![Cumulative regret on a linear contextual bandit with K=5 arms, d=8 features. Context-free UCB1 is linear (it's solving the wrong problem). The contextual algorithms all curve into sublinear behavior, with LinUCB winning here.](../figures/01b_contextual_regret_curves.png)</span></span>
+<span id="cb1-299"><a href="#cb1-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-300"><a href="#cb1-300" aria-hidden="true" tabindex="-1"></a>Four algorithms on the same problem:</span>
+<span id="cb1-301"><a href="#cb1-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-302"><a href="#cb1-302" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Context-free UCB1** ignores $x_t$ entirely, treating rewards from each arm as i.i.d. samples from some marginal distribution. Its regret grows linearly — about 4 per step on this problem — because there *is* no single best arm. The marginal "best" arm is bad on a substantial fraction of contexts.</span>
+<span id="cb1-303"><a href="#cb1-303" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Contextual ε-greedy** uses ridge regression to estimate $\hat\theta_k$ and acts greedily 90% of the time. It achieves sublinear regret but pays a small fixed exploration tax.</span>
+<span id="cb1-304"><a href="#cb1-304" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**LinUCB** wins decisively here. Its principled exploration (Hoeffding-style bounds in feature space) is very efficient.</span>
+<span id="cb1-305"><a href="#cb1-305" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Linear Thompson Sampling** is also sublinear but slightly behind LinUCB on this particular instance. This is the opposite of what we saw in 1a, and it's instance-dependent — try different feature dimensions and noise levels and you'll see the ranking shift.</span>
+<span id="cb1-306"><a href="#cb1-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-307"><a href="#cb1-307" aria-hidden="true" tabindex="-1"></a>**The key message: using context buys you orders of magnitude.** At $T = 2000$, the context-free baseline has accumulated ~800 regret; the contextual algorithms have ~10–100. The gap widens with $T$ — context-free regret is linear, contextual is sublinear. Asymptotically, the ratio diverges.</span>
+<span id="cb1-308"><a href="#cb1-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-309"><a href="#cb1-309" aria-hidden="true" tabindex="-1"></a>This is the empirical case for why every modern personalization system, recommender, or LLM reward model is contextual.</span>
+<span id="cb1-310"><a href="#cb1-310" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-311"><a href="#cb1-311" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-312"><a href="#cb1-312" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-313"><a href="#cb1-313" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Forward connections</span></span>
+<span id="cb1-314"><a href="#cb1-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-315"><a href="#cb1-315" aria-hidden="true" tabindex="-1"></a>We're now at a junction with two important downstream applications. Let me make both explicit because they're central to the rest of the agentic AI curriculum.</span>
+<span id="cb1-316"><a href="#cb1-316" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-317"><a href="#cb1-317" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 RLHF reward models are contextual bandits (sort of)</span></span>
+<span id="cb1-318"><a href="#cb1-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-319"><a href="#cb1-319" aria-hidden="true" tabindex="-1"></a>Reinforcement learning from human feedback trains a **reward model** $r_\phi(x, y)$ that scores how good a response $y$ is to a prompt $x$. The reward model is fit from preference data: humans see pairs $(y_1, y_2)$ for the same prompt $x$ and pick which they prefer. The standard model is **Bradley-Terry**:</span>
+<span id="cb1-320"><a href="#cb1-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-321"><a href="#cb1-321" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-322"><a href="#cb1-322" aria-hidden="true" tabindex="-1"></a>P(y_1 \succ y_2 \mid x) \;=\; \frac{\exp r_\phi(x, y_1)}{\exp r_\phi(x, y_1) + \exp r_\phi(x, y_2)} \;=\; \sigma<span class="sc">\!</span>\big(r_\phi(x, y_1) - r_\phi(x, y_2)\big).</span>
+<span id="cb1-323"><a href="#cb1-323" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-324"><a href="#cb1-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-325"><a href="#cb1-325" aria-hidden="true" tabindex="-1"></a>Take logs: this is **logistic regression** on the difference of rewards. If $r_\phi$ is linear, $r_\phi(x, y) = \phi(x, y)^\top \theta$, you get linear logistic regression — a contextual bandit one-step removed. The features depend on prompt *and* response, fitting our "shared parameterization" case.</span>
+<span id="cb1-326"><a href="#cb1-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-327"><a href="#cb1-327" aria-hidden="true" tabindex="-1"></a>In practice $r_\phi$ is a neural network, so the linear model is too simple. But two ideas from this post transfer directly:</span>
+<span id="cb1-328"><a href="#cb1-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-329"><a href="#cb1-329" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Uncertainty in the reward model is the same problem we just solved.** Whether you use Bayesian last-layer ridge regression, deep ensembles, or variational neural networks — all of these are approximations to the posterior over $\theta$ we computed exactly here. The Bayesian view of RLHF asks: how do we maintain calibrated uncertainty about which response is preferred?</span>
+<span id="cb1-330"><a href="#cb1-330" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Exploration in RLHF.** Active learning for reward models — picking which prompts to label next — is exactly an exploration problem over the reward-model posterior. Should you label a prompt where the current model is confident (low information gain) or one where it's uncertain (high gain)? This is the bandit problem at the data-collection level.</span>
+<span id="cb1-331"><a href="#cb1-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-332"><a href="#cb1-332" aria-hidden="true" tabindex="-1"></a>There's published work in this direction; there's also room for more. Calibrated, uncertainty-aware reward modeling is one of the active research areas in safe RL from preferences, and the foundations are exactly what we just built.</span>
+<span id="cb1-333"><a href="#cb1-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-334"><a href="#cb1-334" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 Neural bandits and deep uncertainty</span></span>
+<span id="cb1-335"><a href="#cb1-335" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-336"><a href="#cb1-336" aria-hidden="true" tabindex="-1"></a>What if the reward function isn't linear? Replace $x^\top \theta_k$ with a neural network $f_{\theta_k}(x)$. The problem becomes a **neural bandit**.</span>
+<span id="cb1-337"><a href="#cb1-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-338"><a href="#cb1-338" aria-hidden="true" tabindex="-1"></a>The difficulty: we no longer have closed-form posteriors. Several approaches:</span>
+<span id="cb1-339"><a href="#cb1-339" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-340"><a href="#cb1-340" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Bootstrap and ensembles** (Osband et al., 2016). Train $M$ networks on bootstrapped samples of the data. Use the ensemble disagreement as a proxy for posterior variance. Pick actions by sampling one ensemble member (Bootstrapped Thompson) or by averaging means + ensemble-std bonus (ensemble UCB).</span>
+<span id="cb1-341"><a href="#cb1-341" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Bayesian neural networks** (Blundell et al., 2015 and successors). Place a prior on the weights, do variational inference. Same KL view as §2.5, but on a deep model. The variational families are restricted, so the approximation introduces error, but the formalism is identical.</span>
+<span id="cb1-342"><a href="#cb1-342" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Neural linear** (Riquelme et al., 2018). Use the neural net as a feature extractor and apply Bayesian linear regression on the last layer. The features are learned but the uncertainty is closed-form. Practical and surprisingly strong; the recommended starting point.</span>
+<span id="cb1-343"><a href="#cb1-343" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Laplace approximation** (Daxberger et al., 2021). Fit a deterministic neural net, then approximate the posterior as Gaussian centered at the MAP with covariance equal to the inverse Hessian. Plays nicely with pretrained models.</span>
+<span id="cb1-344"><a href="#cb1-344" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-345"><a href="#cb1-345" aria-hidden="true" tabindex="-1"></a>The unifying view: any neural bandit is *Bayesian linear regression in a richer feature space*. The math you built here is the limiting case where the features are fixed. Everything else is a way of learning the features adaptively while still maintaining usable uncertainty.</span>
+<span id="cb1-346"><a href="#cb1-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-347"><a href="#cb1-347" aria-hidden="true" tabindex="-1"></a>This is also the connection point to **calibrated LLMs**. Modern LLMs produce probabilities over tokens, but those probabilities are notoriously miscalibrated. The deepest framing is: the model has implicit uncertainty about its own predictions, and treating that uncertainty as Bayesian — with priors, posteriors, and information-theoretic exploration — turns out to be a productive research direction. Conformal prediction, semantic entropy, ensembles of LLMs: all are coarse approximations to the Bayesian story you've now seen exactly.</span>
+<span id="cb1-348"><a href="#cb1-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-349"><a href="#cb1-349" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-350"><a href="#cb1-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-351"><a href="#cb1-351" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Experiments to actually run</span></span>
+<span id="cb1-352"><a href="#cb1-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-353"><a href="#cb1-353" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 How does regret scale with dimension?</span></span>
+<span id="cb1-354"><a href="#cb1-354" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-355"><a href="#cb1-355" aria-hidden="true" tabindex="-1"></a>Run LinUCB and LinTS at $d \in <span class="sc">\{</span>2, 5, 10, 25, 50<span class="sc">\}</span>$, holding everything else fixed. Plot the cumulative regret at $T = 2000$ as a function of $d$. You should see roughly linear growth in $d$ for LinUCB (consistent with the $\tilde O(d\sqrt{T})$ bound). Check whether LinTS follows the predicted $d^{3/2}$ scaling.</span>
+<span id="cb1-356"><a href="#cb1-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-357"><a href="#cb1-357" aria-hidden="true" tabindex="-1"></a>The point: dimension matters a lot. Practical applications with many features need either much more data or function-class structure (sparsity, low-rank, etc.).</span>
+<span id="cb1-358"><a href="#cb1-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-359"><a href="#cb1-359" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Calibration of the posterior</span></span>
+<span id="cb1-360"><a href="#cb1-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-361"><a href="#cb1-361" aria-hidden="true" tabindex="-1"></a>In a held-out sense, are LinUCB's 95% credible intervals actually calibrated? At each step, predict the reward and check whether the realized reward falls within the predictive 95% band. Track the coverage rate. Under correct model specification it should converge to 95%; under misspecification it may be far off.</span>
+<span id="cb1-362"><a href="#cb1-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-363"><a href="#cb1-363" aria-hidden="true" tabindex="-1"></a>This is a microcosm of LLM calibration. Models often produce confident-sounding answers whose actual reliability doesn't match. Testing calibration is the first step toward fixing it.</span>
+<span id="cb1-364"><a href="#cb1-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-365"><a href="#cb1-365" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Misspecified model</span></span>
+<span id="cb1-366"><a href="#cb1-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-367"><a href="#cb1-367" aria-hidden="true" tabindex="-1"></a>What if the true reward function is non-linear? Generate data with $r = \sin(x_1) + x_2 + \varepsilon$ and run LinUCB pretending the model is linear. The algorithm will fit the best linear approximation but its regret will not be $\tilde O(\sqrt{T})$ — it will eventually be linear (because no linear approximation gets you to the truth). Empirically observe this. Then think: how would you detect misspecification in real life?</span>
+<span id="cb1-368"><a href="#cb1-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-369"><a href="#cb1-369" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 Reproduce one figure from the LinUCB paper</span></span>
+<span id="cb1-370"><a href="#cb1-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-371"><a href="#cb1-371" aria-hidden="true" tabindex="-1"></a>Li et al. (2010) ran LinUCB on a Yahoo! news recommendation dataset. The figure showing cumulative clicks vs LinUCB exploration rate is a classic. Replicate it on synthetic data: vary $\alpha \in <span class="sc">\{</span>0.1, 0.5, 1.0, 2.0, 5.0<span class="sc">\}</span>$ and plot how regret depends on the exploration parameter. There's an optimal $\alpha$ — find it.</span>
+<span id="cb1-372"><a href="#cb1-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-373"><a href="#cb1-373" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-374"><a href="#cb1-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-375"><a href="#cb1-375" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Solutions</span></span>
+<span id="cb1-376"><a href="#cb1-376" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-377"><a href="#cb1-377" aria-hidden="true" tabindex="-1"></a>As with the previous post, try first. Once you've struggled with each, here are the reference solutions and discussions.</span>
+<span id="cb1-378"><a href="#cb1-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-379"><a href="#cb1-379" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Regret scaling with dimension — `experiments/01b_sol1_regret_vs_dim.py`</span></span>
+<span id="cb1-380"><a href="#cb1-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-381"><a href="#cb1-381" aria-hidden="true" tabindex="-1"></a><span class="al">![Cumulative regret at fixed T as a function of feature dimension d (log-log axes). Both LinUCB and LinTS grow with d; the fitted power-law exponents (0.42 and 0.53) are below the theoretical upper bounds (1.0 and 1.5).](../figures/01b_sol1_regret_vs_dim.png)</span></span>
+<span id="cb1-382"><a href="#cb1-382" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-383"><a href="#cb1-383" aria-hidden="true" tabindex="-1"></a>**What you should see.** Both algorithms' final regret grows with $d$. The fitted power-law exponents — LinUCB at $d^{0.42}$, LinTS at $d^{0.53}$ — are well below the theoretical bounds of $\tilde O(d)$ and $\tilde O(d^{3/2})$. The qualitative ordering (LinTS grows slightly faster than LinUCB) matches theory.</span>
+<span id="cb1-384"><a href="#cb1-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-385"><a href="#cb1-385" aria-hidden="true" tabindex="-1"></a>**Why the gap between theory and practice.** Several reasons:</span>
+<span id="cb1-386"><a href="#cb1-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-387"><a href="#cb1-387" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**The bounds are worst-case upper bounds**, not exact rates. They hold over all problem instances; the *average* instance is much easier. Our random thetas are isotropic; the worst case has thetas adversarially aligned with the contexts.</span>
+<span id="cb1-388"><a href="#cb1-388" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Finite-T effects.** The theoretical $\tilde O(d \sqrt T)$ has hidden constants and $\log T$ factors. At $T = 600$ we're in the regime where lower-order terms still matter.</span>
+<span id="cb1-389"><a href="#cb1-389" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**The constants depend on $\sigma$, $\lambda$, and the diameter of the parameter space.** Different choices give different constants in front of the same exponent.</span>
+<span id="cb1-390"><a href="#cb1-390" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-391"><a href="#cb1-391" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Empirical scaling is often *better* than worst-case theory predicts, but the **shape** of the scaling — that it grows polynomially, with $d^{1+}$ for TS faster than $d^{1-}$ for UCB — is what matters for engineering. A 10× increase in feature dimension is not a 10× increase in problem difficulty; for these algorithms it's only $10^{0.4}$–$10^{0.5} \approx 2.5$–$3\times$. That's the right intuition for "how much harder does it get if I add features?"</span>
+<span id="cb1-392"><a href="#cb1-392" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-393"><a href="#cb1-393" aria-hidden="true" tabindex="-1"></a>For practical work: if your features explode in dimension (sparse one-hot encodings, embedding dimensions), this scaling is your friend. If you can keep the *effective* dimension low (sparsity, low-rank structure), you can do dramatically better than this. Both LinUCB and LinTS have variants that exploit sparsity (LASSO-based; see Bastani &amp; Bayati 2020).</span>
+<span id="cb1-394"><a href="#cb1-394" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-395"><a href="#cb1-395" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 Calibration — `experiments/01b_sol2_calibration.py`</span></span>
+<span id="cb1-396"><a href="#cb1-396" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-397"><a href="#cb1-397" aria-hidden="true" tabindex="-1"></a><span class="al">![Empirical coverage of LinUCB's 95% predictive interval. Blue: matched noise (algorithm's σ matches truth) — converges to ~95.3%, well-calibrated. Red: mismatched noise (algorithm assumes σ=1 but truth is σ=0.1) — over-coverage at 100%, intervals are too wide.](../figures/01b_sol2_calibration.png)</span></span>
+<span id="cb1-398"><a href="#cb1-398" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-399"><a href="#cb1-399" aria-hidden="true" tabindex="-1"></a>**What you should see.** Under matched noise — the bandit's $\sigma$ equals the algorithm's implicit assumption — coverage converges to 95.3%, essentially right on the nominal 95%. The brief over-shoot to ~98% early on is the prior dominating before enough data arrives. Under mismatched noise (algorithm thinks $\sigma = 1$, truth is $\sigma = 0.1$), coverage is *100% from the start*: every realized reward falls in the predicted interval. The intervals are about $10\times$ too wide.</span>
+<span id="cb1-400"><a href="#cb1-400" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-401"><a href="#cb1-401" aria-hidden="true" tabindex="-1"></a>**Why it happens.** LinUCB's predictive variance is $\sigma_{\text{alg}}^2 + x^\top A^{-1} x$, where the first term is the assumed aleatoric noise and the second is epistemic uncertainty about $\theta$. When $\sigma_{\text{alg}}^2 \gg \sigma_{\text{true}}^2$, you've inflated the noise term tenfold. The 95% interval is mostly capturing irreducible noise the algorithm *thinks* exists but doesn't. Realized rewards essentially always land inside.</span>
+<span id="cb1-402"><a href="#cb1-402" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-403"><a href="#cb1-403" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — this is the canonical case of *calibration*.** Calibration asks: when you say "I'm 95% confident," does that statement bear out empirically? Three failure modes:</span>
+<span id="cb1-404"><a href="#cb1-404" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-405"><a href="#cb1-405" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Over-coverage / under-confidence**: stated intervals are too wide. You're being lazy about your beliefs and missing decisions. *This is what we see in the mismatched case.*</span>
+<span id="cb1-406"><a href="#cb1-406" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Under-coverage / over-confidence**: stated intervals are too narrow. You're being reckless and will be wrong more often than you think.</span>
+<span id="cb1-407"><a href="#cb1-407" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Calibration drift**: coverage starts good but degrades as the problem changes (non-stationarity, distribution shift).</span>
+<span id="cb1-408"><a href="#cb1-408" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-409"><a href="#cb1-409" aria-hidden="true" tabindex="-1"></a>Modern LLMs have all three failure modes, depending on the question type. Calibrating LLM uncertainty — making "the model says 90%" match empirical 90% accuracy — is an active research area. The mathematical machinery is identical to what we just did here. **You have built, in this experiment, the simplest non-trivial calibration test that exists.** Every paper on LLM calibration is doing some version of this.</span>
+<span id="cb1-410"><a href="#cb1-410" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-411"><a href="#cb1-411" aria-hidden="true" tabindex="-1"></a>**What you should build next.** Conformal prediction is a technique that takes any predictive model — including a miscalibrated one — and produces intervals with finite-sample coverage guarantees. It's a beautifully simple idea worth your time. Once you've internalized this experiment, conformal prediction is a 30-minute read away.</span>
+<span id="cb1-412"><a href="#cb1-412" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-413"><a href="#cb1-413" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Misspecification — `experiments/01b_sol3_misspecification.py`</span></span>
+<span id="cb1-414"><a href="#cb1-414" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-415"><a href="#cb1-415" aria-hidden="true" tabindex="-1"></a><span class="al">![LinUCB on a misspecified problem. Blue: linear bandit (correctly specified), regret plateaus near 9. Red: non-linear bandit (rewards depend on sin(ω_k x_1)), regret grows linearly at 0.017/step. The linear approximation has irreducible bias.](../figures/01b_sol3_misspecification.png)</span></span>
+<span id="cb1-416"><a href="#cb1-416" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-417"><a href="#cb1-417" aria-hidden="true" tabindex="-1"></a>**What you should see.** When the model is well-specified (true rewards are linear), LinUCB's regret plateaus around 9 by $T = 3000$ — sublinear and consistent with the $\tilde O(d \sqrt T)$ bound. When the model is misspecified (true rewards include $\sin(\omega_k x_1)$, which no linear function captures), regret grows linearly at $\sim 0.017$ per step from start to finish. After $T = 3000$, cumulative regret is $\sim 63$, with no sign of plateauing.</span>
+<span id="cb1-418"><a href="#cb1-418" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-419"><a href="#cb1-419" aria-hidden="true" tabindex="-1"></a>**Why it happens.** LinUCB fits the best *linear approximation* to the true function, since that's the only thing its model class allows. Call this best linear fit $\bar\theta_k$. The algorithm's regret with respect to the *best linear policy* would be sublinear. But the optimal *contextual* policy uses the true non-linear $r_k(x)$, not its linear approximation. The gap between "best linear policy" and "true optimal policy" is the **approximation error**, and it's constant per step. Cumulative approximation error grows linearly.</span>
+<span id="cb1-420"><a href="#cb1-420" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-421"><a href="#cb1-421" aria-hidden="true" tabindex="-1"></a>You can decompose total regret:</span>
+<span id="cb1-422"><a href="#cb1-422" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-423"><a href="#cb1-423" aria-hidden="true" tabindex="-1"></a>R_{\text{total}}(T) \;=\; \underbrace{R_{\text{linear}}(T)}_{\tilde O(d\sqrt T) \text{ if linear is correct}} \;+\; \underbrace{R_{\text{approx}}(T)}_{\Omega(T) \text{ if misspecified}}.</span>
+<span id="cb1-424"><a href="#cb1-424" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-425"><a href="#cb1-425" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-426"><a href="#cb1-426" aria-hidden="true" tabindex="-1"></a>The second term dominates asymptotically. There's no algorithm in our linear class that can do better — we've hit the ceiling of what the model can express.</span>
+<span id="cb1-427"><a href="#cb1-427" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-428"><a href="#cb1-428" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Model class matters more than algorithm. A wrong-class model with a clever algorithm is beaten by a right-class model with a dumb algorithm, eventually. This is why neural bandits and Bayesian deep learning exist: when the truth isn't linear, you need a richer model class even at the cost of harder inference.</span>
+<span id="cb1-429"><a href="#cb1-429" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-430"><a href="#cb1-430" aria-hidden="true" tabindex="-1"></a>**Misspecification detection.** Can you tell from the regret curve that you're misspecified, before you know the answer? Yes — look at the second derivative of cumulative regret. Well-specified algorithms should produce regret curves that *bend down* (sublinear); persistent linearity is a red flag. In practice, you'd also do residual analysis: if your model's residuals show structure (e.g., correlation with some feature), you're missing something.</span>
+<span id="cb1-431"><a href="#cb1-431" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-432"><a href="#cb1-432" aria-hidden="true" tabindex="-1"></a>**What you should build next.** Two natural extensions: (a) Replace LinUCB with a neural-linear UCB (last-layer Bayesian regression on a neural feature extractor) and see if regret returns to sublinear. (b) Implement *model-class testing*: fit several model classes (linear, polynomial degree 2, neural net) and use held-out predictive likelihood to pick. Misspecification stops being a silent killer when you actively look for it.</span>
+<span id="cb1-433"><a href="#cb1-433" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-434"><a href="#cb1-434" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 Alpha sweep — `experiments/01b_sol4_alpha_sweep.py`</span></span>
+<span id="cb1-435"><a href="#cb1-435" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-436"><a href="#cb1-436" aria-hidden="true" tabindex="-1"></a><span class="al">![LinUCB regret as a function of the exploration parameter α (log-x scale). Classic U-shape: under-exploration (α &lt; 0.5) wastes pulls on suboptimal arms; over-exploration (α &gt; 2) wastes pulls on known-good arms. Optimum near α = 0.5.](../figures/01b_sol4_alpha_sweep.png)</span></span>
+<span id="cb1-437"><a href="#cb1-437" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-438"><a href="#cb1-438" aria-hidden="true" tabindex="-1"></a>**What you should see.** Final regret at $T = 1500$ has a clear minimum at $\alpha \approx 0.5$, where regret is $\sim 13$. Going to $\alpha = 0.05$ (almost no exploration) costs you $\sim 5$ extra regret. Going to $\alpha = 8$ (massive over-exploration) costs you $\sim 57$ extra regret — far worse. The curve is asymmetric: **over-exploration hurts more than under-exploration**, at least on this instance.</span>
+<span id="cb1-439"><a href="#cb1-439" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-440"><a href="#cb1-440" aria-hidden="true" tabindex="-1"></a>**Why the U-shape.** Two competing effects, each unbounded at one end:</span>
+<span id="cb1-441"><a href="#cb1-441" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-442"><a href="#cb1-442" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\alpha$ too small → exploitation trap.** Without enough bonus to overcome small noise advantages, the algorithm can settle on a suboptimal arm and keep pulling it. Regret is approximately *linear* until enough random noise eventually causes a switch.</span>
+<span id="cb1-443"><a href="#cb1-443" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**$\alpha$ too large → wasted exploration.** Big bonuses mean even well-explored arms keep getting probed. The algorithm keeps trying arms it should already know are bad. Per-pull regret is high; cumulative regret grows fast.</span>
+<span id="cb1-444"><a href="#cb1-444" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-445"><a href="#cb1-445" aria-hidden="true" tabindex="-1"></a>The optimum is where these two costs balance.</span>
+<span id="cb1-446"><a href="#cb1-446" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-447"><a href="#cb1-447" aria-hidden="true" tabindex="-1"></a>**Why over-exploration is worse here.** At the high-$\alpha$ end, every step is genuinely costly — you're pulling clearly-suboptimal arms by direct choice. At the low-$\alpha$ end, you're *not* pulling clearly-suboptimal arms; you're failing to discover that one of your "good" arms is actually better. The first error is constant per step; the second is bounded by the gap between near-tied top arms, which can be small. Hence the asymmetry.</span>
+<span id="cb1-448"><a href="#cb1-448" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-449"><a href="#cb1-449" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — agentic AI implication.** Every exploration mechanism has a tunable temperature: $\alpha$ in UCB-like methods, $v$ in Thompson, $\varepsilon$ in ε-greedy, the entropy bonus in policy gradients, the temperature parameter in LLM decoding. They all have this U-shape. The whole point of the principled methods (Thompson, Bayesian RL) is that **the optimal temperature is set automatically by the posterior** — you don't have to sweep. But every system still has *some* knob, and the U-shape governs it.</span>
+<span id="cb1-450"><a href="#cb1-450" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-451"><a href="#cb1-451" aria-hidden="true" tabindex="-1"></a>**Practical guidance.** For a new contextual bandit problem, sweep $\alpha$ logarithmically over $<span class="sc">\{</span>0.1, 0.3, 1, 3, 10<span class="sc">\}</span>$ before fixing it. The optimum often sits in $<span class="co">[</span><span class="ot">0.5, 2.0</span><span class="co">]</span>$; $\alpha = 1$ is a strong default if you have no budget for tuning. Thompson Sampling with $v = 1$ is even more strongly self-tuning and often a safer choice for production.</span>
+<span id="cb1-452"><a href="#cb1-452" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-453"><a href="#cb1-453" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-454"><a href="#cb1-454" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-455"><a href="#cb1-455" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Further reading</span></span>
+<span id="cb1-456"><a href="#cb1-456" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-457"><a href="#cb1-457" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Lattimore &amp; Szepesvári, *Bandit Algorithms* (2020), Chapters 18–22.** The rigorous treatment of contextual bandits. Worth reading carefully if you want the tight regret proofs.</span>
+<span id="cb1-458"><a href="#cb1-458" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Li, Chu, Langford &amp; Schapire, "A Contextual-Bandit Approach to Personalized News Article Recommendation" (WWW 2010).** The original LinUCB paper. Surprisingly readable and full of practical wisdom.</span>
+<span id="cb1-459"><a href="#cb1-459" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Abbasi-Yadkori, Pál &amp; Szepesvári, "Improved Algorithms for Linear Stochastic Bandits" (NeurIPS 2011).** The cleanest analysis of LinUCB and the source of the $\tilde O(d\sqrt{T})$ bound.</span>
+<span id="cb1-460"><a href="#cb1-460" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Agrawal &amp; Goyal, "Thompson Sampling for Contextual Bandits with Linear Payoffs" (ICML 2013).** The contextual TS paper. The variance inflation analysis is the technical crux.</span>
+<span id="cb1-461"><a href="#cb1-461" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Bishop, *Pattern Recognition and Machine Learning* (2006), Chapter 3.** The cleanest exposition of Bayesian linear regression I know of. Worth reading even if you've seen it before.</span>
+<span id="cb1-462"><a href="#cb1-462" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Riquelme, Tucker &amp; Snoek, "Deep Bayesian Bandits Showdown" (ICLR 2018).** An empirical comparison of neural bandit methods. Neural-linear holds up surprisingly well — read for both the methods and the meta-lesson that simple methods often win.</span>
+<span id="cb1-463"><a href="#cb1-463" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Ouyang et al., "Training Language Models to Follow Instructions with Human Feedback" (NeurIPS 2022).** The InstructGPT paper. The reward modeling section is exactly the contextual bandit framing from §6.1.</span>
+<span id="cb1-464"><a href="#cb1-464" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-465"><a href="#cb1-465" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-466"><a href="#cb1-466" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-467"><a href="#cb1-467" aria-hidden="true" tabindex="-1"></a>**Next up — Part 1c: MDPs and the Bellman equations.** We add state transitions. Now the action you take changes the world, not just the reward you receive. Value functions, the Bellman optimality equation, value iteration. Bandits, contextual or not, are MDPs with $|S| = 1$; in 1c we lift that restriction.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/01b-contextual-bandits.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

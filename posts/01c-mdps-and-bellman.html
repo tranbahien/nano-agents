@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-20">
+<meta name="description" content="Decision-making under uncertainty, from scratch — 3 of 4. We derive the Bellman equations from first principles, prove value iteration converges via the contraction mapping theorem, and solve a gridworld with both VI and PI. The bridge from bandits to full sequential decision-making.">
+
+<title>MDPs and the Bellman Equations: When Actions Have Consequences – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-73c813dbea455b23e33378fe00306777.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#when-state-matters" id="toc-when-state-matters" class="nav-link active" data-scroll-target="#when-state-matters">0. When state matters</a></li>
+  <li><a href="#formal-setup" id="toc-formal-setup" class="nav-link" data-scroll-target="#formal-setup">1. Formal setup</a>
+  <ul class="collapse">
+  <li><a href="#the-markov-property" id="toc-the-markov-property" class="nav-link" data-scroll-target="#the-markov-property">1.1 The Markov property</a></li>
+  <li><a href="#the-running-example-twogoalgridworld" id="toc-the-running-example-twogoalgridworld" class="nav-link" data-scroll-target="#the-running-example-twogoalgridworld">1.2 The running example: TwoGoalGridWorld</a></li>
+  </ul></li>
+  <li><a href="#policies-returns-and-value-functions" id="toc-policies-returns-and-value-functions" class="nav-link" data-scroll-target="#policies-returns-and-value-functions">2. Policies, returns, and value functions</a>
+  <ul class="collapse">
+  <li><a href="#policies" id="toc-policies" class="nav-link" data-scroll-target="#policies">2.1 Policies</a></li>
+  <li><a href="#returns" id="toc-returns" class="nav-link" data-scroll-target="#returns">2.2 Returns</a></li>
+  <li><a href="#value-functions" id="toc-value-functions" class="nav-link" data-scroll-target="#value-functions">2.3 Value functions</a></li>
+  </ul></li>
+  <li><a href="#the-bellman-equations" id="toc-the-bellman-equations" class="nav-link" data-scroll-target="#the-bellman-equations">3. The Bellman equations</a>
+  <ul class="collapse">
+  <li><a href="#the-expectation-equation-one-step-decomposition" id="toc-the-expectation-equation-one-step-decomposition" class="nav-link" data-scroll-target="#the-expectation-equation-one-step-decomposition">3.1 The expectation equation: one-step decomposition</a></li>
+  <li><a href="#the-optimality-equation" id="toc-the-optimality-equation" class="nav-link" data-scroll-target="#the-optimality-equation">3.2 The optimality equation</a></li>
+  <li><a href="#the-bellman-operators" id="toc-the-bellman-operators" class="nav-link" data-scroll-target="#the-bellman-operators">3.3 The Bellman operators</a></li>
+  <li><a href="#why-contraction-matters-banachs-fixed-point-theorem" id="toc-why-contraction-matters-banachs-fixed-point-theorem" class="nav-link" data-scroll-target="#why-contraction-matters-banachs-fixed-point-theorem">3.4 Why contraction matters: Banach’s fixed-point theorem</a></li>
+  </ul></li>
+  <li><a href="#value-iteration" id="toc-value-iteration" class="nav-link" data-scroll-target="#value-iteration">4. Value iteration</a>
+  <ul class="collapse">
+  <li><a href="#watching-it-work" id="toc-watching-it-work" class="nav-link" data-scroll-target="#watching-it-work">4.1 Watching it work</a></li>
+  <li><a href="#the-optimal-value-and-policy" id="toc-the-optimal-value-and-policy" class="nav-link" data-scroll-target="#the-optimal-value-and-policy">4.2 The optimal value and policy</a></li>
+  <li><a href="#the-geometry-of-convergence" id="toc-the-geometry-of-convergence" class="nav-link" data-scroll-target="#the-geometry-of-convergence">4.3 The geometry of convergence</a></li>
+  </ul></li>
+  <li><a href="#policy-iteration" id="toc-policy-iteration" class="nav-link" data-scroll-target="#policy-iteration">5. Policy iteration</a></li>
+  <li><a href="#forward-connections" id="toc-forward-connections" class="nav-link" data-scroll-target="#forward-connections">6. Forward connections</a>
+  <ul class="collapse">
+  <li><a href="#bandits-and-contextual-bandits-as-mdps-with-mathcals-1" id="toc-bandits-and-contextual-bandits-as-mdps-with-mathcals-1" class="nav-link" data-scroll-target="#bandits-and-contextual-bandits-as-mdps-with-mathcals-1">6.1 Bandits and contextual bandits as MDPs with <span class="math inline">|\mathcal{S}| = 1</span></a></li>
+  <li><a href="#llm-agents-are-mdps-with-caveats" id="toc-llm-agents-are-mdps-with-caveats" class="nav-link" data-scroll-target="#llm-agents-are-mdps-with-caveats">6.2 LLM agents are MDPs (with caveats)</a></li>
+  <li><a href="#model-based-planning-and-mcts" id="toc-model-based-planning-and-mcts" class="nav-link" data-scroll-target="#model-based-planning-and-mcts">6.3 Model-based planning and MCTS</a></li>
+  </ul></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">7. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#discount-factor-sensitivity" id="toc-discount-factor-sensitivity" class="nav-link" data-scroll-target="#discount-factor-sensitivity">7.1 Discount factor sensitivity</a></li>
+  <li><a href="#stochastic-transitions-and-risk" id="toc-stochastic-transitions-and-risk" class="nav-link" data-scroll-target="#stochastic-transitions-and-risk">7.2 Stochastic transitions and risk</a></li>
+  <li><a href="#reward-shaping" id="toc-reward-shaping" class="nav-link" data-scroll-target="#reward-shaping">7.3 Reward shaping</a></li>
+  <li><a href="#policy-iteration-vs-value-iteration" id="toc-policy-iteration-vs-value-iteration" class="nav-link" data-scroll-target="#policy-iteration-vs-value-iteration">7.4 Policy iteration vs value iteration</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">8. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#discount-factor-sensitivity-experiments01c_sol1_discount_sensitivity.py" id="toc-discount-factor-sensitivity-experiments01c_sol1_discount_sensitivity.py" class="nav-link" data-scroll-target="#discount-factor-sensitivity-experiments01c_sol1_discount_sensitivity.py">8.1 Discount factor sensitivity — <code>experiments/01c_sol1_discount_sensitivity.py</code></a></li>
+  <li><a href="#stochastic-transitions-experiments01c_sol2_stochastic.py" id="toc-stochastic-transitions-experiments01c_sol2_stochastic.py" class="nav-link" data-scroll-target="#stochastic-transitions-experiments01c_sol2_stochastic.py">8.2 Stochastic transitions — <code>experiments/01c_sol2_stochastic.py</code></a></li>
+  <li><a href="#reward-shaping-experiments01c_sol3_reward_shaping.py" id="toc-reward-shaping-experiments01c_sol3_reward_shaping.py" class="nav-link" data-scroll-target="#reward-shaping-experiments01c_sol3_reward_shaping.py">8.3 Reward shaping — <code>experiments/01c_sol3_reward_shaping.py</code></a></li>
+  <li><a href="#policy-iteration-vs-value-iteration-experiments01c_sol4_pi_vs_vi.py" id="toc-policy-iteration-vs-value-iteration-experiments01c_sol4_pi_vs_vi.py" class="nav-link" data-scroll-target="#policy-iteration-vs-value-iteration-experiments01c_sol4_pi_vs_vi.py">8.4 Policy iteration vs value iteration — <code>experiments/01c_sol4_pi_vs_vi.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">9. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/01c-mdps-and-bellman.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">MDPs and the Bellman Equations: When Actions Have Consequences</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">mdp</div>
+    <div class="quarto-category">dynamic programming</div>
+    <div class="quarto-category">bellman</div>
+    <div class="quarto-category">value iteration</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Decision-making under uncertainty, from scratch — 3 of 4. We derive the Bellman equations from first principles, prove value iteration converges via the contraction mapping theorem, and solve a gridworld with both VI and PI. The bridge from bandits to full sequential decision-making.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 20, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Decision-making under uncertainty, from scratch — 3 of 4.</em></p>
+</blockquote>
+<p>In <a href="../posts/01a-multi-armed-bandits.html">Part 1a</a> and <a href="../posts/01b-contextual-bandits.html">Part 1b</a>, we built algorithms for problems where each action gives you a reward and <em>then nothing else matters</em>. The world doesn’t change because of what you did. The next decision is just like this one.</p>
+<p>Real decisions don’t work like that. A chess move now changes which positions you can be in next. A tool call now shapes what the LLM agent can do in the following turn. A treatment decision now affects what symptoms you’ll see in the next checkup. The simple act of <em>having state</em> — a world that evolves based on actions — is what turns a bandit into a <strong>Markov Decision Process</strong> (MDP), and it’s the framework everything in RL builds on.</p>
+<p>This post derives MDPs and the Bellman equations from first principles, proves convergence of value iteration via the contraction mapping theorem, implements value iteration and policy iteration in clean NumPy, and solves a gridworld with both. The math gets a little more interesting; the figures shift from regret curves to <strong>value heatmaps and policy arrows</strong>.</p>
+<hr>
+<section id="when-state-matters" class="level2">
+<h2 class="anchored" data-anchor-id="when-state-matters">0. When state matters</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_mdp_schematic.png" class="img-fluid figure-img"></p>
+<figcaption>Bandits assume one state and actions just return rewards. MDPs add transitions: actions also change which state you’re in next.</figcaption>
+</figure>
+</div>
+<p>The left panel shows a multi-armed bandit. There’s one state <span class="math inline">S</span>, and three actions each return a reward sampled from a fixed distribution. The right panel shows the simplest non-trivial MDP: four states, two actions in <span class="math inline">S_0</span> that produce <em>different</em> next-state distributions, and a reward associated with eventually reaching <span class="math inline">S_3</span>.</p>
+<p>The new question is: <strong>how should I trade off immediate rewards against future opportunities?</strong> Action <span class="math inline">b</span> from <span class="math inline">S_0</span> deterministically lands in <span class="math inline">S_2</span>, which then deterministically reaches the reward <span class="math inline">S_3</span>. Action <span class="math inline">a</span> is risky: it lands in <span class="math inline">S_1</span> (which also leads to <span class="math inline">S_3</span>) with high probability, but slips to <span class="math inline">S_2</span> with low probability. Are these equivalent? Better, worse?</p>
+<p>The answer requires summing rewards over all future steps, weighted by probability. That sum is the <strong>return</strong>, and learning to compute it for arbitrary policies is the central activity of dynamic programming. Once we can compute returns, we can pick the policy that maximizes them.</p>
+<hr>
+</section>
+<section id="formal-setup" class="level2">
+<h2 class="anchored" data-anchor-id="formal-setup">1. Formal setup</h2>
+<p>A <strong>Markov Decision Process</strong> is a tuple <span class="math inline">(\mathcal{S}, \mathcal{A}, P, R, \gamma)</span>:</p>
+<ul>
+<li><span class="math inline">\mathcal{S}</span> — set of states.</li>
+<li><span class="math inline">\mathcal{A}</span> — set of actions (possibly state-dependent: <span class="math inline">\mathcal{A}(s)</span>).</li>
+<li><span class="math inline">P(s' \mid s, a)</span> — transition probabilities: probability of next state being <span class="math inline">s'</span> given current state <span class="math inline">s</span> and action <span class="math inline">a</span>.</li>
+<li><span class="math inline">R(s, a, s')</span> — reward function. We’ll often use the simpler <span class="math inline">R(s, a)</span> when reward depends only on state and action.</li>
+<li><span class="math inline">\gamma \in [0, 1]</span> — discount factor.</li>
+</ul>
+<p>At each timestep <span class="math inline">t = 0, 1, 2, \dots</span> the agent:</p>
+<ol type="1">
+<li>Observes the current state <span class="math inline">s_t</span>.</li>
+<li>Picks an action <span class="math inline">a_t</span>.</li>
+<li>Receives reward <span class="math inline">r_{t+1}</span> and transitions to <span class="math inline">s_{t+1} \sim P(\cdot \mid s_t, a_t)</span>.</li>
+</ol>
+<section id="the-markov-property" class="level3">
+<h3 class="anchored" data-anchor-id="the-markov-property">1.1 The Markov property</h3>
+<p>The defining assumption is that the transition probabilities depend only on the current state and action — not on the history:</p>
+<p><span class="math display">
+P(s_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots, s_0, a_0) \;=\; P(s_{t+1} \mid s_t, a_t).
+</span></p>
+<p>The “Markov” in “MDP” is this property. It says the current state is a <strong>sufficient statistic</strong> for the past — everything you need to know about how the world will evolve is captured in <span class="math inline">s_t</span>.</p>
+<p>This is a strong assumption, and almost no real-world problem satisfies it literally. A chess position is Markov (state is the board); a robotics task often isn’t (you need velocity, not just position); an LLM conversation isn’t (you need long-range context). The standard fix is to <em>redefine the state</em> to include enough history to make it Markov. The “state” you use is an engineering choice.</p>
+<p>When the true state is partially observed — when what you see isn’t sufficient to predict the future — you get a <strong>POMDP</strong>, which is the subject of <a href="../posts/01d-pomdps-and-q-learning.html">Part 1d</a>. For now, assume Markov.</p>
+</section>
+<section id="the-running-example-twogoalgridworld" class="level3">
+<h3 class="anchored" data-anchor-id="the-running-example-twogoalgridworld">1.2 The running example: TwoGoalGridWorld</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_gridworld_setup.png" class="img-fluid figure-img"></p>
+<figcaption>A 5×5 gridworld with two terminal rewards (+1 close, +10 far) and walls blocking the direct path. Used as the running example throughout this post.</figcaption>
+</figure>
+</div>
+<p>The states are cells. Actions are {Up, Right, Down, Left}. By default transitions are deterministic — the action you choose is the action you take. With slip probability <span class="math inline">p</span>, the action goes uniformly at random to one of the three non-intended directions with probability <span class="math inline">p</span>; otherwise as intended. Walls are non-states: an action into a wall keeps you in place. Terminals are absorbing: once you reach them, no more transitions and no more rewards.</p>
+<p>The point of this layout: there are two terminals worth +1 and +10, and they’re at roughly equal distances from start. The discount factor <span class="math inline">\gamma</span> controls whether the +10 is worth waiting for. We’ll see this concretely in §9.</p>
+<hr>
+</section>
+</section>
+<section id="policies-returns-and-value-functions" class="level2">
+<h2 class="anchored" data-anchor-id="policies-returns-and-value-functions">2. Policies, returns, and value functions</h2>
+<section id="policies" class="level3">
+<h3 class="anchored" data-anchor-id="policies">2.1 Policies</h3>
+<p>A <strong>policy</strong> is a rule for choosing actions. Two flavors:</p>
+<ul>
+<li><strong>Deterministic</strong>: <span class="math inline">\pi : \mathcal{S} \to \mathcal{A}</span>, mapping states to actions.</li>
+<li><strong>Stochastic</strong>: <span class="math inline">\pi(a \mid s)</span>, a probability distribution over actions given state.</li>
+</ul>
+<p>For the rest of this post we’ll mostly work with deterministic policies — they’re sufficient for MDPs (there’s always a deterministic optimal policy, a fact we’ll see in §4).</p>
+</section>
+<section id="returns" class="level3">
+<h3 class="anchored" data-anchor-id="returns">2.2 Returns</h3>
+<p>The <strong>return</strong> from time <span class="math inline">t</span> is the discounted sum of future rewards:</p>
+<p><span class="math display">
+G_t \;=\; r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \cdots \;=\; \sum_{k=0}^{\infty} \gamma^k r_{t+k+1}.
+</span></p>
+<p>The discount factor <span class="math inline">\gamma \in [0, 1)</span> does two things:</p>
+<ol type="1">
+<li><strong>Makes the infinite sum finite.</strong> With bounded rewards <span class="math inline">|r| \leq R_{\max}</span>, <span class="math inline">|G_t| \leq R_{\max} / (1 - \gamma)</span>. Without discounting (or a finite horizon), the sum can diverge.</li>
+<li><strong>Encodes patience.</strong> Low <span class="math inline">\gamma</span> values immediate rewards heavily over future ones; high <span class="math inline">\gamma</span> treats them as comparable. We’ll see this control “myopia vs patience” empirically in §9.</li>
+</ol>
+<p>When the MDP has terminal states (like our gridworld), the sum effectively truncates at the first terminal. Mathematically, you can treat a terminal state as one that loops back to itself with zero reward forever — same answer.</p>
+</section>
+<section id="value-functions" class="level3">
+<h3 class="anchored" data-anchor-id="value-functions">2.3 Value functions</h3>
+<p>Two functions encode “how good is this state/action under policy <span class="math inline">\pi</span>”:</p>
+<ul>
+<li><strong>State-value function</strong>: <span class="math inline">V^\pi(s) \;=\; \mathbb{E}_\pi[G_t \mid s_t = s]</span>. Expected return when starting in state <span class="math inline">s</span> and following <span class="math inline">\pi</span> thereafter.</li>
+<li><strong>Action-value function</strong>: <span class="math inline">Q^\pi(s, a) \;=\; \mathbb{E}_\pi[G_t \mid s_t = s, a_t = a]</span>. Expected return when starting in <span class="math inline">s</span>, taking action <span class="math inline">a</span>, then following <span class="math inline">\pi</span>.</li>
+</ul>
+<p>These are related by <span class="math inline">V^\pi(s) = \sum_a \pi(a \mid s) Q^\pi(s, a)</span>, and conversely <span class="math inline">Q^\pi(s, a) = \sum_{s'} P(s' \mid s, a) [R(s, a, s') + \gamma V^\pi(s')]</span>.</p>
+<p>We’re after the <strong>optimal</strong> value functions:</p>
+<p><span class="math display">
+V^\star(s) \;=\; \max_\pi V^\pi(s), \qquad Q^\star(s, a) \;=\; \max_\pi Q^\pi(s, a).
+</span></p>
+<p>An <strong>optimal policy</strong> <span class="math inline">\pi^\star</span> is any policy whose value function is <span class="math inline">V^\star</span>. Note: there can be multiple optimal policies (multiple actions might be tied for best in a given state), but they all achieve the same value.</p>
+<hr>
+</section>
+</section>
+<section id="the-bellman-equations" class="level2">
+<h2 class="anchored" data-anchor-id="the-bellman-equations">3. The Bellman equations</h2>
+<p>This is the heart of the post. The Bellman equations are <em>self-referential</em> relationships that the value functions must satisfy. They are the foundation of every value-based RL algorithm.</p>
+<section id="the-expectation-equation-one-step-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-expectation-equation-one-step-decomposition">3.1 The expectation equation: one-step decomposition</h3>
+<p>For any policy <span class="math inline">\pi</span>, the value function satisfies</p>
+<p><span class="math display">
+\boxed{\; V^\pi(s) \;=\; \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a) \big[R(s, a, s') + \gamma V^\pi(s')\big]. \;}
+</span></p>
+<p>This is the <strong>Bellman expectation equation</strong>. The derivation is one line:</p>
+<p><span class="math display">
+\begin{aligned}
+V^\pi(s) &amp;= \mathbb{E}_\pi[r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \cdots \mid s_t = s] \\
+&amp;= \mathbb{E}_\pi[r_{t+1} + \gamma G_{t+1} \mid s_t = s] \\
+&amp;= \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a) \big[R(s, a, s') + \gamma V^\pi(s')\big].
+\end{aligned}
+</span></p>
+<p>In words: the value of a state equals the expected immediate reward, plus <span class="math inline">\gamma</span> times the expected value of the next state. The value at <span class="math inline">s</span> is <em>defined in terms of</em> the value at <span class="math inline">s'</span>.</p>
+</section>
+<section id="the-optimality-equation" class="level3">
+<h3 class="anchored" data-anchor-id="the-optimality-equation">3.2 The optimality equation</h3>
+<p>For the optimal value function, replace the sum-over-policy with a max:</p>
+<p><span class="math display">
+\boxed{\; V^\star(s) \;=\; \max_a \sum_{s'} P(s' \mid s, a) \big[R(s, a, s') + \gamma V^\star(s')\big]. \;}
+</span></p>
+<p>This is the <strong>Bellman optimality equation</strong>. It says the optimal value of <span class="math inline">s</span> equals the best expected one-step result, computed under the optimal value of the next state.</p>
+<p>The optimal policy reads off directly:</p>
+<p><span class="math display">
+\pi^\star(s) \;=\; \arg\max_a \sum_{s'} P(s' \mid s, a) \big[R(s, a, s') + \gamma V^\star(s')\big].
+</span></p>
+<p>Once you know <span class="math inline">V^\star</span>, the optimal action in every state is a one-step lookup. The hard part is <em>finding</em> <span class="math inline">V^\star</span>.</p>
+</section>
+<section id="the-bellman-operators" class="level3">
+<h3 class="anchored" data-anchor-id="the-bellman-operators">3.3 The Bellman operators</h3>
+<p>Write the Bellman expectation equation as <span class="math inline">V^\pi = T^\pi V^\pi</span> where the operator <span class="math inline">T^\pi</span> acts on value functions: <span class="math inline">(T^\pi V)(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s'|s,a)[R(s,a,s') + \gamma V(s')]</span>. This <span class="math inline">T^\pi</span> is <strong>linear</strong> in <span class="math inline">V</span>.</p>
+<p>Write the optimality equation as <span class="math inline">V^\star = T^\star V^\star</span> where <span class="math inline">(T^\star V)(s) = \max_a \sum_{s'} P(s'|s,a)[R(s,a,s') + \gamma V(s')]</span>. This <span class="math inline">T^\star</span> is <strong>non-linear</strong> — the max makes it so.</p>
+<p>Both operators are <strong><span class="math inline">\gamma</span>-contractions</strong> in the max-norm: for any two value functions <span class="math inline">V</span> and <span class="math inline">V'</span>,</p>
+<p><span class="math display">
+\|T V - T V'\|_\infty \;\leq\; \gamma \|V - V'\|_\infty.
+</span></p>
+<p><strong>Proof sketch (for <span class="math inline">T^\star</span>).</strong> For each state <span class="math inline">s</span>: <span class="math display">
+|(T^\star V)(s) - (T^\star V')(s)| = \big| \max_a [\ldots V \ldots] - \max_a [\ldots V' \ldots] \big| \leq \max_a \big| [\ldots V \ldots] - [\ldots V' \ldots] \big|
+</span> <span class="math display">
+= \max_a \gamma \big| \mathbb{E}_{s'}[V(s') - V'(s')] \big| \leq \gamma \|V - V'\|_\infty.
+</span></p>
+<p>The inequality <span class="math inline">|\max f - \max g| \leq \max |f - g|</span> is the only delicate step.</p>
+</section>
+<section id="why-contraction-matters-banachs-fixed-point-theorem" class="level3">
+<h3 class="anchored" data-anchor-id="why-contraction-matters-banachs-fixed-point-theorem">3.4 Why contraction matters: Banach’s fixed-point theorem</h3>
+<p>The <strong>contraction mapping theorem</strong> (Banach, 1922) says: a <span class="math inline">\gamma</span>-contraction on a complete metric space (with <span class="math inline">\gamma &lt; 1</span>) has a unique fixed point, and iterating the operator from <em>any</em> starting point converges to it at rate <span class="math inline">\gamma</span>.</p>
+<p>Apply this to <span class="math inline">T^\star</span>. The space of bounded value functions <span class="math inline">V : \mathcal{S} \to \mathbb{R}</span> under the max-norm is complete. <span class="math inline">T^\star</span> is a <span class="math inline">\gamma</span>-contraction. Therefore:</p>
+<ol type="1">
+<li><strong><span class="math inline">V^\star</span> exists and is unique.</strong> The Bellman optimality equation has exactly one solution.</li>
+<li><strong>Iterating <span class="math inline">T^\star</span> from any <span class="math inline">V_0</span> converges to <span class="math inline">V^\star</span>.</strong> And the error shrinks geometrically: <span class="math inline">\|V_k - V^\star\|_\infty \leq \gamma^k \|V_0 - V^\star\|_\infty</span>.</li>
+</ol>
+<p>These two facts are the foundation of every value-based RL algorithm. The next two sections describe two ways to use them.</p>
+<hr>
+</section>
+</section>
+<section id="value-iteration" class="level2">
+<h2 class="anchored" data-anchor-id="value-iteration">4. Value iteration</h2>
+<p>The most direct algorithm: just iterate the Bellman optimality operator until convergence.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>V <span class="op">=</span> np.zeros(nS)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(max_iters):</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Q <span class="op">=</span> R <span class="op">+</span> gamma <span class="op">*</span> (P <span class="op">@</span> V)        <span class="co"># Q[s, a] = expected one-step + gamma * V(s')</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    V_new <span class="op">=</span> Q.<span class="bu">max</span>(axis<span class="op">=</span><span class="dv">1</span>)          <span class="co"># take the max over actions</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> np.<span class="bu">max</span>(np.<span class="bu">abs</span>(V_new <span class="op">-</span> V)) <span class="op">&lt;</span> tol:</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> V_new</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>pi <span class="op">=</span> Q.argmax(axis<span class="op">=</span><span class="dv">1</span>)              <span class="co"># read off the optimal policy</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>That’s the whole algorithm. Two lines of math per iteration. The full clean version is in <code>src/nano_agents/mdp/solvers.py</code>.</p>
+<section id="watching-it-work" class="level3">
+<h3 class="anchored" data-anchor-id="watching-it-work">4.1 Watching it work</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_value_iteration_evolution.png" class="img-fluid figure-img"></p>
+<figcaption>Value iteration on TwoGoalGridWorld (γ=0.95, slip=0.1). Each panel shows V_k after k iterations. Value ‘propagates’ outward from the +1 and +10 terminal rewards, eventually filling the whole reachable state space.</figcaption>
+</figure>
+</div>
+<p>This is what the operator is doing. At <span class="math inline">k = 0</span> all values are zero. After one Bellman backup (<span class="math inline">k = 1</span>, not shown), states adjacent to terminals get their first non-zero values — they “see” the reward one step away, discounted by <span class="math inline">\gamma</span>. By <span class="math inline">k = 2</span>, two-step states get values via the <span class="math inline">k = 1</span> values of their neighbors. And so on.</p>
+<p>The intuition is <em>value propagating outward from terminals at one cell per iteration</em>. After <span class="math inline">k</span> iterations, you’ve correctly accounted for the first <span class="math inline">k</span> steps of every trajectory. After many more iterations, the contraction has made even the higher-order terms shrink below tolerance.</p>
+</section>
+<section id="the-optimal-value-and-policy" class="level3">
+<h3 class="anchored" data-anchor-id="the-optimal-value-and-policy">4.2 The optimal value and policy</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_optimal_value_policy.png" class="img-fluid figure-img"></p>
+<figcaption>Final V* (heatmap) and π* (arrows) on TwoGoalGridWorld. Left: deterministic transitions, value at start is 7.56. Right: 20% slip probability, value drops to 6.75 — the cost of stochasticity.</figcaption>
+</figure>
+</div>
+<p>Two takeaways from these final panels:</p>
+<ol type="1">
+<li><p><strong>The arrows align with the value gradient.</strong> Going to a higher-value neighbor is the optimal action. This is consistent with the Bellman equation: the optimal policy is the one-step greedy choice with respect to <span class="math inline">V^\star</span>.</p></li>
+<li><p><strong>Stochasticity is expensive.</strong> The same problem with 20% slip has <span class="math inline">V^\star(\text{start})</span> drop from 7.56 to 6.75 — about 10% — because the agent now has to hedge against unintended transitions. Some arrows shift toward more conservative paths.</p></li>
+</ol>
+</section>
+<section id="the-geometry-of-convergence" class="level3">
+<h3 class="anchored" data-anchor-id="the-geometry-of-convergence">4.3 The geometry of convergence</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_bellman_contraction.png" class="img-fluid figure-img"></p>
+<figcaption>||V_k - V*||_∞ over iterations for four values of γ. Solid: empirical convergence. Dotted: theoretical bound γ^k. The contraction property predicts convergence rate exactly equal to γ; in practice convergence is often a bit faster.</figcaption>
+</figure>
+</div>
+<p>This figure verifies the contraction property empirically. With <span class="math inline">\gamma = 0.5</span>, each iteration cuts the error roughly in half. With <span class="math inline">\gamma = 0.99</span>, each iteration only shaves about 1% off, and you need ~40 iterations to reach machine precision.</p>
+<p>The practical implication: <strong>high-<span class="math inline">\gamma</span> problems take more iterations to solve.</strong> The “effective horizon” <span class="math inline">1/(1-\gamma)</span> measures how many future steps you need to account for. With <span class="math inline">\gamma = 0.99</span>, the effective horizon is 100. The algorithm has to propagate value information that far, and each iteration propagates it by approximately one step.</p>
+<p>This is exactly why long-horizon RL is hard. The deeper a problem’s effective horizon, the slower planning converges.</p>
+<hr>
+</section>
+</section>
+<section id="policy-iteration" class="level2">
+<h2 class="anchored" data-anchor-id="policy-iteration">5. Policy iteration</h2>
+<p>A different algorithm with a different rhythm. Instead of iterating one value function until convergence, <strong>policy iteration</strong> alternates two steps:</p>
+<ol type="1">
+<li><strong>Policy evaluation</strong>: solve <span class="math inline">V^\pi</span> for the current policy <span class="math inline">\pi</span> (typically by iterating <span class="math inline">T^\pi</span> to convergence — itself a contraction).</li>
+<li><strong>Policy improvement</strong>: compute <span class="math inline">\pi'(s) = \arg\max_a Q^\pi(s, a)</span> using <span class="math inline">V^\pi</span>.</li>
+</ol>
+<p>Repeat until <span class="math inline">\pi' = \pi</span>. The full algorithm in pseudocode:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pi <span class="op">=</span> np.zeros(nS, dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> policy_evaluation(pi, P, R, gamma)        <span class="co"># exact solve for V^pi</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    Q <span class="op">=</span> R <span class="op">+</span> gamma <span class="op">*</span> (P <span class="op">@</span> V)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    pi_new <span class="op">=</span> Q.argmax(axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> np.array_equal(pi_new, pi):                <span class="co"># tie-break carefully (see code)</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    pi <span class="op">=</span> pi_new</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Why it terminates.</strong> The <em>policy improvement theorem</em> says that if <span class="math inline">\pi'</span> is greedy with respect to <span class="math inline">V^\pi</span>, then <span class="math inline">V^{\pi'} \geq V^\pi</span> pointwise — and strictly greater unless <span class="math inline">\pi'</span> is already optimal. So each PI iteration strictly improves the policy until it can’t anymore. Since there are only finitely many deterministic policies in a finite MDP (<span class="math inline">|\mathcal{A}|^{|\mathcal{S}|}</span> of them), PI must terminate in finitely many iterations.</p>
+<p><strong>Why it usually terminates fast.</strong> Each PI iteration is essentially Newton’s method on the Bellman optimality equation. The convergence is <em>quadratic</em> near the optimum, not just linear like VI. In practice, PI usually terminates in 5–10 outer iterations on small MDPs, regardless of <span class="math inline">\gamma</span>.</p>
+<p>The catch: each PI iteration is expensive. Policy evaluation requires either solving a linear system (<span class="math inline">|\mathcal{S}|^3</span> in the worst case) or iterating <span class="math inline">T^\pi</span> to convergence (cheaper in practice). VI’s iterations are individually cheap. We’ll see the tradeoff empirically in §9.</p>
+<p><strong>Practical tie-breaking.</strong> A subtlety: if multiple actions tie for argmax in a state, naive PI can oscillate between equivalent policies forever. The fix is to only switch <span class="math inline">\pi(s)</span> if the new action’s Q-value is <em>strictly</em> greater than the current one’s. Our implementation does this.</p>
+<hr>
+</section>
+<section id="forward-connections" class="level2">
+<h2 class="anchored" data-anchor-id="forward-connections">6. Forward connections</h2>
+<section id="bandits-and-contextual-bandits-as-mdps-with-mathcals-1" class="level3">
+<h3 class="anchored" data-anchor-id="bandits-and-contextual-bandits-as-mdps-with-mathcals-1">6.1 Bandits and contextual bandits as MDPs with <span class="math inline">|\mathcal{S}| = 1</span></h3>
+<p>Bandits are MDPs with one state. The Bellman equation collapses: <span class="math inline">V^\star = \max_a R(a) + \gamma V^\star</span>, giving <span class="math inline">V^\star = \max_a R(a) / (1 - \gamma)</span>. The optimal policy is “always take the best arm” — exactly what we were trying to find in Part 1a.</p>
+<p>Contextual bandits are MDPs with one <em>step</em> per episode: state transitions exist but the episode terminates after one action. Equivalently, <span class="math inline">\gamma = 0</span>. The Bellman equation collapses to <span class="math inline">V^\star(s) = \max_a R(s, a)</span>, recovering the contextual-bandit objective from Part 1b.</p>
+<p>This is why bandits are the right starting point for RL: they are MDPs with the temporal structure stripped away. Adding it back is what we just did.</p>
+</section>
+<section id="llm-agents-are-mdps-with-caveats" class="level3">
+<h3 class="anchored" data-anchor-id="llm-agents-are-mdps-with-caveats">6.2 LLM agents are MDPs (with caveats)</h3>
+<p>An LLM agent using tools generates a sequence: at each step it observes the conversation history <span class="math inline">s_t</span>, picks an action <span class="math inline">a_t</span> (a token, a tool call, a response), receives an “observation” (tool output) and an implicit reward (eventually, did the task succeed?). The conversation-so-far is the state.</p>
+<p>This is an MDP if you treat the full conversation history as the state. It’s a <em>huge</em> MDP — <span class="math inline">|\mathcal{S}|</span> is astronomical, growing with conversation length. Value iteration is unthinkable on this scale, and we need function approximation (neural networks) to represent <span class="math inline">V</span> and <span class="math inline">Q</span>.</p>
+<p>But the Bellman equation still holds. Modern RLHF, PPO for language models, and reasoning-RL methods like GRPO are all approximate value-based or policy-gradient methods built on this foundation. <strong>The Bellman equation is what justifies bootstrapping</strong> — using your current estimate of <span class="math inline">V</span> to update itself, which is the only way to make sequential decisions tractable at scale.</p>
+<p>The transition from this post to the next series of topics (policy gradients, RLHF) goes exactly through this point. Read the Bellman equation as a <em>target</em> for neural networks to regress against, and you’re already past half the conceptual work.</p>
+</section>
+<section id="model-based-planning-and-mcts" class="level3">
+<h3 class="anchored" data-anchor-id="model-based-planning-and-mcts">6.3 Model-based planning and MCTS</h3>
+<p>Value iteration assumes you have <span class="math inline">P</span> and <span class="math inline">R</span> — the <strong>model</strong> of the world. When you do, planning is “just” dynamic programming.</p>
+<p>AlphaGo and AlphaZero don’t run value iteration on the full game tree (Go has <span class="math inline">\sim 10^{170}</span> board positions, never mind sequences). They run <strong>Monte Carlo Tree Search</strong>, which is a clever sample-based approximation to the Bellman backup. MCTS uses a neural network’s value estimate as a heuristic and refines it by simulating rollouts.</p>
+<p>The conceptual story: MCTS replaces “compute <span class="math inline">\max_a \sum_{s'} P(s'|s,a)[R + \gamma V(s')]</span> over all <span class="math inline">a</span> and <span class="math inline">s'</span>” with “sample a few promising actions, follow each forward with a learned model, use a UCB-style bonus to balance exploration of the search tree.” It is, in essence, applying the multi-armed bandit ideas from Part 1a to <em>nodes in the planning tree</em>. UCB1 plays a starring role in MCTS, which is why we built it in 1a.</p>
+<p>We’ll see MCTS for LLM reasoning in Part 3 of the curriculum (Tree of Thoughts, search-augmented LLMs). For now, just notice: every “structured planning” technique in modern AI is, when you squint, a Bellman backup with approximations.</p>
+<hr>
+</section>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">7. Experiments to actually run</h2>
+<section id="discount-factor-sensitivity" class="level3">
+<h3 class="anchored" data-anchor-id="discount-factor-sensitivity">7.1 Discount factor sensitivity</h3>
+<p>Run VI on TwoGoalGridWorld at <span class="math inline">\gamma \in \{0.5, 0.8, 0.95, 0.99\}</span>. How does the optimal policy change? Does the agent at the start always head to the +10 goal, or does there exist a <span class="math inline">\gamma</span> low enough that the +1 wins for some states?</p>
+<p>The intuition you should build: <span class="math inline">\gamma</span> is the <em>patience parameter</em>. With <span class="math inline">\gamma = 0</span>, the agent is purely myopic — it only cares about immediate reward. As <span class="math inline">\gamma \to 1</span>, the agent treats all future rewards equally. The transition is smooth and the boundary where the policy switches is a specific function of the discount and the path lengths.</p>
+</section>
+<section id="stochastic-transitions-and-risk" class="level3">
+<h3 class="anchored" data-anchor-id="stochastic-transitions-and-risk">7.2 Stochastic transitions and risk</h3>
+<p>Modify the gridworld to have a “cliff” — a row of states with reward <span class="math inline">-50</span>. The optimal deterministic path runs right next to the cliff. What happens to the policy when you add slip probability?</p>
+<p>The expected lesson: under stochasticity, the agent prefers paths that are <em>robust to perturbations</em>, not paths that are <em>shortest in expectation</em>. This is the formal beginning of “risk-aware” planning, and it’s central to safe RL.</p>
+</section>
+<section id="reward-shaping" class="level3">
+<h3 class="anchored" data-anchor-id="reward-shaping">7.3 Reward shaping</h3>
+<p>Try three reward designs for the same task: - <strong>Sparse</strong>: reward only at the goal. - <strong>Step penalty</strong>: reward at goal, plus a small negative reward per step. - <strong>Potential-based shaping</strong>: step penalty plus a bonus equal to <span class="math inline">\phi(s') - \gamma \phi(s)</span> where <span class="math inline">\phi(s) = -\mathrm{dist}(s, \text{goal})</span>.</p>
+<p>Compare the three. Do the policies agree? Do the value functions? Do the number of VI iterations differ?</p>
+<p>The Ng-Harada-Russell (1999) result you’re rediscovering: <strong>potential-based shaping preserves the optimal policy</strong>. The value functions differ by a state-dependent constant, but the policy is identical. This is the only kind of reward shaping that’s safe to apply without thinking — any other form changes what’s optimal.</p>
+</section>
+<section id="policy-iteration-vs-value-iteration" class="level3">
+<h3 class="anchored" data-anchor-id="policy-iteration-vs-value-iteration">7.4 Policy iteration vs value iteration</h3>
+<p>Implement both, time them, count iterations. On problems with varying <span class="math inline">\gamma</span> and grid size, when does each win?</p>
+<p>The classical wisdom: PI uses fewer outer iterations (sometimes far fewer) but each iteration is more expensive. VI’s iterations are cheap. Wall-clock often favors VI on small problems, PI on larger ones — but the exact crossover depends on the inner-loop tolerance of policy evaluation.</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">8. Solutions</h2>
+<section id="discount-factor-sensitivity-experiments01c_sol1_discount_sensitivity.py" class="level3">
+<h3 class="anchored" data-anchor-id="discount-factor-sensitivity-experiments01c_sol1_discount_sensitivity.py">8.1 Discount factor sensitivity — <code>experiments/01c_sol1_discount_sensitivity.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_sol1_discount_sensitivity.png" class="img-fluid figure-img"></p>
+<figcaption>Optimal policies for γ ∈ {0.5, 0.8, 0.95, 0.99}. The arrows show the optimal action in each state. V*(start) increases dramatically with γ — from 0.23 to 9.31 — but the arrows look surprisingly similar.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Most of the policy is identical across all four discount factors: head right, then down, toward the +10 goal at the bottom-right. The difference is concentrated in the <em>top-right corner</em> — states near the +1 goal. At low <span class="math inline">\gamma</span>, those states peel off toward the +1; at high <span class="math inline">\gamma</span>, they commit to the longer journey to +10.</p>
+<p>The dramatic change is in <span class="math inline">V^\star(\text{start})</span>: from 0.23 at <span class="math inline">\gamma = 0.5</span> to 9.31 at <span class="math inline">\gamma = 0.99</span>. The optimal <em>policy</em> changes only at a few states; the optimal <em>value</em> changes by 40×. This is because value is the discounted sum, and the discount factor compresses the whole signal.</p>
+<p><strong>Why local-only changes.</strong> A state’s optimal action depends on a comparison of one-step-look-aheads under <span class="math inline">V^\star</span>. For states far from both terminals, the choice is dominated by “head toward the highest-value neighbor,” which is roughly the same across <span class="math inline">\gamma</span> values because all <span class="math inline">V^\star</span> values are scaled the same way. The choice only changes when a state is close enough to a terminal that the difference between <span class="math inline">\gamma^k \cdot 1</span> and <span class="math inline">\gamma^{k+\Delta} \cdot 10</span> swings the comparison. That happens at the top-right corner — states a step or two from +1, several steps from +10.</p>
+<p><strong>The deeper lesson — γ as a hyperparameter.</strong> In RL practice, <span class="math inline">\gamma</span> is often chosen by convention (<span class="math inline">0.99</span> is common). But it’s not innocuous: it implicitly defines what “long-term” means. Too low and you get short-sighted policies. Too high and credit assignment becomes hopeless because everything is comparable to everything else. For tasks with episode lengths of <span class="math inline">\sim H</span>, a rule of thumb is <span class="math inline">\gamma = 1 - 1/H</span>. For LLM agents reasoning over 10–20 steps, <span class="math inline">\gamma \in [0.9, 0.95]</span> is typical. For long-horizon tasks (<span class="math inline">H = 1000+</span>), <span class="math inline">\gamma = 0.999</span> is necessary but makes value-based methods very slow to converge.</p>
+</section>
+<section id="stochastic-transitions-experiments01c_sol2_stochastic.py" class="level3">
+<h3 class="anchored" data-anchor-id="stochastic-transitions-experiments01c_sol2_stochastic.py">8.2 Stochastic transitions — <code>experiments/01c_sol2_stochastic.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_sol2_stochastic.png" class="img-fluid figure-img"></p>
+<figcaption>Cliff-walking under three slip probabilities. With deterministic transitions the optimal path hugs the cliff edge. As slip increases, the policy retreats to safer routes. V*(start) drops by 87% from slip=0 to slip=0.3.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The agent starts at the left, the goal (+10) is at the bottom-right, and the row just below the agent’s row is a line of cliff cells (terminal, reward <span class="math inline">-50</span>). With deterministic transitions, the optimal path runs along the row directly above the cliff — closest to the goal, never slipping into the cliff. With slip <span class="math inline">= 0.1</span>, the values on the cliff-adjacent row drop sharply (the expected reward of a single step into the cliff is <span class="math inline">-5</span> from a 10% chance of <span class="math inline">-50</span>), and the policy starts hedging away. With slip <span class="math inline">= 0.3</span>, most of the policy has retreated to the upper rows, and <span class="math inline">V^\star(\text{start})</span> has collapsed from 7.29 to 0.95 — the trip is barely worth taking.</p>
+<p><strong>Why the policy retreats.</strong> The Bellman equation directly accounts for transition probabilities. Under slip, a “Right” action from a cliff-adjacent state means: with probability <span class="math inline">0.9</span> you move right safely, with probability <span class="math inline">0.1/3 \approx 0.033</span> each you slip up, down, or left. The “down” slip drops you into a <span class="math inline">-50</span> cliff. Expected immediate reward becomes <span class="math inline">0.9 \cdot (\text{step reward}) + 0.033 \cdot (-50) + \cdots</span>, dominated by the <span class="math inline">-50</span> term. The optimal policy <em>learns the risk</em> — not because of a separate risk module, but because the expected-value calculation in the Bellman equation already handles it correctly.</p>
+<p><strong>The deeper lesson.</strong> This is “risk awareness for free.” Standard RL maximizes expected return; that’s already enough to drive the policy off the cliff edge when transitions are uncertain. No special “risk-sensitive” objective needed. This is why deterministic gridworlds in textbooks look so easy and stochastic ones look so cautious — the math is the same, the world is just being honest about its noise.</p>
+<p>In LLM agent terms: when actions have uncertain outcomes (a tool call might fail, a search might return garbage), value-based planning naturally prefers actions with predictable consequences. The agent learns to take “safe” actions even without an explicit safety objective. This is the same machinery that, scaled up, gives us conservative planning in safety-critical RL.</p>
+</section>
+<section id="reward-shaping-experiments01c_sol3_reward_shaping.py" class="level3">
+<h3 class="anchored" data-anchor-id="reward-shaping-experiments01c_sol3_reward_shaping.py">8.3 Reward shaping — <code>experiments/01c_sol3_reward_shaping.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_sol3_reward_shaping.png" class="img-fluid figure-img"></p>
+<figcaption>Three reward designs on a 10×10 gridworld. Arrows are identical across all three panels (potential-based shaping preserves the optimal policy). V*(start) shifts because of the added potential, but VI converges in the same number of iterations regardless.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> All three reward designs produce the <em>same</em> optimal policy — the arrows are identical. The value functions differ: sparse gives <span class="math inline">V^\star(\text{start}) = 8.43</span>, step penalty gives 7.80, potential-shaped gives 22.73. And VI converges in exactly 19 iterations under all three.</p>
+<p>The 19-iterations-each result is the surprising one. Reward shaping is usually pitched as a way to <em>speed up learning</em>, so why doesn’t it help here?</p>
+<p><strong>Why VI doesn’t benefit from shaping (but Q-learning does).</strong> Synchronous value iteration does a full Bellman backup at every state in every iteration. Information about the goal reward propagates outward at the rate of <em>one cell per iteration</em>, regardless of whether you have step penalties or potentials. The bottleneck is the topological structure of the MDP, not the reward signal density.</p>
+<p>Sample-based methods (Q-learning, REINFORCE, PPO) are entirely different. They update from individual transitions: a Q-learning agent that only sees reward at the goal has to randomly stumble onto the goal <em>and then</em> the rare goal-reaching trajectory needs to propagate backward through the Bellman backup over many subsequent training steps. With shaped rewards, every transition carries informative gradient signal, and learning is dramatically faster.</p>
+<p>This was the central insight of the Ng-Harada-Russell (1999) paper: potential-based shaping is the <em>only</em> form that’s safe (doesn’t change what’s optimal) <em>and</em> useful (provides denser signal). Their proof is essentially: under potential-based shaping, the new <span class="math inline">Q</span>-function differs from the old one by exactly <span class="math inline">-\phi(s)</span>. Argmax over actions is unchanged. So the policy is unchanged.</p>
+<p><strong>The deeper lesson — values are relative, policies are not.</strong> In RL, only the <em>differences</em> between values matter for the policy. Adding any state-dependent constant <span class="math inline">\phi(s)</span> shifts the values but not the relative ordering. This means there’s a lot of freedom in how you define rewards as long as you preserve the right relative orderings. This freedom is exploited heavily in modern RLHF: the reward model’s <em>absolute</em> outputs don’t matter — only their relative differences across pairs of responses. The Bradley-Terry preference model uses this freedom by construction.</p>
+</section>
+<section id="policy-iteration-vs-value-iteration-experiments01c_sol4_pi_vs_vi.py" class="level3">
+<h3 class="anchored" data-anchor-id="policy-iteration-vs-value-iteration-experiments01c_sol4_pi_vs_vi.py">8.4 Policy iteration vs value iteration — <code>experiments/01c_sol4_pi_vs_vi.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01c_sol4_pi_vs_vi.png" class="img-fluid figure-img"></p>
+<figcaption>PI vs VI on gridworlds of increasing size, at γ=0.9 and γ=0.99. Outer iterations (log scale): PI uses ~5–8 across all sizes; VI uses 20–80, growing with size and discount. Wall-clock times tell a different story: VI is faster.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> PI uses far fewer outer iterations — between 4 and 9 across the entire range of grid sizes and discount factors. VI uses 25–80, growing with both size and <span class="math inline">\gamma</span>. So PI wins on iteration count, by an order of magnitude.</p>
+<p>But the wall-clock times tell the opposite story. At grid <span class="math inline">20 \times 20</span> with <span class="math inline">\gamma = 0.99</span>, PI takes 419 ms while VI takes 44 ms — VI is <strong>10× faster</strong> despite needing 10× more iterations.</p>
+<p><strong>Why the inversion.</strong> Each PI iteration involves a full policy evaluation: solving <span class="math inline">V^\pi</span> for the current <span class="math inline">\pi</span>. We do this by iterating <span class="math inline">T^\pi</span> to convergence, which itself is contraction with rate <span class="math inline">\gamma</span> — so policy evaluation at <span class="math inline">\gamma = 0.99</span> takes hundreds of inner iterations. Each PI outer iteration is therefore <span class="math inline">\sim 100\times</span> more expensive than a VI iteration.</p>
+<p>Math: PI does <span class="math inline">\sim 5 \times 400 = 2000</span> “Bellman-equivalent” operations; VI does <span class="math inline">\sim 80 \times 1 = 80</span>. VI wins by 25×, matching the empirical ratio.</p>
+<p><strong>When PI is actually faster.</strong> Three scenarios:</p>
+<ol type="1">
+<li><p><strong>Exact policy evaluation by linear solve.</strong> Instead of iterating <span class="math inline">T^\pi</span>, solve <span class="math inline">(I - \gamma P^\pi) V = R^\pi</span> directly with <code>np.linalg.solve</code>. Cost: <span class="math inline">O(|\mathcal{S}|^3)</span> once per PI iteration, vs <span class="math inline">O(|\mathcal{S}|^2 / (1-\gamma) \cdot \text{tol})</span> for iterative evaluation. For small state spaces and high <span class="math inline">\gamma</span>, the direct solve wins.</p></li>
+<li><p><strong>Modified policy iteration</strong> (Puterman &amp; Shin 1978): instead of fully converging policy evaluation, do just <span class="math inline">k</span> iterations of <span class="math inline">T^\pi</span> before improving the policy. With <span class="math inline">k = 1</span> you recover value iteration; with <span class="math inline">k = \infty</span> you recover pure PI. Intermediate <span class="math inline">k</span> values often beat both.</p></li>
+<li><p><strong>Generalized policy iteration</strong>, the framework behind actor-critic methods. The “evaluator” and the “improver” don’t need to run to convergence — they can alternate at any rate. This unification is one of the most important conceptual insights of modern RL.</p></li>
+</ol>
+<p><strong>The deeper lesson.</strong> Iteration count isn’t the right metric. Wall-clock cost = (iterations) × (cost per iteration), and PI loads its cost into the inner loop. For modern RL where you have neural networks doing the function approximation, the inner-vs-outer-loop tradeoff reappears in every algorithm. Actor-critic methods are essentially generalized PI; deep Q-learning is essentially VI with a neural network. The PI/VI distinction has scaled all the way up to ChatGPT.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">9. Further reading</h2>
+<ul>
+<li><strong>Sutton &amp; Barto, <em>Reinforcement Learning: An Introduction</em> (2018), Chapters 3–4.</strong> The canonical reference for MDPs and dynamic programming. Free online.</li>
+<li><strong>Puterman, <em>Markov Decision Processes</em> (1994).</strong> The definitive mathematical treatment. Read this for proofs.</li>
+<li><strong>Bertsekas, <em>Dynamic Programming and Optimal Control</em> (1995–2017).</strong> Two volumes covering finite MDPs, infinite-horizon problems, and approximate DP. Heavier on theory; great if you want depth.</li>
+<li><strong>Banach, “Sur les opérations dans les ensembles abstraits et leur application aux équations intégrales” (1922).</strong> The original contraction mapping theorem.</li>
+<li><strong>Ng, Harada &amp; Russell, “Policy invariance under reward transformations: Theory and application to reward shaping” (ICML 1999).</strong> Three pages, hugely influential.</li>
+<li><strong>Bellman, <em>Dynamic Programming</em> (1957).</strong> The book that named the field. Out of print but reissued; the original framing is still illuminating.</li>
+</ul>
+<hr>
+<p><strong>Next up — Part 1d: POMDPs and Q-learning.</strong> We add hidden state. The agent no longer sees <span class="math inline">s_t</span> directly — it sees observations <span class="math inline">o_t</span> that are noisy signals of the true state. The agent must maintain a <strong>belief</strong> over what the true state might be, and act on that belief. POMDPs are the formal framework for LLM agents using tools — the conversation history is the agent’s belief over the true world state. We’ll derive belief-state planning, then introduce <strong>Q-learning</strong> as the model-free alternative for when you don’t have <span class="math inline">P</span> and <span class="math inline">R</span> at all.</p>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "MDPs and the Bellman Equations: When Actions Have Consequences"</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Decision-making under uncertainty, from scratch — 3 of 4. We derive the Bellman equations from first principles, prove value iteration converges via the contraction mapping theorem, and solve a gridworld with both VI and PI. The bridge from bandits to full sequential decision-making."</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-20"</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [mdp, dynamic programming, bellman, value iteration]</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/01c_optimal_value_policy.png</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Decision-making under uncertainty, from scratch — 3 of 4.*</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>In <span class="co">[</span><span class="ot">Part 1a</span><span class="co">](01a-multi-armed-bandits.qmd)</span> and <span class="co">[</span><span class="ot">Part 1b</span><span class="co">](01b-contextual-bandits.qmd)</span>, we built algorithms for problems where each action gives you a reward and *then nothing else matters*. The world doesn't change because of what you did. The next decision is just like this one.</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>Real decisions don't work like that. A chess move now changes which positions you can be in next. A tool call now shapes what the LLM agent can do in the following turn. A treatment decision now affects what symptoms you'll see in the next checkup. The simple act of *having state* — a world that evolves based on actions — is what turns a bandit into a **Markov Decision Process** (MDP), and it's the framework everything in RL builds on.</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>This post derives MDPs and the Bellman equations from first principles, proves convergence of value iteration via the contraction mapping theorem, implements value iteration and policy iteration in clean NumPy, and solves a gridworld with both. The math gets a little more interesting; the figures shift from regret curves to **value heatmaps and policy arrows**.</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. When state matters</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="al">![Bandits assume one state and actions just return rewards. MDPs add transitions: actions also change which state you're in next.](../figures/01c_mdp_schematic.png)</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>The left panel shows a multi-armed bandit. There's one state $S$, and three actions each return a reward sampled from a fixed distribution. The right panel shows the simplest non-trivial MDP: four states, two actions in $S_0$ that produce *different* next-state distributions, and a reward associated with eventually reaching $S_3$.</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>The new question is: **how should I trade off immediate rewards against future opportunities?** Action $b$ from $S_0$ deterministically lands in $S_2$, which then deterministically reaches the reward $S_3$. Action $a$ is risky: it lands in $S_1$ (which also leads to $S_3$) with high probability, but slips to $S_2$ with low probability. Are these equivalent? Better, worse?</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>The answer requires summing rewards over all future steps, weighted by probability. That sum is the **return**, and learning to compute it for arbitrary policies is the central activity of dynamic programming. Once we can compute returns, we can pick the policy that maximizes them.</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Formal setup</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>A **Markov Decision Process** is a tuple $(\mathcal{S}, \mathcal{A}, P, R, \gamma)$:</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\mathcal{S}$ — set of states.</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\mathcal{A}$ — set of actions (possibly state-dependent: $\mathcal{A}(s)$).</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$P(s' \mid s, a)$ — transition probabilities: probability of next state being $s'$ given current state $s$ and action $a$.</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$R(s, a, s')$ — reward function. We'll often use the simpler $R(s, a)$ when reward depends only on state and action.</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\gamma \in <span class="co">[</span><span class="ot">0, 1</span><span class="co">]</span>$ — discount factor.</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>At each timestep $t = 0, 1, 2, \dots$ the agent:</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Observes the current state $s_t$.</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Picks an action $a_t$.</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Receives reward $r_{t+1}$ and transitions to $s_{t+1} \sim P(\cdot \mid s_t, a_t)$.</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1.1 The Markov property</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>The defining assumption is that the transition probabilities depend only on the current state and action — not on the history:</span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>P(s_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots, s_0, a_0) \;=\; P(s_{t+1} \mid s_t, a_t).</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>The "Markov" in "MDP" is this property. It says the current state is a **sufficient statistic** for the past — everything you need to know about how the world will evolve is captured in $s_t$.</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>This is a strong assumption, and almost no real-world problem satisfies it literally. A chess position is Markov (state is the board); a robotics task often isn't (you need velocity, not just position); an LLM conversation isn't (you need long-range context). The standard fix is to *redefine the state* to include enough history to make it Markov. The "state" you use is an engineering choice.</span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>When the true state is partially observed — when what you see isn't sufficient to predict the future — you get a **POMDP**, which is the subject of <span class="co">[</span><span class="ot">Part 1d</span><span class="co">](01d-pomdps-and-q-learning.qmd)</span>. For now, assume Markov.</span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1.2 The running example: TwoGoalGridWorld</span></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a><span class="al">![A 5×5 gridworld with two terminal rewards (+1 close, +10 far) and walls blocking the direct path. Used as the running example throughout this post.](../figures/01c_gridworld_setup.png)</span></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>The states are cells. Actions are {Up, Right, Down, Left}. By default transitions are deterministic — the action you choose is the action you take. With slip probability $p$, the action goes uniformly at random to one of the three non-intended directions with probability $p$; otherwise as intended. Walls are non-states: an action into a wall keeps you in place. Terminals are absorbing: once you reach them, no more transitions and no more rewards.</span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>The point of this layout: there are two terminals worth +1 and +10, and they're at roughly equal distances from start. The discount factor $\gamma$ controls whether the +10 is worth waiting for. We'll see this concretely in §9.</span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Policies, returns, and value functions</span></span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 Policies</span></span>
+<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>A **policy** is a rule for choosing actions. Two flavors:</span>
+<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Deterministic**: $\pi : \mathcal{S} \to \mathcal{A}$, mapping states to actions.</span>
+<span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Stochastic**: $\pi(a \mid s)$, a probability distribution over actions given state.</span>
+<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>For the rest of this post we'll mostly work with deterministic policies — they're sufficient for MDPs (there's always a deterministic optimal policy, a fact we'll see in §4).</span>
+<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-82"><a href="#cb3-82" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 Returns</span></span>
+<span id="cb3-83"><a href="#cb3-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-84"><a href="#cb3-84" aria-hidden="true" tabindex="-1"></a>The **return** from time $t$ is the discounted sum of future rewards:</span>
+<span id="cb3-85"><a href="#cb3-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-86"><a href="#cb3-86" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-87"><a href="#cb3-87" aria-hidden="true" tabindex="-1"></a>G_t \;=\; r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \cdots \;=\; \sum_{k=0}^{\infty} \gamma^k r_{t+k+1}.</span>
+<span id="cb3-88"><a href="#cb3-88" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-89"><a href="#cb3-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-90"><a href="#cb3-90" aria-hidden="true" tabindex="-1"></a>The discount factor $\gamma \in [0, 1)$ does two things:</span>
+<span id="cb3-91"><a href="#cb3-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-92"><a href="#cb3-92" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Makes the infinite sum finite.** With bounded rewards $|r| \leq R_{\max}$, $|G_t| \leq R_{\max} / (1 - \gamma)$. Without discounting (or a finite horizon), the sum can diverge.</span>
+<span id="cb3-93"><a href="#cb3-93" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Encodes patience.** Low $\gamma$ values immediate rewards heavily over future ones; high $\gamma$ treats them as comparable. We'll see this control "myopia vs patience" empirically in §9.</span>
+<span id="cb3-94"><a href="#cb3-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-95"><a href="#cb3-95" aria-hidden="true" tabindex="-1"></a>When the MDP has terminal states (like our gridworld), the sum effectively truncates at the first terminal. Mathematically, you can treat a terminal state as one that loops back to itself with zero reward forever — same answer.</span>
+<span id="cb3-96"><a href="#cb3-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-97"><a href="#cb3-97" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.3 Value functions</span></span>
+<span id="cb3-98"><a href="#cb3-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-99"><a href="#cb3-99" aria-hidden="true" tabindex="-1"></a>Two functions encode "how good is this state/action under policy $\pi$":</span>
+<span id="cb3-100"><a href="#cb3-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-101"><a href="#cb3-101" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**State-value function**: $V^\pi(s) \;=\; \mathbb{E}_\pi<span class="co">[</span><span class="ot">G_t \mid s_t = s</span><span class="co">]</span>$. Expected return when starting in state $s$ and following $\pi$ thereafter.</span>
+<span id="cb3-102"><a href="#cb3-102" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Action-value function**: $Q^\pi(s, a) \;=\; \mathbb{E}_\pi<span class="co">[</span><span class="ot">G_t \mid s_t = s, a_t = a</span><span class="co">]</span>$. Expected return when starting in $s$, taking action $a$, then following $\pi$.</span>
+<span id="cb3-103"><a href="#cb3-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-104"><a href="#cb3-104" aria-hidden="true" tabindex="-1"></a>These are related by $V^\pi(s) = \sum_a \pi(a \mid s) Q^\pi(s, a)$, and conversely $Q^\pi(s, a) = \sum_{s'} P(s' \mid s, a) <span class="co">[</span><span class="ot">R(s, a, s') + \gamma V^\pi(s')</span><span class="co">]</span>$.</span>
+<span id="cb3-105"><a href="#cb3-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-106"><a href="#cb3-106" aria-hidden="true" tabindex="-1"></a>We're after the **optimal** value functions:</span>
+<span id="cb3-107"><a href="#cb3-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-108"><a href="#cb3-108" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-109"><a href="#cb3-109" aria-hidden="true" tabindex="-1"></a>V^\star(s) \;=\; \max_\pi V^\pi(s), \qquad Q^\star(s, a) \;=\; \max_\pi Q^\pi(s, a).</span>
+<span id="cb3-110"><a href="#cb3-110" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-111"><a href="#cb3-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-112"><a href="#cb3-112" aria-hidden="true" tabindex="-1"></a>An **optimal policy** $\pi^\star$ is any policy whose value function is $V^\star$. Note: there can be multiple optimal policies (multiple actions might be tied for best in a given state), but they all achieve the same value.</span>
+<span id="cb3-113"><a href="#cb3-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-114"><a href="#cb3-114" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-115"><a href="#cb3-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-116"><a href="#cb3-116" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. The Bellman equations</span></span>
+<span id="cb3-117"><a href="#cb3-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-118"><a href="#cb3-118" aria-hidden="true" tabindex="-1"></a>This is the heart of the post. The Bellman equations are *self-referential* relationships that the value functions must satisfy. They are the foundation of every value-based RL algorithm.</span>
+<span id="cb3-119"><a href="#cb3-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-120"><a href="#cb3-120" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 The expectation equation: one-step decomposition</span></span>
+<span id="cb3-121"><a href="#cb3-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-122"><a href="#cb3-122" aria-hidden="true" tabindex="-1"></a>For any policy $\pi$, the value function satisfies</span>
+<span id="cb3-123"><a href="#cb3-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-124"><a href="#cb3-124" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-125"><a href="#cb3-125" aria-hidden="true" tabindex="-1"></a>\boxed{\; V^\pi(s) \;=\; \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a) \big<span class="co">[</span><span class="ot">R(s, a, s') + \gamma V^\pi(s')\big</span><span class="co">]</span>. \;}</span>
+<span id="cb3-126"><a href="#cb3-126" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-127"><a href="#cb3-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-128"><a href="#cb3-128" aria-hidden="true" tabindex="-1"></a>This is the **Bellman expectation equation**. The derivation is one line:</span>
+<span id="cb3-129"><a href="#cb3-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-130"><a href="#cb3-130" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-131"><a href="#cb3-131" aria-hidden="true" tabindex="-1"></a>\begin{aligned}</span>
+<span id="cb3-132"><a href="#cb3-132" aria-hidden="true" tabindex="-1"></a>V^\pi(s) &amp;= \mathbb{E}_\pi[r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \cdots \mid s_t = s] <span class="sc">\\</span></span>
+<span id="cb3-133"><a href="#cb3-133" aria-hidden="true" tabindex="-1"></a>&amp;= \mathbb{E}_\pi[r_{t+1} + \gamma G_{t+1} \mid s_t = s] <span class="sc">\\</span></span>
+<span id="cb3-134"><a href="#cb3-134" aria-hidden="true" tabindex="-1"></a>&amp;= \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a) \big<span class="co">[</span><span class="ot">R(s, a, s') + \gamma V^\pi(s')\big</span><span class="co">]</span>.</span>
+<span id="cb3-135"><a href="#cb3-135" aria-hidden="true" tabindex="-1"></a>\end{aligned}</span>
+<span id="cb3-136"><a href="#cb3-136" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-137"><a href="#cb3-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-138"><a href="#cb3-138" aria-hidden="true" tabindex="-1"></a>In words: the value of a state equals the expected immediate reward, plus $\gamma$ times the expected value of the next state. The value at $s$ is *defined in terms of* the value at $s'$.</span>
+<span id="cb3-139"><a href="#cb3-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-140"><a href="#cb3-140" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 The optimality equation</span></span>
+<span id="cb3-141"><a href="#cb3-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-142"><a href="#cb3-142" aria-hidden="true" tabindex="-1"></a>For the optimal value function, replace the sum-over-policy with a max:</span>
+<span id="cb3-143"><a href="#cb3-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-144"><a href="#cb3-144" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-145"><a href="#cb3-145" aria-hidden="true" tabindex="-1"></a>\boxed{\; V^\star(s) \;=\; \max_a \sum_{s'} P(s' \mid s, a) \big<span class="co">[</span><span class="ot">R(s, a, s') + \gamma V^\star(s')\big</span><span class="co">]</span>. \;}</span>
+<span id="cb3-146"><a href="#cb3-146" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-147"><a href="#cb3-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-148"><a href="#cb3-148" aria-hidden="true" tabindex="-1"></a>This is the **Bellman optimality equation**. It says the optimal value of $s$ equals the best expected one-step result, computed under the optimal value of the next state.</span>
+<span id="cb3-149"><a href="#cb3-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-150"><a href="#cb3-150" aria-hidden="true" tabindex="-1"></a>The optimal policy reads off directly:</span>
+<span id="cb3-151"><a href="#cb3-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-152"><a href="#cb3-152" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-153"><a href="#cb3-153" aria-hidden="true" tabindex="-1"></a>\pi^\star(s) \;=\; \arg\max_a \sum_{s'} P(s' \mid s, a) \big<span class="co">[</span><span class="ot">R(s, a, s') + \gamma V^\star(s')\big</span><span class="co">]</span>.</span>
+<span id="cb3-154"><a href="#cb3-154" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-155"><a href="#cb3-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-156"><a href="#cb3-156" aria-hidden="true" tabindex="-1"></a>Once you know $V^\star$, the optimal action in every state is a one-step lookup. The hard part is *finding* $V^\star$.</span>
+<span id="cb3-157"><a href="#cb3-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-158"><a href="#cb3-158" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.3 The Bellman operators</span></span>
+<span id="cb3-159"><a href="#cb3-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-160"><a href="#cb3-160" aria-hidden="true" tabindex="-1"></a>Write the Bellman expectation equation as $V^\pi = T^\pi V^\pi$ where the operator $T^\pi$ acts on value functions: $(T^\pi V)(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s'|s,a)<span class="co">[</span><span class="ot">R(s,a,s') + \gamma V(s')</span><span class="co">]</span>$. This $T^\pi$ is **linear** in $V$.</span>
+<span id="cb3-161"><a href="#cb3-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-162"><a href="#cb3-162" aria-hidden="true" tabindex="-1"></a>Write the optimality equation as $V^\star = T^\star V^\star$ where $(T^\star V)(s) = \max_a \sum_{s'} P(s'|s,a)<span class="co">[</span><span class="ot">R(s,a,s') + \gamma V(s')</span><span class="co">]</span>$. This $T^\star$ is **non-linear** — the max makes it so.</span>
+<span id="cb3-163"><a href="#cb3-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-164"><a href="#cb3-164" aria-hidden="true" tabindex="-1"></a>Both operators are **$\gamma$-contractions** in the max-norm: for any two value functions $V$ and $V'$,</span>
+<span id="cb3-165"><a href="#cb3-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-166"><a href="#cb3-166" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-167"><a href="#cb3-167" aria-hidden="true" tabindex="-1"></a><span class="sc">\|</span>T V - T V'<span class="sc">\|</span>_\infty \;\leq\; \gamma \|V - V'\|_\infty.</span>
+<span id="cb3-168"><a href="#cb3-168" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-169"><a href="#cb3-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-170"><a href="#cb3-170" aria-hidden="true" tabindex="-1"></a>**Proof sketch (for $T^\star$).** For each state $s$:</span>
+<span id="cb3-171"><a href="#cb3-171" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-172"><a href="#cb3-172" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span>(T^\star V)(s) - (T^\star V')(s)<span class="pp">|</span> = \big<span class="pp">|</span> \max_a <span class="co">[</span><span class="ot">\ldots V \ldots</span><span class="co">]</span> - \max_a <span class="co">[</span><span class="ot">\ldots V' \ldots</span><span class="co">]</span> \big<span class="pp">|</span> \leq \max_a \big<span class="pp">|</span> <span class="co">[</span><span class="ot">\ldots V \ldots</span><span class="co">]</span> - <span class="co">[</span><span class="ot">\ldots V' \ldots</span><span class="co">]</span> \big<span class="pp">|</span></span>
+<span id="cb3-173"><a href="#cb3-173" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-174"><a href="#cb3-174" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-175"><a href="#cb3-175" aria-hidden="true" tabindex="-1"></a>= \max_a \gamma \big| \mathbb{E}_{s'}[V(s') - V'(s')] \big| \leq \gamma \|V - V'\|_\infty.</span>
+<span id="cb3-176"><a href="#cb3-176" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb3-177"><a href="#cb3-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-178"><a href="#cb3-178" aria-hidden="true" tabindex="-1"></a>The inequality $|\max f - \max g| \leq \max |f - g|$ is the only delicate step.</span>
+<span id="cb3-179"><a href="#cb3-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-180"><a href="#cb3-180" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.4 Why contraction matters: Banach's fixed-point theorem</span></span>
+<span id="cb3-181"><a href="#cb3-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-182"><a href="#cb3-182" aria-hidden="true" tabindex="-1"></a>The **contraction mapping theorem** (Banach, 1922) says: a $\gamma$-contraction on a complete metric space (with $\gamma &lt; 1$) has a unique fixed point, and iterating the operator from *any* starting point converges to it at rate $\gamma$.</span>
+<span id="cb3-183"><a href="#cb3-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-184"><a href="#cb3-184" aria-hidden="true" tabindex="-1"></a>Apply this to $T^\star$. The space of bounded value functions $V : \mathcal{S} \to \mathbb{R}$ under the max-norm is complete. $T^\star$ is a $\gamma$-contraction. Therefore:</span>
+<span id="cb3-185"><a href="#cb3-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-186"><a href="#cb3-186" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**$V^\star$ exists and is unique.** The Bellman optimality equation has exactly one solution.</span>
+<span id="cb3-187"><a href="#cb3-187" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Iterating $T^\star$ from any $V_0$ converges to $V^\star$.** And the error shrinks geometrically: $<span class="sc">\|</span>V_k - V^\star\|_\infty \leq \gamma^k \|V_0 - V^\star\|_\infty$.</span>
+<span id="cb3-188"><a href="#cb3-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-189"><a href="#cb3-189" aria-hidden="true" tabindex="-1"></a>These two facts are the foundation of every value-based RL algorithm. The next two sections describe two ways to use them.</span>
+<span id="cb3-190"><a href="#cb3-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-191"><a href="#cb3-191" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-192"><a href="#cb3-192" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-193"><a href="#cb3-193" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Value iteration</span></span>
+<span id="cb3-194"><a href="#cb3-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-195"><a href="#cb3-195" aria-hidden="true" tabindex="-1"></a>The most direct algorithm: just iterate the Bellman optimality operator until convergence.</span>
+<span id="cb3-196"><a href="#cb3-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-197"><a href="#cb3-197" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb3-198"><a href="#cb3-198" aria-hidden="true" tabindex="-1"></a>V <span class="op">=</span> np.zeros(nS)</span>
+<span id="cb3-199"><a href="#cb3-199" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(max_iters):</span>
+<span id="cb3-200"><a href="#cb3-200" aria-hidden="true" tabindex="-1"></a>    Q <span class="op">=</span> R <span class="op">+</span> gamma <span class="op">*</span> (P <span class="op">@</span> V)        <span class="co"># Q[s, a] = expected one-step + gamma * V(s')</span></span>
+<span id="cb3-201"><a href="#cb3-201" aria-hidden="true" tabindex="-1"></a>    V_new <span class="op">=</span> Q.<span class="bu">max</span>(axis<span class="op">=</span><span class="dv">1</span>)          <span class="co"># take the max over actions</span></span>
+<span id="cb3-202"><a href="#cb3-202" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> np.<span class="bu">max</span>(np.<span class="bu">abs</span>(V_new <span class="op">-</span> V)) <span class="op">&lt;</span> tol:</span>
+<span id="cb3-203"><a href="#cb3-203" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb3-204"><a href="#cb3-204" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> V_new</span>
+<span id="cb3-205"><a href="#cb3-205" aria-hidden="true" tabindex="-1"></a>pi <span class="op">=</span> Q.argmax(axis<span class="op">=</span><span class="dv">1</span>)              <span class="co"># read off the optimal policy</span></span>
+<span id="cb3-206"><a href="#cb3-206" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb3-207"><a href="#cb3-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-208"><a href="#cb3-208" aria-hidden="true" tabindex="-1"></a>That's the whole algorithm. Two lines of math per iteration. The full clean version is in <span class="in">`src/nano_agents/mdp/solvers.py`</span>.</span>
+<span id="cb3-209"><a href="#cb3-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-210"><a href="#cb3-210" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 Watching it work</span></span>
+<span id="cb3-211"><a href="#cb3-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-212"><a href="#cb3-212" aria-hidden="true" tabindex="-1"></a><span class="al">![Value iteration on TwoGoalGridWorld (γ=0.95, slip=0.1). Each panel shows V_k after k iterations. Value 'propagates' outward from the +1 and +10 terminal rewards, eventually filling the whole reachable state space.](../figures/01c_value_iteration_evolution.png)</span></span>
+<span id="cb3-213"><a href="#cb3-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-214"><a href="#cb3-214" aria-hidden="true" tabindex="-1"></a>This is what the operator is doing. At $k = 0$ all values are zero. After one Bellman backup ($k = 1$, not shown), states adjacent to terminals get their first non-zero values — they "see" the reward one step away, discounted by $\gamma$. By $k = 2$, two-step states get values via the $k = 1$ values of their neighbors. And so on.</span>
+<span id="cb3-215"><a href="#cb3-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-216"><a href="#cb3-216" aria-hidden="true" tabindex="-1"></a>The intuition is *value propagating outward from terminals at one cell per iteration*. After $k$ iterations, you've correctly accounted for the first $k$ steps of every trajectory. After many more iterations, the contraction has made even the higher-order terms shrink below tolerance.</span>
+<span id="cb3-217"><a href="#cb3-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-218"><a href="#cb3-218" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 The optimal value and policy</span></span>
+<span id="cb3-219"><a href="#cb3-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-220"><a href="#cb3-220" aria-hidden="true" tabindex="-1"></a><span class="al">![Final V* (heatmap) and π* (arrows) on TwoGoalGridWorld. Left: deterministic transitions, value at start is 7.56. Right: 20% slip probability, value drops to 6.75 — the cost of stochasticity.](../figures/01c_optimal_value_policy.png)</span></span>
+<span id="cb3-221"><a href="#cb3-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-222"><a href="#cb3-222" aria-hidden="true" tabindex="-1"></a>Two takeaways from these final panels:</span>
+<span id="cb3-223"><a href="#cb3-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-224"><a href="#cb3-224" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**The arrows align with the value gradient.** Going to a higher-value neighbor is the optimal action. This is consistent with the Bellman equation: the optimal policy is the one-step greedy choice with respect to $V^\star$.</span>
+<span id="cb3-225"><a href="#cb3-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-226"><a href="#cb3-226" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Stochasticity is expensive.** The same problem with 20% slip has $V^\star(\text{start})$ drop from 7.56 to 6.75 — about 10% — because the agent now has to hedge against unintended transitions. Some arrows shift toward more conservative paths.</span>
+<span id="cb3-227"><a href="#cb3-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-228"><a href="#cb3-228" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.3 The geometry of convergence</span></span>
+<span id="cb3-229"><a href="#cb3-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-230"><a href="#cb3-230" aria-hidden="true" tabindex="-1"></a><span class="al">![||V_k - V*||_∞ over iterations for four values of γ. Solid: empirical convergence. Dotted: theoretical bound γ^k. The contraction property predicts convergence rate exactly equal to γ; in practice convergence is often a bit faster.](../figures/01c_bellman_contraction.png)</span></span>
+<span id="cb3-231"><a href="#cb3-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-232"><a href="#cb3-232" aria-hidden="true" tabindex="-1"></a>This figure verifies the contraction property empirically. With $\gamma = 0.5$, each iteration cuts the error roughly in half. With $\gamma = 0.99$, each iteration only shaves about 1% off, and you need ~40 iterations to reach machine precision.</span>
+<span id="cb3-233"><a href="#cb3-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-234"><a href="#cb3-234" aria-hidden="true" tabindex="-1"></a>The practical implication: **high-$\gamma$ problems take more iterations to solve.** The "effective horizon" $1/(1-\gamma)$ measures how many future steps you need to account for. With $\gamma = 0.99$, the effective horizon is 100. The algorithm has to propagate value information that far, and each iteration propagates it by approximately one step.</span>
+<span id="cb3-235"><a href="#cb3-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-236"><a href="#cb3-236" aria-hidden="true" tabindex="-1"></a>This is exactly why long-horizon RL is hard. The deeper a problem's effective horizon, the slower planning converges.</span>
+<span id="cb3-237"><a href="#cb3-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-238"><a href="#cb3-238" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-239"><a href="#cb3-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-240"><a href="#cb3-240" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Policy iteration</span></span>
+<span id="cb3-241"><a href="#cb3-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-242"><a href="#cb3-242" aria-hidden="true" tabindex="-1"></a>A different algorithm with a different rhythm. Instead of iterating one value function until convergence, **policy iteration** alternates two steps:</span>
+<span id="cb3-243"><a href="#cb3-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-244"><a href="#cb3-244" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Policy evaluation**: solve $V^\pi$ for the current policy $\pi$ (typically by iterating $T^\pi$ to convergence — itself a contraction).</span>
+<span id="cb3-245"><a href="#cb3-245" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Policy improvement**: compute $\pi'(s) = \arg\max_a Q^\pi(s, a)$ using $V^\pi$.</span>
+<span id="cb3-246"><a href="#cb3-246" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-247"><a href="#cb3-247" aria-hidden="true" tabindex="-1"></a>Repeat until $\pi' = \pi$. The full algorithm in pseudocode:</span>
+<span id="cb3-248"><a href="#cb3-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-249"><a href="#cb3-249" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb3-250"><a href="#cb3-250" aria-hidden="true" tabindex="-1"></a>pi <span class="op">=</span> np.zeros(nS, dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb3-251"><a href="#cb3-251" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> <span class="va">True</span>:</span>
+<span id="cb3-252"><a href="#cb3-252" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> policy_evaluation(pi, P, R, gamma)        <span class="co"># exact solve for V^pi</span></span>
+<span id="cb3-253"><a href="#cb3-253" aria-hidden="true" tabindex="-1"></a>    Q <span class="op">=</span> R <span class="op">+</span> gamma <span class="op">*</span> (P <span class="op">@</span> V)</span>
+<span id="cb3-254"><a href="#cb3-254" aria-hidden="true" tabindex="-1"></a>    pi_new <span class="op">=</span> Q.argmax(axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb3-255"><a href="#cb3-255" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> np.array_equal(pi_new, pi):                <span class="co"># tie-break carefully (see code)</span></span>
+<span id="cb3-256"><a href="#cb3-256" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb3-257"><a href="#cb3-257" aria-hidden="true" tabindex="-1"></a>    pi <span class="op">=</span> pi_new</span>
+<span id="cb3-258"><a href="#cb3-258" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb3-259"><a href="#cb3-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-260"><a href="#cb3-260" aria-hidden="true" tabindex="-1"></a>**Why it terminates.** The *policy improvement theorem* says that if $\pi'$ is greedy with respect to $V^\pi$, then $V^{\pi'} \geq V^\pi$ pointwise — and strictly greater unless $\pi'$ is already optimal. So each PI iteration strictly improves the policy until it can't anymore. Since there are only finitely many deterministic policies in a finite MDP ($|\mathcal{A}|^{|\mathcal{S}|}$ of them), PI must terminate in finitely many iterations.</span>
+<span id="cb3-261"><a href="#cb3-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-262"><a href="#cb3-262" aria-hidden="true" tabindex="-1"></a>**Why it usually terminates fast.** Each PI iteration is essentially Newton's method on the Bellman optimality equation. The convergence is *quadratic* near the optimum, not just linear like VI. In practice, PI usually terminates in 5–10 outer iterations on small MDPs, regardless of $\gamma$.</span>
+<span id="cb3-263"><a href="#cb3-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-264"><a href="#cb3-264" aria-hidden="true" tabindex="-1"></a>The catch: each PI iteration is expensive. Policy evaluation requires either solving a linear system ($|\mathcal{S}|^3$ in the worst case) or iterating $T^\pi$ to convergence (cheaper in practice). VI's iterations are individually cheap. We'll see the tradeoff empirically in §9.</span>
+<span id="cb3-265"><a href="#cb3-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-266"><a href="#cb3-266" aria-hidden="true" tabindex="-1"></a>**Practical tie-breaking.** A subtlety: if multiple actions tie for argmax in a state, naive PI can oscillate between equivalent policies forever. The fix is to only switch $\pi(s)$ if the new action's Q-value is *strictly* greater than the current one's. Our implementation does this.</span>
+<span id="cb3-267"><a href="#cb3-267" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-268"><a href="#cb3-268" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-269"><a href="#cb3-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-270"><a href="#cb3-270" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Forward connections</span></span>
+<span id="cb3-271"><a href="#cb3-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-272"><a href="#cb3-272" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 Bandits and contextual bandits as MDPs with $|\mathcal{S}| = 1$</span></span>
+<span id="cb3-273"><a href="#cb3-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-274"><a href="#cb3-274" aria-hidden="true" tabindex="-1"></a>Bandits are MDPs with one state. The Bellman equation collapses: $V^\star = \max_a R(a) + \gamma V^\star$, giving $V^\star = \max_a R(a) / (1 - \gamma)$. The optimal policy is "always take the best arm" — exactly what we were trying to find in Part 1a.</span>
+<span id="cb3-275"><a href="#cb3-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-276"><a href="#cb3-276" aria-hidden="true" tabindex="-1"></a>Contextual bandits are MDPs with one *step* per episode: state transitions exist but the episode terminates after one action. Equivalently, $\gamma = 0$. The Bellman equation collapses to $V^\star(s) = \max_a R(s, a)$, recovering the contextual-bandit objective from Part 1b.</span>
+<span id="cb3-277"><a href="#cb3-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-278"><a href="#cb3-278" aria-hidden="true" tabindex="-1"></a>This is why bandits are the right starting point for RL: they are MDPs with the temporal structure stripped away. Adding it back is what we just did.</span>
+<span id="cb3-279"><a href="#cb3-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-280"><a href="#cb3-280" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 LLM agents are MDPs (with caveats)</span></span>
+<span id="cb3-281"><a href="#cb3-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-282"><a href="#cb3-282" aria-hidden="true" tabindex="-1"></a>An LLM agent using tools generates a sequence: at each step it observes the conversation history $s_t$, picks an action $a_t$ (a token, a tool call, a response), receives an "observation" (tool output) and an implicit reward (eventually, did the task succeed?). The conversation-so-far is the state.</span>
+<span id="cb3-283"><a href="#cb3-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-284"><a href="#cb3-284" aria-hidden="true" tabindex="-1"></a>This is an MDP if you treat the full conversation history as the state. It's a *huge* MDP — $|\mathcal{S}|$ is astronomical, growing with conversation length. Value iteration is unthinkable on this scale, and we need function approximation (neural networks) to represent $V$ and $Q$.</span>
+<span id="cb3-285"><a href="#cb3-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-286"><a href="#cb3-286" aria-hidden="true" tabindex="-1"></a>But the Bellman equation still holds. Modern RLHF, PPO for language models, and reasoning-RL methods like GRPO are all approximate value-based or policy-gradient methods built on this foundation. **The Bellman equation is what justifies bootstrapping** — using your current estimate of $V$ to update itself, which is the only way to make sequential decisions tractable at scale.</span>
+<span id="cb3-287"><a href="#cb3-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-288"><a href="#cb3-288" aria-hidden="true" tabindex="-1"></a>The transition from this post to the next series of topics (policy gradients, RLHF) goes exactly through this point. Read the Bellman equation as a *target* for neural networks to regress against, and you're already past half the conceptual work.</span>
+<span id="cb3-289"><a href="#cb3-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-290"><a href="#cb3-290" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 Model-based planning and MCTS</span></span>
+<span id="cb3-291"><a href="#cb3-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-292"><a href="#cb3-292" aria-hidden="true" tabindex="-1"></a>Value iteration assumes you have $P$ and $R$ — the **model** of the world. When you do, planning is "just" dynamic programming.</span>
+<span id="cb3-293"><a href="#cb3-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-294"><a href="#cb3-294" aria-hidden="true" tabindex="-1"></a>AlphaGo and AlphaZero don't run value iteration on the full game tree (Go has $\sim 10^{170}$ board positions, never mind sequences). They run **Monte Carlo Tree Search**, which is a clever sample-based approximation to the Bellman backup. MCTS uses a neural network's value estimate as a heuristic and refines it by simulating rollouts.</span>
+<span id="cb3-295"><a href="#cb3-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-296"><a href="#cb3-296" aria-hidden="true" tabindex="-1"></a>The conceptual story: MCTS replaces "compute $\max_a \sum_{s'} P(s'|s,a)<span class="co">[</span><span class="ot">R + \gamma V(s')</span><span class="co">]</span>$ over all $a$ and $s'$" with "sample a few promising actions, follow each forward with a learned model, use a UCB-style bonus to balance exploration of the search tree." It is, in essence, applying the multi-armed bandit ideas from Part 1a to *nodes in the planning tree*. UCB1 plays a starring role in MCTS, which is why we built it in 1a.</span>
+<span id="cb3-297"><a href="#cb3-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-298"><a href="#cb3-298" aria-hidden="true" tabindex="-1"></a>We'll see MCTS for LLM reasoning in Part 3 of the curriculum (Tree of Thoughts, search-augmented LLMs). For now, just notice: every "structured planning" technique in modern AI is, when you squint, a Bellman backup with approximations.</span>
+<span id="cb3-299"><a href="#cb3-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-300"><a href="#cb3-300" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-301"><a href="#cb3-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-302"><a href="#cb3-302" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Experiments to actually run</span></span>
+<span id="cb3-303"><a href="#cb3-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-304"><a href="#cb3-304" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 Discount factor sensitivity</span></span>
+<span id="cb3-305"><a href="#cb3-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-306"><a href="#cb3-306" aria-hidden="true" tabindex="-1"></a>Run VI on TwoGoalGridWorld at $\gamma \in <span class="sc">\{</span>0.5, 0.8, 0.95, 0.99<span class="sc">\}</span>$. How does the optimal policy change? Does the agent at the start always head to the +10 goal, or does there exist a $\gamma$ low enough that the +1 wins for some states?</span>
+<span id="cb3-307"><a href="#cb3-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-308"><a href="#cb3-308" aria-hidden="true" tabindex="-1"></a>The intuition you should build: $\gamma$ is the *patience parameter*. With $\gamma = 0$, the agent is purely myopic — it only cares about immediate reward. As $\gamma \to 1$, the agent treats all future rewards equally. The transition is smooth and the boundary where the policy switches is a specific function of the discount and the path lengths.</span>
+<span id="cb3-309"><a href="#cb3-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-310"><a href="#cb3-310" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Stochastic transitions and risk</span></span>
+<span id="cb3-311"><a href="#cb3-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-312"><a href="#cb3-312" aria-hidden="true" tabindex="-1"></a>Modify the gridworld to have a "cliff" — a row of states with reward $-50$. The optimal deterministic path runs right next to the cliff. What happens to the policy when you add slip probability?</span>
+<span id="cb3-313"><a href="#cb3-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-314"><a href="#cb3-314" aria-hidden="true" tabindex="-1"></a>The expected lesson: under stochasticity, the agent prefers paths that are *robust to perturbations*, not paths that are *shortest in expectation*. This is the formal beginning of "risk-aware" planning, and it's central to safe RL.</span>
+<span id="cb3-315"><a href="#cb3-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-316"><a href="#cb3-316" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Reward shaping</span></span>
+<span id="cb3-317"><a href="#cb3-317" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-318"><a href="#cb3-318" aria-hidden="true" tabindex="-1"></a>Try three reward designs for the same task:</span>
+<span id="cb3-319"><a href="#cb3-319" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sparse**: reward only at the goal.</span>
+<span id="cb3-320"><a href="#cb3-320" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Step penalty**: reward at goal, plus a small negative reward per step.</span>
+<span id="cb3-321"><a href="#cb3-321" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Potential-based shaping**: step penalty plus a bonus equal to $\phi(s') - \gamma \phi(s)$ where $\phi(s) = -\mathrm{dist}(s, \text{goal})$.</span>
+<span id="cb3-322"><a href="#cb3-322" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-323"><a href="#cb3-323" aria-hidden="true" tabindex="-1"></a>Compare the three. Do the policies agree? Do the value functions? Do the number of VI iterations differ?</span>
+<span id="cb3-324"><a href="#cb3-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-325"><a href="#cb3-325" aria-hidden="true" tabindex="-1"></a>The Ng-Harada-Russell (1999) result you're rediscovering: **potential-based shaping preserves the optimal policy**. The value functions differ by a state-dependent constant, but the policy is identical. This is the only kind of reward shaping that's safe to apply without thinking — any other form changes what's optimal.</span>
+<span id="cb3-326"><a href="#cb3-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-327"><a href="#cb3-327" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 Policy iteration vs value iteration</span></span>
+<span id="cb3-328"><a href="#cb3-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-329"><a href="#cb3-329" aria-hidden="true" tabindex="-1"></a>Implement both, time them, count iterations. On problems with varying $\gamma$ and grid size, when does each win?</span>
+<span id="cb3-330"><a href="#cb3-330" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-331"><a href="#cb3-331" aria-hidden="true" tabindex="-1"></a>The classical wisdom: PI uses fewer outer iterations (sometimes far fewer) but each iteration is more expensive. VI's iterations are cheap. Wall-clock often favors VI on small problems, PI on larger ones — but the exact crossover depends on the inner-loop tolerance of policy evaluation.</span>
+<span id="cb3-332"><a href="#cb3-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-333"><a href="#cb3-333" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-334"><a href="#cb3-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-335"><a href="#cb3-335" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Solutions</span></span>
+<span id="cb3-336"><a href="#cb3-336" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-337"><a href="#cb3-337" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Discount factor sensitivity — `experiments/01c_sol1_discount_sensitivity.py`</span></span>
+<span id="cb3-338"><a href="#cb3-338" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-339"><a href="#cb3-339" aria-hidden="true" tabindex="-1"></a><span class="al">![Optimal policies for γ ∈ {0.5, 0.8, 0.95, 0.99}. The arrows show the optimal action in each state. V*(start) increases dramatically with γ — from 0.23 to 9.31 — but the arrows look surprisingly similar.](../figures/01c_sol1_discount_sensitivity.png)</span></span>
+<span id="cb3-340"><a href="#cb3-340" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-341"><a href="#cb3-341" aria-hidden="true" tabindex="-1"></a>**What you should see.** Most of the policy is identical across all four discount factors: head right, then down, toward the +10 goal at the bottom-right. The difference is concentrated in the *top-right corner* — states near the +1 goal. At low $\gamma$, those states peel off toward the +1; at high $\gamma$, they commit to the longer journey to +10.</span>
+<span id="cb3-342"><a href="#cb3-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-343"><a href="#cb3-343" aria-hidden="true" tabindex="-1"></a>The dramatic change is in $V^\star(\text{start})$: from 0.23 at $\gamma = 0.5$ to 9.31 at $\gamma = 0.99$. The optimal *policy* changes only at a few states; the optimal *value* changes by 40×. This is because value is the discounted sum, and the discount factor compresses the whole signal.</span>
+<span id="cb3-344"><a href="#cb3-344" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-345"><a href="#cb3-345" aria-hidden="true" tabindex="-1"></a>**Why local-only changes.** A state's optimal action depends on a comparison of one-step-look-aheads under $V^\star$. For states far from both terminals, the choice is dominated by "head toward the highest-value neighbor," which is roughly the same across $\gamma$ values because all $V^\star$ values are scaled the same way. The choice only changes when a state is close enough to a terminal that the difference between $\gamma^k \cdot 1$ and $\gamma^{k+\Delta} \cdot 10$ swings the comparison. That happens at the top-right corner — states a step or two from +1, several steps from +10.</span>
+<span id="cb3-346"><a href="#cb3-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-347"><a href="#cb3-347" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — γ as a hyperparameter.** In RL practice, $\gamma$ is often chosen by convention ($0.99$ is common). But it's not innocuous: it implicitly defines what "long-term" means. Too low and you get short-sighted policies. Too high and credit assignment becomes hopeless because everything is comparable to everything else. For tasks with episode lengths of $\sim H$, a rule of thumb is $\gamma = 1 - 1/H$. For LLM agents reasoning over 10–20 steps, $\gamma \in <span class="co">[</span><span class="ot">0.9, 0.95</span><span class="co">]</span>$ is typical. For long-horizon tasks ($H = 1000+$), $\gamma = 0.999$ is necessary but makes value-based methods very slow to converge.</span>
+<span id="cb3-348"><a href="#cb3-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-349"><a href="#cb3-349" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 Stochastic transitions — `experiments/01c_sol2_stochastic.py`</span></span>
+<span id="cb3-350"><a href="#cb3-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-351"><a href="#cb3-351" aria-hidden="true" tabindex="-1"></a><span class="al">![Cliff-walking under three slip probabilities. With deterministic transitions the optimal path hugs the cliff edge. As slip increases, the policy retreats to safer routes. V*(start) drops by 87% from slip=0 to slip=0.3.](../figures/01c_sol2_stochastic.png)</span></span>
+<span id="cb3-352"><a href="#cb3-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-353"><a href="#cb3-353" aria-hidden="true" tabindex="-1"></a>**What you should see.** The agent starts at the left, the goal (+10) is at the bottom-right, and the row just below the agent's row is a line of cliff cells (terminal, reward $-50$). With deterministic transitions, the optimal path runs along the row directly above the cliff — closest to the goal, never slipping into the cliff. With slip $= 0.1$, the values on the cliff-adjacent row drop sharply (the expected reward of a single step into the cliff is $-5$ from a 10% chance of $-50$), and the policy starts hedging away. With slip $= 0.3$, most of the policy has retreated to the upper rows, and $V^\star(\text{start})$ has collapsed from 7.29 to 0.95 — the trip is barely worth taking.</span>
+<span id="cb3-354"><a href="#cb3-354" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-355"><a href="#cb3-355" aria-hidden="true" tabindex="-1"></a>**Why the policy retreats.** The Bellman equation directly accounts for transition probabilities. Under slip, a "Right" action from a cliff-adjacent state means: with probability $0.9$ you move right safely, with probability $0.1/3 \approx 0.033$ each you slip up, down, or left. The "down" slip drops you into a $-50$ cliff. Expected immediate reward becomes $0.9 \cdot (\text{step reward}) + 0.033 \cdot (-50) + \cdots$, dominated by the $-50$ term. The optimal policy *learns the risk* — not because of a separate risk module, but because the expected-value calculation in the Bellman equation already handles it correctly.</span>
+<span id="cb3-356"><a href="#cb3-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-357"><a href="#cb3-357" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** This is "risk awareness for free." Standard RL maximizes expected return; that's already enough to drive the policy off the cliff edge when transitions are uncertain. No special "risk-sensitive" objective needed. This is why deterministic gridworlds in textbooks look so easy and stochastic ones look so cautious — the math is the same, the world is just being honest about its noise.</span>
+<span id="cb3-358"><a href="#cb3-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-359"><a href="#cb3-359" aria-hidden="true" tabindex="-1"></a>In LLM agent terms: when actions have uncertain outcomes (a tool call might fail, a search might return garbage), value-based planning naturally prefers actions with predictable consequences. The agent learns to take "safe" actions even without an explicit safety objective. This is the same machinery that, scaled up, gives us conservative planning in safety-critical RL.</span>
+<span id="cb3-360"><a href="#cb3-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-361"><a href="#cb3-361" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Reward shaping — `experiments/01c_sol3_reward_shaping.py`</span></span>
+<span id="cb3-362"><a href="#cb3-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-363"><a href="#cb3-363" aria-hidden="true" tabindex="-1"></a><span class="al">![Three reward designs on a 10×10 gridworld. Arrows are identical across all three panels (potential-based shaping preserves the optimal policy). V*(start) shifts because of the added potential, but VI converges in the same number of iterations regardless.](../figures/01c_sol3_reward_shaping.png)</span></span>
+<span id="cb3-364"><a href="#cb3-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-365"><a href="#cb3-365" aria-hidden="true" tabindex="-1"></a>**What you should see.** All three reward designs produce the *same* optimal policy — the arrows are identical. The value functions differ: sparse gives $V^\star(\text{start}) = 8.43$, step penalty gives 7.80, potential-shaped gives 22.73. And VI converges in exactly 19 iterations under all three.</span>
+<span id="cb3-366"><a href="#cb3-366" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-367"><a href="#cb3-367" aria-hidden="true" tabindex="-1"></a>The 19-iterations-each result is the surprising one. Reward shaping is usually pitched as a way to *speed up learning*, so why doesn't it help here?</span>
+<span id="cb3-368"><a href="#cb3-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-369"><a href="#cb3-369" aria-hidden="true" tabindex="-1"></a>**Why VI doesn't benefit from shaping (but Q-learning does).** Synchronous value iteration does a full Bellman backup at every state in every iteration. Information about the goal reward propagates outward at the rate of *one cell per iteration*, regardless of whether you have step penalties or potentials. The bottleneck is the topological structure of the MDP, not the reward signal density.</span>
+<span id="cb3-370"><a href="#cb3-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-371"><a href="#cb3-371" aria-hidden="true" tabindex="-1"></a>Sample-based methods (Q-learning, REINFORCE, PPO) are entirely different. They update from individual transitions: a Q-learning agent that only sees reward at the goal has to randomly stumble onto the goal *and then* the rare goal-reaching trajectory needs to propagate backward through the Bellman backup over many subsequent training steps. With shaped rewards, every transition carries informative gradient signal, and learning is dramatically faster.</span>
+<span id="cb3-372"><a href="#cb3-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-373"><a href="#cb3-373" aria-hidden="true" tabindex="-1"></a>This was the central insight of the Ng-Harada-Russell (1999) paper: potential-based shaping is the *only* form that's safe (doesn't change what's optimal) *and* useful (provides denser signal). Their proof is essentially: under potential-based shaping, the new $Q$-function differs from the old one by exactly $-\phi(s)$. Argmax over actions is unchanged. So the policy is unchanged.</span>
+<span id="cb3-374"><a href="#cb3-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-375"><a href="#cb3-375" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — values are relative, policies are not.** In RL, only the *differences* between values matter for the policy. Adding any state-dependent constant $\phi(s)$ shifts the values but not the relative ordering. This means there's a lot of freedom in how you define rewards as long as you preserve the right relative orderings. This freedom is exploited heavily in modern RLHF: the reward model's *absolute* outputs don't matter — only their relative differences across pairs of responses. The Bradley-Terry preference model uses this freedom by construction.</span>
+<span id="cb3-376"><a href="#cb3-376" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-377"><a href="#cb3-377" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 Policy iteration vs value iteration — `experiments/01c_sol4_pi_vs_vi.py`</span></span>
+<span id="cb3-378"><a href="#cb3-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-379"><a href="#cb3-379" aria-hidden="true" tabindex="-1"></a><span class="al">![PI vs VI on gridworlds of increasing size, at γ=0.9 and γ=0.99. Outer iterations (log scale): PI uses ~5–8 across all sizes; VI uses 20–80, growing with size and discount. Wall-clock times tell a different story: VI is faster.](../figures/01c_sol4_pi_vs_vi.png)</span></span>
+<span id="cb3-380"><a href="#cb3-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-381"><a href="#cb3-381" aria-hidden="true" tabindex="-1"></a>**What you should see.** PI uses far fewer outer iterations — between 4 and 9 across the entire range of grid sizes and discount factors. VI uses 25–80, growing with both size and $\gamma$. So PI wins on iteration count, by an order of magnitude.</span>
+<span id="cb3-382"><a href="#cb3-382" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-383"><a href="#cb3-383" aria-hidden="true" tabindex="-1"></a>But the wall-clock times tell the opposite story. At grid $20 \times 20$ with $\gamma = 0.99$, PI takes 419 ms while VI takes 44 ms — VI is **10× faster** despite needing 10× more iterations.</span>
+<span id="cb3-384"><a href="#cb3-384" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-385"><a href="#cb3-385" aria-hidden="true" tabindex="-1"></a>**Why the inversion.** Each PI iteration involves a full policy evaluation: solving $V^\pi$ for the current $\pi$. We do this by iterating $T^\pi$ to convergence, which itself is contraction with rate $\gamma$ — so policy evaluation at $\gamma = 0.99$ takes hundreds of inner iterations. Each PI outer iteration is therefore $\sim 100\times$ more expensive than a VI iteration.</span>
+<span id="cb3-386"><a href="#cb3-386" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-387"><a href="#cb3-387" aria-hidden="true" tabindex="-1"></a>Math: PI does $\sim 5 \times 400 = 2000$ "Bellman-equivalent" operations; VI does $\sim 80 \times 1 = 80$. VI wins by 25×, matching the empirical ratio.</span>
+<span id="cb3-388"><a href="#cb3-388" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-389"><a href="#cb3-389" aria-hidden="true" tabindex="-1"></a>**When PI is actually faster.** Three scenarios:</span>
+<span id="cb3-390"><a href="#cb3-390" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-391"><a href="#cb3-391" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Exact policy evaluation by linear solve.** Instead of iterating $T^\pi$, solve $(I - \gamma P^\pi) V = R^\pi$ directly with <span class="in">`np.linalg.solve`</span>. Cost: $O(|\mathcal{S}|^3)$ once per PI iteration, vs $O(|\mathcal{S}|^2 / (1-\gamma) \cdot \text{tol})$ for iterative evaluation. For small state spaces and high $\gamma$, the direct solve wins.</span>
+<span id="cb3-392"><a href="#cb3-392" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-393"><a href="#cb3-393" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Modified policy iteration** (Puterman &amp; Shin 1978): instead of fully converging policy evaluation, do just $k$ iterations of $T^\pi$ before improving the policy. With $k = 1$ you recover value iteration; with $k = \infty$ you recover pure PI. Intermediate $k$ values often beat both.</span>
+<span id="cb3-394"><a href="#cb3-394" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-395"><a href="#cb3-395" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Generalized policy iteration**, the framework behind actor-critic methods. The "evaluator" and the "improver" don't need to run to convergence — they can alternate at any rate. This unification is one of the most important conceptual insights of modern RL.</span>
+<span id="cb3-396"><a href="#cb3-396" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-397"><a href="#cb3-397" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Iteration count isn't the right metric. Wall-clock cost = (iterations) × (cost per iteration), and PI loads its cost into the inner loop. For modern RL where you have neural networks doing the function approximation, the inner-vs-outer-loop tradeoff reappears in every algorithm. Actor-critic methods are essentially generalized PI; deep Q-learning is essentially VI with a neural network. The PI/VI distinction has scaled all the way up to ChatGPT.</span>
+<span id="cb3-398"><a href="#cb3-398" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-399"><a href="#cb3-399" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-400"><a href="#cb3-400" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-401"><a href="#cb3-401" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Further reading</span></span>
+<span id="cb3-402"><a href="#cb3-402" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-403"><a href="#cb3-403" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sutton &amp; Barto, *Reinforcement Learning: An Introduction* (2018), Chapters 3–4.** The canonical reference for MDPs and dynamic programming. Free online.</span>
+<span id="cb3-404"><a href="#cb3-404" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Puterman, *Markov Decision Processes* (1994).** The definitive mathematical treatment. Read this for proofs.</span>
+<span id="cb3-405"><a href="#cb3-405" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Bertsekas, *Dynamic Programming and Optimal Control* (1995–2017).** Two volumes covering finite MDPs, infinite-horizon problems, and approximate DP. Heavier on theory; great if you want depth.</span>
+<span id="cb3-406"><a href="#cb3-406" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Banach, "Sur les opérations dans les ensembles abstraits et leur application aux équations intégrales" (1922).** The original contraction mapping theorem.</span>
+<span id="cb3-407"><a href="#cb3-407" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Ng, Harada &amp; Russell, "Policy invariance under reward transformations: Theory and application to reward shaping" (ICML 1999).** Three pages, hugely influential.</span>
+<span id="cb3-408"><a href="#cb3-408" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Bellman, *Dynamic Programming* (1957).** The book that named the field. Out of print but reissued; the original framing is still illuminating.</span>
+<span id="cb3-409"><a href="#cb3-409" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-410"><a href="#cb3-410" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb3-411"><a href="#cb3-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-412"><a href="#cb3-412" aria-hidden="true" tabindex="-1"></a>**Next up — Part 1d: POMDPs and Q-learning.** We add hidden state. The agent no longer sees $s_t$ directly — it sees observations $o_t$ that are noisy signals of the true state. The agent must maintain a **belief** over what the true state might be, and act on that belief. POMDPs are the formal framework for LLM agents using tools — the conversation history is the agent's belief over the true world state. We'll derive belief-state planning, then introduce **Q-learning** as the model-free alternative for when you don't have $P$ and $R$ at all.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/01c-mdps-and-bellman.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-24">
+<meta name="description" content="Policy gradient methods, from scratch — 3 of 4. We add a trust-region constraint to fix the lr-sensitivity problem that wrecked vanilla policy gradient. From importance sampling to TRPO’s KL constraint to PPO’s clipped surrogate. The algorithm that made RL stable enough for LLM training.">
+
+<title>TRPO and PPO: Trust Regions for Stable Policy Gradient – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-73c813dbea455b23e33378fe00306777.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-problem-why-naive-pg-fails-with-big-updates" id="toc-the-problem-why-naive-pg-fails-with-big-updates" class="nav-link active" data-scroll-target="#the-problem-why-naive-pg-fails-with-big-updates">0. The problem: why naive PG fails with big updates</a></li>
+  <li><a href="#importance-sampling-the-bridge" id="toc-importance-sampling-the-bridge" class="nav-link" data-scroll-target="#importance-sampling-the-bridge">1. Importance sampling: the bridge</a></li>
+  <li><a href="#trpo-explicit-kl-trust-region" id="toc-trpo-explicit-kl-trust-region" class="nav-link" data-scroll-target="#trpo-explicit-kl-trust-region">2. TRPO: explicit KL trust region</a></li>
+  <li><a href="#ppo-the-clipped-surrogate" id="toc-ppo-the-clipped-surrogate" class="nav-link" data-scroll-target="#ppo-the-clipped-surrogate">3. PPO: the clipped surrogate</a>
+  <ul class="collapse">
+  <li><a href="#why-the-min-and-clip-work" id="toc-why-the-min-and-clip-work" class="nav-link" data-scroll-target="#why-the-min-and-clip-work">3.1 Why the min and clip work</a></li>
+  <li><a href="#the-ppo-algorithm" id="toc-the-ppo-algorithm" class="nav-link" data-scroll-target="#the-ppo-algorithm">3.2 The PPO algorithm</a></li>
+  <li><a href="#kl-stays-bounded-automatically" id="toc-kl-stays-bounded-automatically" class="nav-link" data-scroll-target="#kl-stays-bounded-automatically">3.3 KL stays bounded automatically</a></li>
+  </ul></li>
+  <li><a href="#ppo-recovers-sample-efficiency" id="toc-ppo-recovers-sample-efficiency" class="nav-link" data-scroll-target="#ppo-recovers-sample-efficiency">4. PPO recovers sample efficiency</a>
+  <ul class="collapse">
+  <li><a href="#ppo-learns-the-right-policy" id="toc-ppo-learns-the-right-policy" class="nav-link" data-scroll-target="#ppo-learns-the-right-policy">4.1 PPO learns the right policy</a></li>
+  </ul></li>
+  <li><a href="#forward-connections" id="toc-forward-connections" class="nav-link" data-scroll-target="#forward-connections">5. Forward connections</a>
+  <ul class="collapse">
+  <li><a href="#ppo-is-the-rlhf-workhorse" id="toc-ppo-is-the-rlhf-workhorse" class="nav-link" data-scroll-target="#ppo-is-the-rlhf-workhorse">5.1 PPO is the RLHF workhorse</a></li>
+  <li><a href="#ppo-gae-a-reward-model-the-full-rlhf-stack" id="toc-ppo-gae-a-reward-model-the-full-rlhf-stack" class="nav-link" data-scroll-target="#ppo-gae-a-reward-model-the-full-rlhf-stack">5.2 PPO + GAE + a reward model = the full RLHF stack</a></li>
+  <li><a href="#grpo-removes-the-critic-but-keeps-the-clip" id="toc-grpo-removes-the-critic-but-keeps-the-clip" class="nav-link" data-scroll-target="#grpo-removes-the-critic-but-keeps-the-clip">5.3 GRPO removes the critic but keeps the clip</a></li>
+  <li><a href="#dpo-bypasses-ppo-entirely" id="toc-dpo-bypasses-ppo-entirely" class="nav-link" data-scroll-target="#dpo-bypasses-ppo-entirely">5.4 DPO bypasses PPO entirely</a></li>
+  </ul></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">6. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#clip-parameter-ε-sensitivity" id="toc-clip-parameter-ε-sensitivity" class="nav-link" data-scroll-target="#clip-parameter-ε-sensitivity">6.1 Clip parameter ε sensitivity</a></li>
+  <li><a href="#epochs-per-batch-sweep" id="toc-epochs-per-batch-sweep" class="nav-link" data-scroll-target="#epochs-per-batch-sweep">6.2 Epochs-per-batch sweep</a></li>
+  <li><a href="#ppo-under-environment-shift" id="toc-ppo-under-environment-shift" class="nav-link" data-scroll-target="#ppo-under-environment-shift">6.3 PPO under environment shift</a></li>
+  <li><a href="#ppo-stability-across-learning-rates" id="toc-ppo-stability-across-learning-rates" class="nav-link" data-scroll-target="#ppo-stability-across-learning-rates">6.4 PPO stability across learning rates</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">7. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#clip-parameter-ε-sensitivity-experiments02c_sol1_eps_sensitivity.py" id="toc-clip-parameter-ε-sensitivity-experiments02c_sol1_eps_sensitivity.py" class="nav-link" data-scroll-target="#clip-parameter-ε-sensitivity-experiments02c_sol1_eps_sensitivity.py">7.1 Clip parameter ε sensitivity — <code>experiments/02c_sol1_eps_sensitivity.py</code></a></li>
+  <li><a href="#epochs-per-batch-sweep-experiments02c_sol2_epochs_sweep.py" id="toc-epochs-per-batch-sweep-experiments02c_sol2_epochs_sweep.py" class="nav-link" data-scroll-target="#epochs-per-batch-sweep-experiments02c_sol2_epochs_sweep.py">7.2 Epochs-per-batch sweep — <code>experiments/02c_sol2_epochs_sweep.py</code></a></li>
+  <li><a href="#environment-shift-experiments02c_sol3_environment_shift.py" id="toc-environment-shift-experiments02c_sol3_environment_shift.py" class="nav-link" data-scroll-target="#environment-shift-experiments02c_sol3_environment_shift.py">7.3 Environment shift — <code>experiments/02c_sol3_environment_shift.py</code></a></li>
+  <li><a href="#ppo-stability-across-learning-rates-experiments02c_sol4_lr_stability.py" id="toc-ppo-stability-across-learning-rates-experiments02c_sol4_lr_stability.py" class="nav-link" data-scroll-target="#ppo-stability-across-learning-rates-experiments02c_sol4_lr_stability.py">7.4 PPO stability across learning rates — <code>experiments/02c_sol4_lr_stability.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">8. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/02c-trpo-and-ppo.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">TRPO and PPO: Trust Regions for Stable Policy Gradient</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">ppo</div>
+    <div class="quarto-category">trpo</div>
+    <div class="quarto-category">trust region</div>
+    <div class="quarto-category">clipped surrogate</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Policy gradient methods, from scratch — 3 of 4. We add a trust-region constraint to fix the lr-sensitivity problem that wrecked vanilla policy gradient. From importance sampling to TRPO’s KL constraint to PPO’s clipped surrogate. The algorithm that made RL stable enough for LLM training.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 24, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Policy gradient methods, from scratch — 3 of 4.</em></p>
+</blockquote>
+<p><a href="../posts/02a-reinforce-and-policy-gradient.html">Post 2a §8.4</a> showed something disturbing: increasing the learning rate of REINFORCE produces a catastrophic phase transition. At small lr, returns saturate cleanly. At medium lr, returns wobble. At large lr, the policy collapses entirely. The same picture shows up for A2C from <a href="../posts/02b-actor-critic.html">Post 2b</a>.</p>
+<p>This isn’t a coincidence — it’s the <strong>on-policy distribution shift</strong> problem in a single picture. Each policy gradient update was computed under the <em>old</em> policy. A large update produces a <em>new</em> policy whose trajectory distribution is very different. The next gradient estimate is then from a wrong distribution, and the cycle compounds.</p>
+<p>This post is about the solution. We introduce <strong>importance sampling</strong> as the framework for reusing data across policy updates. We derive <strong>TRPO</strong>’s explicit KL trust region. We then show how <strong>PPO</strong>’s clipped surrogate gives essentially the same effect with far simpler engineering. The result is the central algorithmic innovation that lets modern RL training work — and the chassis under every contemporary LLM RLHF pipeline.</p>
+<hr>
+<section id="the-problem-why-naive-pg-fails-with-big-updates" class="level2">
+<h2 class="anchored" data-anchor-id="the-problem-why-naive-pg-fails-with-big-updates">0. The problem: why naive PG fails with big updates</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_naive_pg_failure.png" class="img-fluid figure-img"></p>
+<figcaption>Vanilla REINFORCE under three learning rates. α=0.05 converges cleanly. α=0.5 oscillates around 7. α=2.0 catastrophically fails, with returns near zero and huge seed-to-seed variance. Right: seed-to-seed variance grows with lr, indicating training instability.</figcaption>
+</figure>
+</div>
+<p>The figure quantifies the cost of large learning rates: at <span class="math inline">\alpha = 2.0</span>, <strong>REINFORCE doesn’t just slow down — it produces qualitatively different outcomes on different seeds</strong>. The right panel shows std across 8 seeds: at <span class="math inline">\alpha = 0.05</span> the std stays below 1; at <span class="math inline">\alpha = 2.0</span> it sits around 4-5 throughout training. Some runs succeed; others collapse. We can’t predict which.</p>
+<p>The mechanism is straightforward. The policy gradient at iteration <span class="math inline">k</span> is an unbiased estimate of <span class="math inline">\nabla J(\pi_{\theta_k})</span>. We then apply <span class="math inline">\theta_{k+1} = \theta_k + \alpha \nabla J</span>. If <span class="math inline">\alpha</span> is small, <span class="math inline">\theta_{k+1}</span> is close to <span class="math inline">\theta_k</span>, and <span class="math inline">\pi_{\theta_{k+1}}</span> is close to <span class="math inline">\pi_{\theta_k}</span> — the data we just used is still representative. If <span class="math inline">\alpha</span> is large, <span class="math inline">\pi_{\theta_{k+1}}</span> may have moved to a very different distribution, and the next batch will produce a totally different gradient estimate. Iterating this is unstable.</p>
+<p>So the question is: <strong>how do we take large effective steps without leaving the trust region where our current data is informative?</strong></p>
+<hr>
+</section>
+<section id="importance-sampling-the-bridge" class="level2">
+<h2 class="anchored" data-anchor-id="importance-sampling-the-bridge">1. Importance sampling: the bridge</h2>
+<p>The mathematical tool that enables everything in this post is <strong>importance sampling</strong>, the identity</p>
+<p><span class="math display">
+\mathbb{E}_{x \sim p}[f(x)] \;=\; \mathbb{E}_{x \sim q}\!\left[ \frac{p(x)}{q(x)} f(x) \right].
+</span></p>
+<p>We can compute an expectation under distribution <span class="math inline">p</span> by sampling from <span class="math inline">q</span> and reweighting. The factor <span class="math inline">p(x)/q(x)</span> is the <strong>importance ratio</strong>.</p>
+<p>For policy optimization, set <span class="math inline">p = \pi_{\theta_{\text{new}}}</span>, <span class="math inline">q = \pi_{\theta_{\text{old}}}</span>, and let <span class="math inline">f(a) = A(s, a)</span> (advantage). Then</p>
+<p><span class="math display">
+\mathbb{E}_{a \sim \pi_{\text{new}}}[A(s, a)] \;=\; \mathbb{E}_{a \sim \pi_{\text{old}}}\!\left[ \frac{\pi_{\text{new}}(a \mid s)}{\pi_{\text{old}}(a \mid s)} A(s, a) \right].
+</span></p>
+<p>This is the key. We collect data once under <span class="math inline">\pi_{\text{old}}</span> and can then evaluate (and optimize) the new policy by reweighting. The expression on the right is differentiable in <span class="math inline">\theta_{\text{new}}</span>, so we can <strong>take multiple gradient steps using the same data</strong> — as long as <span class="math inline">\pi_{\text{new}}</span> doesn’t drift too far from <span class="math inline">\pi_{\text{old}}</span>.</p>
+<p>The “drift too far” is the central concern. If <span class="math inline">\pi_{\text{new}}</span> ever assigns probability ratio of, say, 100 to some action, the variance of the importance-sampled estimator explodes. The trust region is precisely about preventing this.</p>
+<p>Define the <strong>importance ratio</strong> (a function of <span class="math inline">\theta</span> for fixed <span class="math inline">\theta_{\text{old}}</span>):</p>
+<p><span class="math display">
+r_t(\theta) \;\equiv\; \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)}.
+</span></p>
+<p>Note <span class="math inline">r_t(\theta_{\text{old}}) = 1</span>. The PG theorem can be rewritten as</p>
+<p><span class="math display">
+\nabla_\theta J \big|_{\theta = \theta_{\text{old}}} \;=\; \mathbb{E}_{\pi_{\text{old}}}\!\big[ A_t \nabla_\theta r_t(\theta) \big|_{\theta = \theta_{\text{old}}} \big],
+</span></p>
+<p>which is exactly the standard policy gradient at <span class="math inline">\theta = \theta_{\text{old}}</span>. The advantage is that the surrogate objective <span class="math inline">L(\theta) = \mathbb{E}_{\pi_{\text{old}}}[r_t(\theta) A_t]</span> is <strong>defined for all <span class="math inline">\theta</span></strong>, not just <span class="math inline">\theta = \theta_{\text{old}}</span>, and can be optimized for many gradient steps before we collect new data.</p>
+<hr>
+</section>
+<section id="trpo-explicit-kl-trust-region" class="level2">
+<h2 class="anchored" data-anchor-id="trpo-explicit-kl-trust-region">2. TRPO: explicit KL trust region</h2>
+<p>Schulman et al.&nbsp;(2015) made the trust region explicit. The TRPO update solves</p>
+<p><span class="math display">
+\max_\theta \; L^{\text{IS}}(\theta) = \mathbb{E}_{\pi_{\text{old}}}\!\left[ r_t(\theta) \hat A_t \right]
+\quad \text{subject to} \quad \mathbb{E}_{s}\!\left[ \mathrm{KL}(\pi_{\theta_{\text{old}}}(\cdot \mid s) \| \pi_\theta(\cdot \mid s)) \right] \leq \delta.
+</span></p>
+<p>The KL constraint enforces that the new policy stays within a “trust region” of the old one. Smaller <span class="math inline">\delta</span> → tighter trust region → more conservative update.</p>
+<p>This is principled but technically demanding to solve. TRPO uses a second-order method: solve the quadratic approximation <span class="math inline">\max_\theta g^\top (\theta - \theta_{\text{old}})</span> subject to <span class="math inline">(\theta - \theta_{\text{old}})^\top F (\theta - \theta_{\text{old}}) \leq \delta</span> where <span class="math inline">F</span> is the Fisher information matrix. Solution via conjugate gradients + a line search to enforce the constraint approximately.</p>
+<p>Effective, but a lot of moving parts. Worth understanding conceptually — but PPO, two years later, made the algorithm dramatically simpler while preserving most of the benefit.</p>
+<hr>
+</section>
+<section id="ppo-the-clipped-surrogate" class="level2">
+<h2 class="anchored" data-anchor-id="ppo-the-clipped-surrogate">3. PPO: the clipped surrogate</h2>
+<p>Schulman et al.&nbsp;(2017) observed that the trust region effect can be approximated by a simple modification of the importance-sampled objective. Define</p>
+<p><span class="math display">
+\boxed{\;
+L^{\text{CLIP}}(\theta) \;=\; \mathbb{E}_{\pi_{\text{old}}}\!\left[ \min\!\Big( r_t(\theta) \hat A_t,\; \text{clip}\big(r_t(\theta), 1{-}\epsilon, 1{+}\epsilon\big) \hat A_t \Big) \right]
+\;}
+</span></p>
+<p>where <span class="math inline">\text{clip}(r, a, b) = \min(\max(r, a), b)</span> and <span class="math inline">\epsilon</span> (typically 0.1 or 0.2) controls the trust region size.</p>
+<p>That’s the whole algorithm. No KL constraint, no second-order optimization, no line search. Just a clipped objective that you optimize with plain SGD/Adam.</p>
+<section id="why-the-min-and-clip-work" class="level3">
+<h3 class="anchored" data-anchor-id="why-the-min-and-clip-work">3.1 Why the min and clip work</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_clipped_surrogate.png" class="img-fluid figure-img"></p>
+<figcaption>PPO clipped surrogate L^CLIP. For A &gt; 0 (good action), the unclipped objective r·A grows linearly with r; the clipped version caps at 1+ε. The min creates a zero-gradient region above r = 1+ε. For A &lt; 0 (bad action), the zero-gradient region is below r = 1-ε. The asymmetry prevents the policy from moving too far in either direction.</figcaption>
+</figure>
+</div>
+<p>The crucial structure is the <strong>asymmetric</strong> clip:</p>
+<ul>
+<li><p><strong>Case <span class="math inline">A_t &gt; 0</span> (good action)</strong>: We want to increase <span class="math inline">\pi_\theta(a_t \mid s_t)</span>, which means increase <span class="math inline">r</span>. The unclipped objective <span class="math inline">r \cdot A_t</span> grows; we’d happily push <span class="math inline">r</span> to infinity. The clip caps it: above <span class="math inline">r = 1 + \epsilon</span>, the objective is flat at <span class="math inline">(1+\epsilon) A_t</span>. The <span class="math inline">\min</span> takes the smaller value, so the objective is the unclipped one below <span class="math inline">1+\epsilon</span> and flat above. <strong>Gradient is zero in the clipped region — the optimizer can’t push <span class="math inline">r</span> any higher.</strong></p></li>
+<li><p><strong>Case <span class="math inline">A_t &lt; 0</span> (bad action)</strong>: We want to decrease <span class="math inline">\pi_\theta(a_t \mid s_t)</span>, which means decrease <span class="math inline">r</span>. The unclipped objective decreases. The clip caps it below at <span class="math inline">(1-\epsilon) A_t</span>. Now the <span class="math inline">\min</span> picks the <em>more negative</em> one — which is the unclipped value above <span class="math inline">r = 1-\epsilon</span>, and the clipped value below. <strong>Gradient is zero for <span class="math inline">r &lt; 1-\epsilon</span>.</strong></p></li>
+</ul>
+<p>In both cases, the clip turns off the gradient when the policy has moved too far in the “natural” direction. The policy can move back (toward <span class="math inline">r = 1</span>) freely, but it can’t keep moving away.</p>
+<p>The asymmetry is what makes this work. A naive <em>symmetric</em> clip — just <span class="math inline">\text{clip}(r, 1-\epsilon, 1+\epsilon) A_t</span> — has zero gradient on <em>both</em> sides, including where we want to move <em>into</em> the constrained region. That fails. The <span class="math inline">\min</span> with the unclipped version makes it work: we can always move <em>toward</em> the data-generating policy.</p>
+</section>
+<section id="the-ppo-algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="the-ppo-algorithm">3.2 The PPO algorithm</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_ppo(env, policy, baseline, n_iterations, n_trajectories_per_iter,</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>              n_epochs, lr_actor, lr_critic, gamma, lam, eps):</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it <span class="kw">in</span> <span class="bu">range</span>(n_iterations):</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        batch <span class="op">=</span> collect_batch(env, policy, n_trajectories_per_iter)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        samples <span class="op">=</span> compute_advantages(batch, baseline, gamma, lam)  <span class="co"># GAE</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        old_log_probs <span class="op">=</span> [log pi_theta(a<span class="op">|</span>s) <span class="cf">for</span> (s, a) <span class="kw">in</span> samples]</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Multiple epochs of clipped surrogate updates.</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(n_epochs):</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> (s, a, A) <span class="kw">in</span> shuffled(samples):</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>                ratio <span class="op">=</span> exp(log pi_theta(a<span class="op">|</span>s) <span class="op">-</span> old_log_probs[s, a])</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>                unclipped <span class="op">=</span> ratio <span class="op">*</span> A</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                clipped   <span class="op">=</span> clip(ratio, <span class="dv">1</span> <span class="op">-</span> eps, <span class="dv">1</span> <span class="op">+</span> eps) <span class="op">*</span> A</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Take gradient of min(unclipped, clipped).</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Only update if unclipped is the active branch.</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>                update theta <span class="kw">in</span> the gradient direction</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Critic update on the same batch.</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> (s, _, _, target) <span class="kw">in</span> samples:</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>            V_phi[s] <span class="op">+=</span> lr_critic <span class="op">*</span> (target <span class="op">-</span> V_phi[s])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The key trick: <strong>multiple epochs on the same batch</strong>. With vanilla policy gradient, taking a second update with the same data would compute the wrong gradient (the policy has changed). With PPO’s clipped surrogate, the gradient stays informative as long as <span class="math inline">r_t</span> stays in <span class="math inline">[1-\epsilon, 1+\epsilon]</span>.</p>
+</section>
+<section id="kl-stays-bounded-automatically" class="level3">
+<h3 class="anchored" data-anchor-id="kl-stays-bounded-automatically">3.3 KL stays bounded automatically</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_kl_clip_diagnostics.png" class="img-fluid figure-img"></p>
+<figcaption>PPO diagnostics: returns, KL divergence, and clip fraction over training. Smaller ε produces more clipping but tighter KL. All three ε values converge to similar returns.</figcaption>
+</figure>
+</div>
+<p>The clip is an <em>implicit</em> trust region: it doesn’t directly constrain KL, but in practice the KL stays small because the gradient is turned off whenever the ratio strays past the boundary.</p>
+<p>Three diagnostics worth watching in any PPO implementation:</p>
+<ol type="1">
+<li><strong>Mean importance ratio.</strong> Should stay near 1.0. If it drifts far, the policy has changed too much per iteration.</li>
+<li><strong>KL divergence between old and new policy.</strong> Should be bounded — order <span class="math inline">\epsilon^2</span> in theory. If it explodes, training is unstable.</li>
+<li><strong>Clip fraction.</strong> What fraction of samples hit the clip on each update. Should be small ($$1–10%) — if it’s 30%+, you’re throwing away most of your gradient signal.</li>
+</ol>
+<p>The figure shows all three values stay tame across <span class="math inline">\epsilon \in \{0.1, 0.2, 0.5\}</span>. Smaller <span class="math inline">\epsilon</span> engages clipping more (right panel) but keeps KL tighter (middle). Returns converge to roughly the same value (left), just at slightly different rates.</p>
+<hr>
+</section>
+</section>
+<section id="ppo-recovers-sample-efficiency" class="level2">
+<h2 class="anchored" data-anchor-id="ppo-recovers-sample-efficiency">4. PPO recovers sample efficiency</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_ppo_learning_curves.png" class="img-fluid figure-img"></p>
+<figcaption>PPO learning curves vs A2C on the same problem. A2C (per-step updates, gray) converges fastest. PPO 1 epoch (orange) is much slower because it does only one update per batch. PPO 10 epochs (red) recovers most of A2C’s sample efficiency.</figcaption>
+</figure>
+</div>
+<p>On this small tabular problem, A2C with per-step updates is the most sample-efficient. PPO with 1 epoch is much slower — it does only one update per batch where A2C does many. PPO with 10 epochs catches up to within striking distance of A2C.</p>
+<p><strong>The point</strong>: PPO’s value isn’t sample efficiency per se. It’s that PPO <strong>lets you do many epochs per batch safely</strong>, where vanilla policy gradient would have collapsed. In neural-network settings — where each gradient step is expensive and per-step variance is high — this is the central practical reason PPO dominates.</p>
+<section id="ppo-learns-the-right-policy" class="level3">
+<h3 class="anchored" data-anchor-id="ppo-learns-the-right-policy">4.1 PPO learns the right policy</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_ppo_vs_vi.png" class="img-fluid figure-img"></p>
+<figcaption>PPO recovers the optimal policy on a 5×5 slippery gridworld. Policy matches VI on 21/23 non-terminal states. Critic error 0.213.</figcaption>
+</figure>
+</div>
+<p>The final policy comparison shows 21/23 non-terminal states matching value iteration’s answer — same as A2C in <a href="../posts/02b-actor-critic.html">Post 2b</a>, better than REINFORCE in <a href="../posts/02a-reinforce-and-policy-gradient.html">Post 2a</a>. The two disagreements are at near-tied states. PPO is solving the same problem; it’s not better at finding the <em>answer</em>, it’s better at finding it <strong>reliably</strong>.</p>
+<hr>
+</section>
+</section>
+<section id="forward-connections" class="level2">
+<h2 class="anchored" data-anchor-id="forward-connections">5. Forward connections</h2>
+<section id="ppo-is-the-rlhf-workhorse" class="level3">
+<h3 class="anchored" data-anchor-id="ppo-is-the-rlhf-workhorse">5.1 PPO is the RLHF workhorse</h3>
+<p>In modern RLHF (used for ChatGPT, Claude, Llama, etc.), the training loop is <em>exactly</em> PPO. Specifically:</p>
+<ul>
+<li>The <strong>policy</strong> <span class="math inline">\pi_\theta</span> is the language model.</li>
+<li>The <strong>advantages</strong> are computed via GAE from rewards given by a learned reward model.</li>
+<li>The <strong>clipped surrogate</strong> is the loss function (often with an additional <strong>KL penalty</strong> against a reference policy — a “soft” trust region on top of the “hard” clip).</li>
+<li>Training runs for many iterations of PPO updates over RLHF data.</li>
+</ul>
+<p>The KL penalty against a reference model deserves a note. It’s a separate KL constraint:</p>
+<p><span class="math display">
+\mathcal{L}_{\text{RLHF}} = L^{\text{CLIP}}(\theta) - \beta \, D_{\mathrm{KL}}(\pi_\theta \,\|\, \pi_{\text{ref}}).
+</span></p>
+<p>The reference is usually the pre-RLHF model (the SFT checkpoint). This penalty prevents the policy from drifting too far from coherent language generation in pursuit of high reward. Without it, RLHF collapses to reward-hacking gibberish that scores high on the reward model but is incoherent.</p>
+<p>Note: this <span class="math inline">\pi_{\text{ref}}</span> KL is <strong>different</strong> from the implicit KL bound that PPO’s clip provides between <span class="math inline">\pi_{\text{old}}</span> and <span class="math inline">\pi_{\text{new}}</span>. PPO’s clip prevents <em>per-iteration</em> drift. The reference KL prevents <em>cumulative</em> drift across all iterations.</p>
+</section>
+<section id="ppo-gae-a-reward-model-the-full-rlhf-stack" class="level3">
+<h3 class="anchored" data-anchor-id="ppo-gae-a-reward-model-the-full-rlhf-stack">5.2 PPO + GAE + a reward model = the full RLHF stack</h3>
+<p>If you understand Posts 2a, 2b, and 2c, you understand the algorithmic core of RLHF. The remaining engineering — reward modeling, prompt sampling, large-scale distributed training — are real challenges but not conceptual ones.</p>
+<p>This is why we’ve built this so carefully. The thread from “log-derivative trick” to “RLHF for ChatGPT” is a single mathematical structure, with three additions: (a) a baseline (the critic), (b) GAE for the advantage estimator, (c) the clipped surrogate for stability. That’s the entire algorithmic stack of modern RL-for-LLMs.</p>
+</section>
+<section id="grpo-removes-the-critic-but-keeps-the-clip" class="level3">
+<h3 class="anchored" data-anchor-id="grpo-removes-the-critic-but-keeps-the-clip">5.3 GRPO removes the critic but keeps the clip</h3>
+<p>DeepSeek-R1’s GRPO (which we’ll detail in Post 2d) is essentially <strong>PPO without a learned critic</strong>. Instead of <span class="math inline">V_\phi</span>, the baseline is the mean reward of a group of completions sampled from the same prompt:</p>
+<p><span class="math display">
+A_i = r_i - \frac{1}{G} \sum_{j=1}^{G} r_j.
+</span></p>
+<p>The clipped surrogate is unchanged. So GRPO = PPO with a free baseline.</p>
+<p>Why this works for LLMs: - Critics in LLM space are expensive to maintain. - The within-prompt variance of rewards is what we want to reduce; the group baseline captures it well. - Removing the critic eliminates a source of training instability (mis-calibrated critics).</p>
+<p>GRPO is a striking example of how <strong>knowing the structure of the algorithm lets you modify it</strong>. The clipped surrogate is the load-bearing piece; the critic is a convenience.</p>
+</section>
+<section id="dpo-bypasses-ppo-entirely" class="level3">
+<h3 class="anchored" data-anchor-id="dpo-bypasses-ppo-entirely">5.4 DPO bypasses PPO entirely</h3>
+<p>The most radical recent move is to skip PPO. <strong>Direct Preference Optimization</strong> (Rafailov et al.&nbsp;2023) uses an algebraic identity to convert the RLHF objective into a supervised loss on preference pairs <span class="math inline">(y^+, y^-)</span>:</p>
+<p><span class="math display">
+\mathcal{L}_{\text{DPO}} = -\log \sigma\!\left[ \beta \log \frac{\pi_\theta(y^+ \mid x)}{\pi_{\text{ref}}(y^+ \mid x)} - \beta \log \frac{\pi_\theta(y^- \mid x)}{\pi_{\text{ref}}(y^- \mid x)} \right].
+</span></p>
+<p>No PPO loop, no reward model, no advantage estimation. Just gradient descent on a binary classification objective.</p>
+<p>We’ll derive this in Post 2d. The conceptual takeaway here: <strong>PPO is one way to solve the RLHF problem, not the only way</strong>. The first-principles framing (REINFORCE → A2C → PPO → DPO) lets you see how the algorithmic landscape evolved and where the design space is.</p>
+<hr>
+</section>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">6. Experiments to actually run</h2>
+<section id="clip-parameter-ε-sensitivity" class="level3">
+<h3 class="anchored" data-anchor-id="clip-parameter-ε-sensitivity">6.1 Clip parameter ε sensitivity</h3>
+<p>Sweep <span class="math inline">\epsilon</span> from very small (almost no updates allowed) to very large (no clipping). What’s the sweet spot?</p>
+</section>
+<section id="epochs-per-batch-sweep" class="level3">
+<h3 class="anchored" data-anchor-id="epochs-per-batch-sweep">6.2 Epochs-per-batch sweep</h3>
+<p>PPO’s main efficiency gain over A2C comes from running multiple SGD epochs on the same batch. How many is too many? When does the clipping start to dominate?</p>
+</section>
+<section id="ppo-under-environment-shift" class="level3">
+<h3 class="anchored" data-anchor-id="ppo-under-environment-shift">6.3 PPO under environment shift</h3>
+<p>Mirror of 1d.4. The +1 and −1 terminals swap positions partway through training. PPO’s trust region adds stability; does it help or hurt adaptation?</p>
+</section>
+<section id="ppo-stability-across-learning-rates" class="level3">
+<h3 class="anchored" data-anchor-id="ppo-stability-across-learning-rates">6.4 PPO stability across learning rates</h3>
+<p>The motivating problem of this post. We saw vanilla REINFORCE collapses past lr ≈ 0.5 (Post 2a §8.4). Does PPO survive at lr = 1.0? At lr = 2.0?</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">7. Solutions</h2>
+<section id="clip-parameter-ε-sensitivity-experiments02c_sol1_eps_sensitivity.py" class="level3">
+<h3 class="anchored" data-anchor-id="clip-parameter-ε-sensitivity-experiments02c_sol1_eps_sensitivity.py">7.1 Clip parameter ε sensitivity — <code>experiments/02c_sol1_eps_sensitivity.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_sol1_eps_sensitivity.png" class="img-fluid figure-img"></p>
+<figcaption>PPO ε sweep: final return rises sharply from ε=0.02 to ε=0.1, then plateaus. Convergence speed is best at ε≈0.1, slow at ε=0.02 (over-constrained).</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> <span class="math inline">\epsilon = 0.02</span> (very tight) converges slowly (41 iterations to threshold) and to a slightly lower return (9.51). <span class="math inline">\epsilon \geq 0.1</span> all reach 9.74 in about 22 iterations. The default <span class="math inline">\epsilon = 0.2</span> is right at the elbow.</p>
+<p><strong>Why ε ≥ 0.1 all behave the same.</strong> On this small problem, the natural per-iteration policy update is small enough that the clip never engages with <span class="math inline">\epsilon \geq 0.1</span>. The KL diagnostics figure showed this: at <span class="math inline">\epsilon = 0.5</span>, clip fraction was essentially zero. The clip is doing nothing because the policy isn’t trying to move that far.</p>
+<p><strong>Why tight ε is harmful.</strong> With <span class="math inline">\epsilon = 0.02</span>, the clip engages on most samples. Most gradient signal gets thrown away (because the gradient is zero in the clipped region). The policy can only crawl forward.</p>
+<p><strong>The deeper lesson — ε encodes a prior about update size.</strong> The PPO default of <span class="math inline">\epsilon = 0.2</span> is calibrated for typical neural-network settings where the natural update magnitude is comparable to <span class="math inline">\epsilon</span>. On simpler problems where the gradient is well-behaved, you can use larger <span class="math inline">\epsilon</span> (or no clipping at all — equivalent to vanilla PG with multiple epochs). On harder problems (long horizons, sparse rewards, high-variance gradients), smaller <span class="math inline">\epsilon</span> is needed.</p>
+<p>This is also why PPO works across so many domains with the same default: <span class="math inline">\epsilon = 0.2</span> is robust enough that it engages just-enough on hard problems and barely-at-all on easy ones.</p>
+</section>
+<section id="epochs-per-batch-sweep-experiments02c_sol2_epochs_sweep.py" class="level3">
+<h3 class="anchored" data-anchor-id="epochs-per-batch-sweep-experiments02c_sol2_epochs_sweep.py">7.2 Epochs-per-batch sweep — <code>experiments/02c_sol2_epochs_sweep.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_sol2_epochs_sweep.png" class="img-fluid figure-img"></p>
+<figcaption>PPO epochs sweep: sample efficiency improves dramatically up to 16 epochs, then saturates. Final return saturates at ~9.85. Clip fraction grows from 0% to 2.6% as more epochs cause more policy drift.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Three coupled effects, plotted in three panels:</p>
+<ul>
+<li><strong>Sample efficiency</strong> drops from 14k transitions (1 epoch) to 1.4k (32 epochs) — a 10× improvement.</li>
+<li><strong>Final return</strong> rises from 8.3 to 9.85, saturating at the optimum around 8 epochs.</li>
+<li><strong>Clip fraction</strong> grows from essentially 0% (1 epoch) to 2.6% (32 epochs).</li>
+</ul>
+<p>The clip fraction story is the key. At 1 epoch, the policy barely moves, so the clip never engages. At 32 epochs, the cumulative drift per batch is much larger, and the clip starts protecting against runaway updates.</p>
+<p><strong>Why diminishing returns.</strong> Past about 16 epochs, the policy is moving as far as the clip will allow — the optimization has saturated within the trust region. More epochs would change nothing because every additional gradient step on this batch has zero gradient (we’re in the clipped region for most samples).</p>
+<p><strong>The deeper lesson — PPO is self-regulating.</strong> The standard PPO default is <span class="math inline">n_{\text{epochs}} = 4</span> to <span class="math inline">10</span>. This isn’t a magic number; it’s “enough that you extract most of the available signal per batch, but not so many that you’re computing zero gradients.” The clip provides a natural stopping criterion. Going beyond the saturation point is wasted compute, not a stability risk.</p>
+<p>This self-regulation is part of why PPO is so practical. Vanilla policy gradient with <span class="math inline">n_{\text{epochs}} &gt; 1</span> can be wildly unstable. PPO with <span class="math inline">n_{\text{epochs}} = 100</span> would just be wasteful, not dangerous.</p>
+</section>
+<section id="environment-shift-experiments02c_sol3_environment_shift.py" class="level3">
+<h3 class="anchored" data-anchor-id="environment-shift-experiments02c_sol3_environment_shift.py">7.3 Environment shift — <code>experiments/02c_sol3_environment_shift.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_sol3_environment_shift.png" class="img-fluid figure-img"></p>
+<figcaption>PPO and REINFORCE under a hard environment switch at episode 1500. Both crash to return ≈ -1 immediately (the previously-good action now hits the -1 terminal). Both struggle to recover; PPO shows slightly smoother dynamics but doesn’t accelerate adaptation.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Pre-switch (episodes 0-1500), both methods learn the +1 terminal and reach return ~0.85. At the switch (episode 1500), both immediately drop to -1 — the policy that was confidently heading to the bottom-right now confidently heads to a tiger. Post-switch (1500-3000), both methods take a long time to recover, with PPO slightly smoother but not faster.</p>
+<p><strong>Why both struggle to adapt.</strong> Both REINFORCE and PPO have been <em>trained</em> into confident policies pointing toward the wrong corner. Recovering requires:</p>
+<ol type="1">
+<li>Random exploration to discover the new +1 location.</li>
+<li>Enough gradient signal to overcome the existing momentum in <span class="math inline">\theta</span>.</li>
+</ol>
+<p>PPO’s clip makes step 2 slower, not faster. The clip prevents large per-iteration policy changes, which is exactly the <em>opposite</em> of what you want when the environment changes drastically. You’d actually want to <em>increase</em> <span class="math inline">\epsilon</span> or take bigger steps to escape the bad commitment.</p>
+<p><strong>The honest finding: PPO trades adaptation speed for stability, not the other way around.</strong> This is the dual of the variance-vs-bias tradeoff. PPO is great when the environment is stable; it’s relatively poor when the environment changes faster than the trust region can accommodate.</p>
+<p><strong>The deeper lesson — entropy regularization is the right fix for non-stationarity.</strong> What both methods lack here is <em>exploration</em>. With entropy regularization, the policy would never collapse to 99% confidence in a single direction; some probability mass would always be available to discover the new optimum. We saw this in <a href="../posts/02b-actor-critic.html">Post 2b §8.4</a>: entropy regularization with <span class="math inline">\beta = 0.1</span> keeps the policy responsive.</p>
+<p>This generalizes far beyond gridworlds. In LLM RLHF, <strong>the KL penalty against the reference model is doing exactly the entropy-regularization job</strong>: it prevents the policy from collapsing to a degenerate distribution. Without it, the policy would commit too hard to whatever the reward model rewards, and lose the ability to recover if the reward model is even slightly wrong.</p>
+</section>
+<section id="ppo-stability-across-learning-rates-experiments02c_sol4_lr_stability.py" class="level3">
+<h3 class="anchored" data-anchor-id="ppo-stability-across-learning-rates-experiments02c_sol4_lr_stability.py">7.4 PPO stability across learning rates — <code>experiments/02c_sol4_lr_stability.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02c_sol4_lr_stability.png" class="img-fluid figure-img"></p>
+<figcaption>Final return vs actor learning rate for A2C and PPO. A2C is stable from 0.01 to 1.0, then catastrophically fails at lr=2.0 (mean 8.96, huge error bars). PPO is monotonically increasing and stable across the entire range, peaking at lr=2.0.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> A2C is well-behaved across two orders of magnitude (lr 0.01 to 1.0) but <strong>catastrophically fails at lr = 2.0</strong>, dropping to mean 8.96 with std 1.09 — some seeds work, some collapse entirely. PPO, in contrast, <em>peaks</em> at lr = 2.0 (9.87) with std 0.00 — perfectly reproducible across seeds.</p>
+<p>This is the textbook demonstration. PPO transforms the lr-sensitivity curve from a sharp peak (A2C) into a saturating monotonic curve. <strong>You can dial lr much higher under PPO without collapse.</strong></p>
+<p><strong>Why PPO is monotonic.</strong> Increasing lr makes the gradient steps within a batch bigger. With vanilla A2C, big steps mean the next batch is from a very different policy than the gradient assumed; instability compounds. With PPO, big steps engage the clip more often, which simply caps the per-iteration change. The policy can’t move further than the clip allows, regardless of lr.</p>
+<p>So at high lr, PPO is effectively limited by the clip rather than by gradient magnitude. The trust region becomes the dominant constraint. Returns saturate at the policy that’s optimal-within-trust-region.</p>
+<p><strong>The deeper lesson — PPO trades lr-tuning for ε-tuning.</strong> With A2C, you have to carefully tune lr. With PPO, you can use a wide range of lr and instead tune <span class="math inline">\epsilon</span> (which is much more robust — see 7.1). This is <em>huge</em> in practice: hyperparameter tuning is expensive, and “the algorithm just works with default settings” is the central virtue of PPO.</p>
+<p>This is a major reason PPO became the default for everything from MuJoCo control to LLM RLHF. The defaults work. You can change the problem (different environment, different policy architecture, different reward scale) and the same <span class="math inline">\epsilon = 0.2</span>, <span class="math inline">\lambda = 0.95</span>, and a wide range of lrs all just work.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">8. Further reading</h2>
+<ul>
+<li><strong>Schulman, Levine, Abbeel, Jordan &amp; Moritz, “Trust Region Policy Optimization” (ICML 2015).</strong> TRPO.</li>
+<li><strong>Schulman, Wolski, Dhariwal, Radford &amp; Klimov, “Proximal Policy Optimization Algorithms” (2017).</strong> PPO.</li>
+<li><strong>Engstrom et al., “Implementation Matters in Deep Policy Gradients: A Case Study on PPO and TRPO” (ICLR 2020).</strong> A meticulous study of the implementation tricks that make PPO actually work in practice. Highly recommended.</li>
+<li><strong>Andrychowicz et al., “What Matters in On-Policy Reinforcement Learning? A Large-Scale Empirical Study” (ICLR 2021).</strong> A 250,000-experiment ablation of PPO’s design choices.</li>
+<li><strong>Huang, Dossa, Raffin, Kanervisto &amp; Wang, “The 37 Implementation Details of Proximal Policy Optimization” (ICLR Blog Track 2022).</strong> What separates a PPO that works from one that doesn’t.</li>
+</ul>
+<hr>
+<p><strong>Next up — Part 2d: RLHF, DPO, and GRPO.</strong> We finally connect everything to LLM training. We’ll see RLHF as PPO with a learned reward model, derive DPO’s algebraic bypass of policy gradient, and look at GRPO’s group-relative baseline that’s making reasoning RL practical. The closing post of Topic 2, and the bridge from the “classical RL” we’ve been building to the modern LLM post-training stack.</p>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "TRPO and PPO: Trust Regions for Stable Policy Gradient"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Policy gradient methods, from scratch — 3 of 4. We add a trust-region constraint to fix the lr-sensitivity problem that wrecked vanilla policy gradient. From importance sampling to TRPO's KL constraint to PPO's clipped surrogate. The algorithm that made RL stable enough for LLM training."</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-24"</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [ppo, trpo, trust region, clipped surrogate]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/02c_clipped_surrogate.png</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Policy gradient methods, from scratch — 3 of 4.*</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Post 2a §8.4</span><span class="co">](02a-reinforce-and-policy-gradient.qmd)</span> showed something disturbing: increasing the learning rate of REINFORCE produces a catastrophic phase transition. At small lr, returns saturate cleanly. At medium lr, returns wobble. At large lr, the policy collapses entirely. The same picture shows up for A2C from <span class="co">[</span><span class="ot">Post 2b</span><span class="co">](02b-actor-critic.qmd)</span>.</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>This isn't a coincidence — it's the **on-policy distribution shift** problem in a single picture. Each policy gradient update was computed under the *old* policy. A large update produces a *new* policy whose trajectory distribution is very different. The next gradient estimate is then from a wrong distribution, and the cycle compounds.</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>This post is about the solution. We introduce **importance sampling** as the framework for reusing data across policy updates. We derive **TRPO**'s explicit KL trust region. We then show how **PPO**'s clipped surrogate gives essentially the same effect with far simpler engineering. The result is the central algorithmic innovation that lets modern RL training work — and the chassis under every contemporary LLM RLHF pipeline.</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. The problem: why naive PG fails with big updates</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="al">![Vanilla REINFORCE under three learning rates. α=0.05 converges cleanly. α=0.5 oscillates around 7. α=2.0 catastrophically fails, with returns near zero and huge seed-to-seed variance. Right: seed-to-seed variance grows with lr, indicating training instability.](../figures/02c_naive_pg_failure.png)</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>The figure quantifies the cost of large learning rates: at $\alpha = 2.0$, **REINFORCE doesn't just slow down — it produces qualitatively different outcomes on different seeds**. The right panel shows std across 8 seeds: at $\alpha = 0.05$ the std stays below 1; at $\alpha = 2.0$ it sits around 4-5 throughout training. Some runs succeed; others collapse. We can't predict which.</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>The mechanism is straightforward. The policy gradient at iteration $k$ is an unbiased estimate of $\nabla J(\pi_{\theta_k})$. We then apply $\theta_{k+1} = \theta_k + \alpha \nabla J$. If $\alpha$ is small, $\theta_{k+1}$ is close to $\theta_k$, and $\pi_{\theta_{k+1}}$ is close to $\pi_{\theta_k}$ — the data we just used is still representative. If $\alpha$ is large, $\pi_{\theta_{k+1}}$ may have moved to a very different distribution, and the next batch will produce a totally different gradient estimate. Iterating this is unstable.</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>So the question is: **how do we take large effective steps without leaving the trust region where our current data is informative?**</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Importance sampling: the bridge</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>The mathematical tool that enables everything in this post is **importance sampling**, the identity</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>\mathbb{E}_{x \sim p}[f(x)] \;=\; \mathbb{E}_{x \sim q}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> \frac{p(x)}{q(x)} f(x) \right</span><span class="co">]</span>.</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>We can compute an expectation under distribution $p$ by sampling from $q$ and reweighting. The factor $p(x)/q(x)$ is the **importance ratio**.</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>For policy optimization, set $p = \pi_{\theta_{\text{new}}}$, $q = \pi_{\theta_{\text{old}}}$, and let $f(a) = A(s, a)$ (advantage). Then</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>\mathbb{E}_{a \sim \pi_{\text{new}}}[A(s, a)] \;=\; \mathbb{E}_{a \sim \pi_{\text{old}}}\!\left[ \frac{\pi_{\text{new}}(a \mid s)}{\pi_{\text{old}}(a \mid s)} A(s, a) \right].</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>This is the key. We collect data once under $\pi_{\text{old}}$ and can then evaluate (and optimize) the new policy by reweighting. The expression on the right is differentiable in $\theta_{\text{new}}$, so we can **take multiple gradient steps using the same data** — as long as $\pi_{\text{new}}$ doesn't drift too far from $\pi_{\text{old}}$.</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>The "drift too far" is the central concern. If $\pi_{\text{new}}$ ever assigns probability ratio of, say, 100 to some action, the variance of the importance-sampled estimator explodes. The trust region is precisely about preventing this.</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>Define the **importance ratio** (a function of $\theta$ for fixed $\theta_{\text{old}}$):</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>r_t(\theta) \;\equiv\; \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)}.</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>Note $r_t(\theta_{\text{old}}) = 1$. The PG theorem can be rewritten as</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J \big|_{\theta = \theta_{\text{old}}} \;=\; \mathbb{E}_{\pi_{\text{old}}}\!\big[ A_t \nabla_\theta r_t(\theta) \big|_{\theta = \theta_{\text{old}}} \big],</span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>which is exactly the standard policy gradient at $\theta = \theta_{\text{old}}$. The advantage is that the surrogate objective $L(\theta) = \mathbb{E}_{\pi_{\text{old}}}[r_t(\theta) A_t]$ is **defined for all $\theta$**, not just $\theta = \theta_{\text{old}}$, and can be optimized for many gradient steps before we collect new data.</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. TRPO: explicit KL trust region</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>Schulman et al. (2015) made the trust region explicit. The TRPO update solves</span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>\max_\theta \; L^{\text{IS}}(\theta) = \mathbb{E}_{\pi_{\text{old}}}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> r_t(\theta) \hat A_t \right</span><span class="co">]</span></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>\quad \text{subject to} \quad \mathbb{E}_{s}\!\left[ \mathrm{KL}(\pi_{\theta_{\text{old}}}(\cdot \mid s) \| \pi_\theta(\cdot \mid s)) \right] \leq \delta.</span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>The KL constraint enforces that the new policy stays within a "trust region" of the old one. Smaller $\delta$ → tighter trust region → more conservative update.</span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>This is principled but technically demanding to solve. TRPO uses a second-order method: solve the quadratic approximation $\max_\theta g^\top (\theta - \theta_{\text{old}})$ subject to $(\theta - \theta_{\text{old}})^\top F (\theta - \theta_{\text{old}}) \leq \delta$ where $F$ is the Fisher information matrix. Solution via conjugate gradients + a line search to enforce the constraint approximately.</span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>Effective, but a lot of moving parts. Worth understanding conceptually — but PPO, two years later, made the algorithm dramatically simpler while preserving most of the benefit.</span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. PPO: the clipped surrogate</span></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>Schulman et al. (2017) observed that the trust region effect can be approximated by a simple modification of the importance-sampled objective. Define</span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>\boxed{\;</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>L^{\text{CLIP}}(\theta) \;=\; \mathbb{E}_{\pi_{\text{old}}}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> \min\!\Big( r_t(\theta) \hat A_t,\; \text{clip}\big(r_t(\theta), 1{-}\epsilon, 1{+}\epsilon\big) \hat A_t \Big) \right</span><span class="co">]</span></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>\;}</span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>where $\text{clip}(r, a, b) = \min(\max(r, a), b)$ and $\epsilon$ (typically 0.1 or 0.2) controls the trust region size.</span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>That's the whole algorithm. No KL constraint, no second-order optimization, no line search. Just a clipped objective that you optimize with plain SGD/Adam.</span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Why the min and clip work</span></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a><span class="al">![PPO clipped surrogate L^CLIP. For A &gt; 0 (good action), the unclipped objective r·A grows linearly with r; the clipped version caps at 1+ε. The min creates a zero-gradient region above r = 1+ε. For A &lt; 0 (bad action), the zero-gradient region is below r = 1-ε. The asymmetry prevents the policy from moving too far in either direction.](../figures/02c_clipped_surrogate.png)</span></span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>The crucial structure is the **asymmetric** clip:</span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Case $A_t &gt; 0$ (good action)**: We want to increase $\pi_\theta(a_t \mid s_t)$, which means increase $r$. The unclipped objective $r \cdot A_t$ grows; we'd happily push $r$ to infinity. The clip caps it: above $r = 1 + \epsilon$, the objective is flat at $(1+\epsilon) A_t$. The $\min$ takes the smaller value, so the objective is the unclipped one below $1+\epsilon$ and flat above. **Gradient is zero in the clipped region — the optimizer can't push $r$ any higher.**</span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Case $A_t &lt; 0$ (bad action)**: We want to decrease $\pi_\theta(a_t \mid s_t)$, which means decrease $r$. The unclipped objective decreases. The clip caps it below at $(1-\epsilon) A_t$. Now the $\min$ picks the *more negative* one — which is the unclipped value above $r = 1-\epsilon$, and the clipped value below. **Gradient is zero for $r &lt; 1-\epsilon$.**</span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>In both cases, the clip turns off the gradient when the policy has moved too far in the "natural" direction. The policy can move back (toward $r = 1$) freely, but it can't keep moving away.</span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>The asymmetry is what makes this work. A naive *symmetric* clip — just $\text{clip}(r, 1-\epsilon, 1+\epsilon) A_t$ — has zero gradient on *both* sides, including where we want to move *into* the constrained region. That fails. The $\min$ with the unclipped version makes it work: we can always move *toward* the data-generating policy.</span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 The PPO algorithm</span></span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> train_ppo(env, policy, baseline, n_iterations, n_trajectories_per_iter,</span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a>              n_epochs, lr_actor, lr_critic, gamma, lam, eps):</span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it <span class="kw">in</span> <span class="bu">range</span>(n_iterations):</span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a>        batch <span class="op">=</span> collect_batch(env, policy, n_trajectories_per_iter)</span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a>        samples <span class="op">=</span> compute_advantages(batch, baseline, gamma, lam)  <span class="co"># GAE</span></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a>        old_log_probs <span class="op">=</span> [log pi_theta(a<span class="op">|</span>s) <span class="cf">for</span> (s, a) <span class="kw">in</span> samples]</span>
+<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Multiple epochs of clipped surrogate updates.</span></span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(n_epochs):</span>
+<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> (s, a, A) <span class="kw">in</span> shuffled(samples):</span>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a>                ratio <span class="op">=</span> exp(log pi_theta(a<span class="op">|</span>s) <span class="op">-</span> old_log_probs[s, a])</span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a>                unclipped <span class="op">=</span> ratio <span class="op">*</span> A</span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>                clipped   <span class="op">=</span> clip(ratio, <span class="dv">1</span> <span class="op">-</span> eps, <span class="dv">1</span> <span class="op">+</span> eps) <span class="op">*</span> A</span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Take gradient of min(unclipped, clipped).</span></span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a>                <span class="co"># Only update if unclipped is the active branch.</span></span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>                update theta <span class="kw">in</span> the gradient direction</span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Critic update on the same batch.</span></span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> (s, _, _, target) <span class="kw">in</span> samples:</span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a>            V_phi[s] <span class="op">+=</span> lr_critic <span class="op">*</span> (target <span class="op">-</span> V_phi[s])</span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a>The key trick: **multiple epochs on the same batch**. With vanilla policy gradient, taking a second update with the same data would compute the wrong gradient (the policy has changed). With PPO's clipped surrogate, the gradient stays informative as long as $r_t$ stays in $<span class="co">[</span><span class="ot">1-\epsilon, 1+\epsilon</span><span class="co">]</span>$.</span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.3 KL stays bounded automatically</span></span>
+<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a><span class="al">![PPO diagnostics: returns, KL divergence, and clip fraction over training. Smaller ε produces more clipping but tighter KL. All three ε values converge to similar returns.](../figures/02c_kl_clip_diagnostics.png)</span></span>
+<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a>The clip is an *implicit* trust region: it doesn't directly constrain KL, but in practice the KL stays small because the gradient is turned off whenever the ratio strays past the boundary.</span>
+<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a>Three diagnostics worth watching in any PPO implementation:</span>
+<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Mean importance ratio.** Should stay near 1.0. If it drifts far, the policy has changed too much per iteration.</span>
+<span id="cb2-148"><a href="#cb2-148" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**KL divergence between old and new policy.** Should be bounded — order $\epsilon^2$ in theory. If it explodes, training is unstable.</span>
+<span id="cb2-149"><a href="#cb2-149" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Clip fraction.** What fraction of samples hit the clip on each update. Should be small ($\sim$1–10%) — if it's 30%+, you're throwing away most of your gradient signal.</span>
+<span id="cb2-150"><a href="#cb2-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-151"><a href="#cb2-151" aria-hidden="true" tabindex="-1"></a>The figure shows all three values stay tame across $\epsilon \in <span class="sc">\{</span>0.1, 0.2, 0.5<span class="sc">\}</span>$. Smaller $\epsilon$ engages clipping more (right panel) but keeps KL tighter (middle). Returns converge to roughly the same value (left), just at slightly different rates.</span>
+<span id="cb2-152"><a href="#cb2-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-153"><a href="#cb2-153" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-154"><a href="#cb2-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-155"><a href="#cb2-155" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. PPO recovers sample efficiency</span></span>
+<span id="cb2-156"><a href="#cb2-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-157"><a href="#cb2-157" aria-hidden="true" tabindex="-1"></a><span class="al">![PPO learning curves vs A2C on the same problem. A2C (per-step updates, gray) converges fastest. PPO 1 epoch (orange) is much slower because it does only one update per batch. PPO 10 epochs (red) recovers most of A2C's sample efficiency.](../figures/02c_ppo_learning_curves.png)</span></span>
+<span id="cb2-158"><a href="#cb2-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-159"><a href="#cb2-159" aria-hidden="true" tabindex="-1"></a>On this small tabular problem, A2C with per-step updates is the most sample-efficient. PPO with 1 epoch is much slower — it does only one update per batch where A2C does many. PPO with 10 epochs catches up to within striking distance of A2C.</span>
+<span id="cb2-160"><a href="#cb2-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-161"><a href="#cb2-161" aria-hidden="true" tabindex="-1"></a>**The point**: PPO's value isn't sample efficiency per se. It's that PPO **lets you do many epochs per batch safely**, where vanilla policy gradient would have collapsed. In neural-network settings — where each gradient step is expensive and per-step variance is high — this is the central practical reason PPO dominates.</span>
+<span id="cb2-162"><a href="#cb2-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-163"><a href="#cb2-163" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 PPO learns the right policy</span></span>
+<span id="cb2-164"><a href="#cb2-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-165"><a href="#cb2-165" aria-hidden="true" tabindex="-1"></a><span class="al">![PPO recovers the optimal policy on a 5×5 slippery gridworld. Policy matches VI on 21/23 non-terminal states. Critic error 0.213.](../figures/02c_ppo_vs_vi.png)</span></span>
+<span id="cb2-166"><a href="#cb2-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-167"><a href="#cb2-167" aria-hidden="true" tabindex="-1"></a>The final policy comparison shows 21/23 non-terminal states matching value iteration's answer — same as A2C in <span class="co">[</span><span class="ot">Post 2b</span><span class="co">](02b-actor-critic.qmd)</span>, better than REINFORCE in <span class="co">[</span><span class="ot">Post 2a</span><span class="co">](02a-reinforce-and-policy-gradient.qmd)</span>. The two disagreements are at near-tied states. PPO is solving the same problem; it's not better at finding the *answer*, it's better at finding it **reliably**.</span>
+<span id="cb2-168"><a href="#cb2-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-169"><a href="#cb2-169" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-170"><a href="#cb2-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-171"><a href="#cb2-171" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Forward connections</span></span>
+<span id="cb2-172"><a href="#cb2-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-173"><a href="#cb2-173" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.1 PPO is the RLHF workhorse</span></span>
+<span id="cb2-174"><a href="#cb2-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-175"><a href="#cb2-175" aria-hidden="true" tabindex="-1"></a>In modern RLHF (used for ChatGPT, Claude, Llama, etc.), the training loop is *exactly* PPO. Specifically:</span>
+<span id="cb2-176"><a href="#cb2-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-177"><a href="#cb2-177" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The **policy** $\pi_\theta$ is the language model.</span>
+<span id="cb2-178"><a href="#cb2-178" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The **advantages** are computed via GAE from rewards given by a learned reward model.</span>
+<span id="cb2-179"><a href="#cb2-179" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The **clipped surrogate** is the loss function (often with an additional **KL penalty** against a reference policy — a "soft" trust region on top of the "hard" clip).</span>
+<span id="cb2-180"><a href="#cb2-180" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Training runs for many iterations of PPO updates over RLHF data.</span>
+<span id="cb2-181"><a href="#cb2-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-182"><a href="#cb2-182" aria-hidden="true" tabindex="-1"></a>The KL penalty against a reference model deserves a note. It's a separate KL constraint:</span>
+<span id="cb2-183"><a href="#cb2-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-184"><a href="#cb2-184" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-185"><a href="#cb2-185" aria-hidden="true" tabindex="-1"></a>\mathcal{L}_{\text{RLHF}} = L^{\text{CLIP}}(\theta) - \beta \, D_{\mathrm{KL}}(\pi_\theta \,\|\, \pi_{\text{ref}}).</span>
+<span id="cb2-186"><a href="#cb2-186" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-187"><a href="#cb2-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-188"><a href="#cb2-188" aria-hidden="true" tabindex="-1"></a>The reference is usually the pre-RLHF model (the SFT checkpoint). This penalty prevents the policy from drifting too far from coherent language generation in pursuit of high reward. Without it, RLHF collapses to reward-hacking gibberish that scores high on the reward model but is incoherent.</span>
+<span id="cb2-189"><a href="#cb2-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-190"><a href="#cb2-190" aria-hidden="true" tabindex="-1"></a>Note: this $\pi_{\text{ref}}$ KL is **different** from the implicit KL bound that PPO's clip provides between $\pi_{\text{old}}$ and $\pi_{\text{new}}$. PPO's clip prevents *per-iteration* drift. The reference KL prevents *cumulative* drift across all iterations.</span>
+<span id="cb2-191"><a href="#cb2-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-192"><a href="#cb2-192" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.2 PPO + GAE + a reward model = the full RLHF stack</span></span>
+<span id="cb2-193"><a href="#cb2-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-194"><a href="#cb2-194" aria-hidden="true" tabindex="-1"></a>If you understand Posts 2a, 2b, and 2c, you understand the algorithmic core of RLHF. The remaining engineering — reward modeling, prompt sampling, large-scale distributed training — are real challenges but not conceptual ones.</span>
+<span id="cb2-195"><a href="#cb2-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-196"><a href="#cb2-196" aria-hidden="true" tabindex="-1"></a>This is why we've built this so carefully. The thread from "log-derivative trick" to "RLHF for ChatGPT" is a single mathematical structure, with three additions: (a) a baseline (the critic), (b) GAE for the advantage estimator, (c) the clipped surrogate for stability. That's the entire algorithmic stack of modern RL-for-LLMs.</span>
+<span id="cb2-197"><a href="#cb2-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-198"><a href="#cb2-198" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.3 GRPO removes the critic but keeps the clip</span></span>
+<span id="cb2-199"><a href="#cb2-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-200"><a href="#cb2-200" aria-hidden="true" tabindex="-1"></a>DeepSeek-R1's GRPO (which we'll detail in Post 2d) is essentially **PPO without a learned critic**. Instead of $V_\phi$, the baseline is the mean reward of a group of completions sampled from the same prompt:</span>
+<span id="cb2-201"><a href="#cb2-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-202"><a href="#cb2-202" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-203"><a href="#cb2-203" aria-hidden="true" tabindex="-1"></a>A_i = r_i - \frac{1}{G} \sum_{j=1}^{G} r_j.</span>
+<span id="cb2-204"><a href="#cb2-204" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-205"><a href="#cb2-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-206"><a href="#cb2-206" aria-hidden="true" tabindex="-1"></a>The clipped surrogate is unchanged. So GRPO = PPO with a free baseline.</span>
+<span id="cb2-207"><a href="#cb2-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-208"><a href="#cb2-208" aria-hidden="true" tabindex="-1"></a>Why this works for LLMs:</span>
+<span id="cb2-209"><a href="#cb2-209" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Critics in LLM space are expensive to maintain.</span>
+<span id="cb2-210"><a href="#cb2-210" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The within-prompt variance of rewards is what we want to reduce; the group baseline captures it well.</span>
+<span id="cb2-211"><a href="#cb2-211" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Removing the critic eliminates a source of training instability (mis-calibrated critics).</span>
+<span id="cb2-212"><a href="#cb2-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-213"><a href="#cb2-213" aria-hidden="true" tabindex="-1"></a>GRPO is a striking example of how **knowing the structure of the algorithm lets you modify it**. The clipped surrogate is the load-bearing piece; the critic is a convenience.</span>
+<span id="cb2-214"><a href="#cb2-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-215"><a href="#cb2-215" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.4 DPO bypasses PPO entirely</span></span>
+<span id="cb2-216"><a href="#cb2-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-217"><a href="#cb2-217" aria-hidden="true" tabindex="-1"></a>The most radical recent move is to skip PPO. **Direct Preference Optimization** (Rafailov et al. 2023) uses an algebraic identity to convert the RLHF objective into a supervised loss on preference pairs $(y^+, y^-)$:</span>
+<span id="cb2-218"><a href="#cb2-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-219"><a href="#cb2-219" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-220"><a href="#cb2-220" aria-hidden="true" tabindex="-1"></a>\mathcal{L}_{\text{DPO}} = -\log \sigma\!\left[ \beta \log \frac{\pi_\theta(y^+ \mid x)}{\pi_{\text{ref}}(y^+ \mid x)} - \beta \log \frac{\pi_\theta(y^- \mid x)}{\pi_{\text{ref}}(y^- \mid x)} \right].</span>
+<span id="cb2-221"><a href="#cb2-221" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-222"><a href="#cb2-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-223"><a href="#cb2-223" aria-hidden="true" tabindex="-1"></a>No PPO loop, no reward model, no advantage estimation. Just gradient descent on a binary classification objective.</span>
+<span id="cb2-224"><a href="#cb2-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-225"><a href="#cb2-225" aria-hidden="true" tabindex="-1"></a>We'll derive this in Post 2d. The conceptual takeaway here: **PPO is one way to solve the RLHF problem, not the only way**. The first-principles framing (REINFORCE → A2C → PPO → DPO) lets you see how the algorithmic landscape evolved and where the design space is.</span>
+<span id="cb2-226"><a href="#cb2-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-227"><a href="#cb2-227" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-228"><a href="#cb2-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-229"><a href="#cb2-229" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Experiments to actually run</span></span>
+<span id="cb2-230"><a href="#cb2-230" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-231"><a href="#cb2-231" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 Clip parameter ε sensitivity</span></span>
+<span id="cb2-232"><a href="#cb2-232" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-233"><a href="#cb2-233" aria-hidden="true" tabindex="-1"></a>Sweep $\epsilon$ from very small (almost no updates allowed) to very large (no clipping). What's the sweet spot?</span>
+<span id="cb2-234"><a href="#cb2-234" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-235"><a href="#cb2-235" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 Epochs-per-batch sweep</span></span>
+<span id="cb2-236"><a href="#cb2-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-237"><a href="#cb2-237" aria-hidden="true" tabindex="-1"></a>PPO's main efficiency gain over A2C comes from running multiple SGD epochs on the same batch. How many is too many? When does the clipping start to dominate?</span>
+<span id="cb2-238"><a href="#cb2-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-239"><a href="#cb2-239" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 PPO under environment shift</span></span>
+<span id="cb2-240"><a href="#cb2-240" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-241"><a href="#cb2-241" aria-hidden="true" tabindex="-1"></a>Mirror of 1d.4. The +1 and −1 terminals swap positions partway through training. PPO's trust region adds stability; does it help or hurt adaptation?</span>
+<span id="cb2-242"><a href="#cb2-242" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-243"><a href="#cb2-243" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.4 PPO stability across learning rates</span></span>
+<span id="cb2-244"><a href="#cb2-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-245"><a href="#cb2-245" aria-hidden="true" tabindex="-1"></a>The motivating problem of this post. We saw vanilla REINFORCE collapses past lr ≈ 0.5 (Post 2a §8.4). Does PPO survive at lr = 1.0? At lr = 2.0?</span>
+<span id="cb2-246"><a href="#cb2-246" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-247"><a href="#cb2-247" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-248"><a href="#cb2-248" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-249"><a href="#cb2-249" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Solutions</span></span>
+<span id="cb2-250"><a href="#cb2-250" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-251"><a href="#cb2-251" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 Clip parameter ε sensitivity — `experiments/02c_sol1_eps_sensitivity.py`</span></span>
+<span id="cb2-252"><a href="#cb2-252" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-253"><a href="#cb2-253" aria-hidden="true" tabindex="-1"></a><span class="al">![PPO ε sweep: final return rises sharply from ε=0.02 to ε=0.1, then plateaus. Convergence speed is best at ε≈0.1, slow at ε=0.02 (over-constrained).](../figures/02c_sol1_eps_sensitivity.png)</span></span>
+<span id="cb2-254"><a href="#cb2-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-255"><a href="#cb2-255" aria-hidden="true" tabindex="-1"></a>**What you should see.** $\epsilon = 0.02$ (very tight) converges slowly (41 iterations to threshold) and to a slightly lower return (9.51). $\epsilon \geq 0.1$ all reach 9.74 in about 22 iterations. The default $\epsilon = 0.2$ is right at the elbow.</span>
+<span id="cb2-256"><a href="#cb2-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-257"><a href="#cb2-257" aria-hidden="true" tabindex="-1"></a>**Why ε ≥ 0.1 all behave the same.** On this small problem, the natural per-iteration policy update is small enough that the clip never engages with $\epsilon \geq 0.1$. The KL diagnostics figure showed this: at $\epsilon = 0.5$, clip fraction was essentially zero. The clip is doing nothing because the policy isn't trying to move that far.</span>
+<span id="cb2-258"><a href="#cb2-258" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-259"><a href="#cb2-259" aria-hidden="true" tabindex="-1"></a>**Why tight ε is harmful.** With $\epsilon = 0.02$, the clip engages on most samples. Most gradient signal gets thrown away (because the gradient is zero in the clipped region). The policy can only crawl forward.</span>
+<span id="cb2-260"><a href="#cb2-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-261"><a href="#cb2-261" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — ε encodes a prior about update size.** The PPO default of $\epsilon = 0.2$ is calibrated for typical neural-network settings where the natural update magnitude is comparable to $\epsilon$. On simpler problems where the gradient is well-behaved, you can use larger $\epsilon$ (or no clipping at all — equivalent to vanilla PG with multiple epochs). On harder problems (long horizons, sparse rewards, high-variance gradients), smaller $\epsilon$ is needed.</span>
+<span id="cb2-262"><a href="#cb2-262" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-263"><a href="#cb2-263" aria-hidden="true" tabindex="-1"></a>This is also why PPO works across so many domains with the same default: $\epsilon = 0.2$ is robust enough that it engages just-enough on hard problems and barely-at-all on easy ones.</span>
+<span id="cb2-264"><a href="#cb2-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-265"><a href="#cb2-265" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Epochs-per-batch sweep — `experiments/02c_sol2_epochs_sweep.py`</span></span>
+<span id="cb2-266"><a href="#cb2-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-267"><a href="#cb2-267" aria-hidden="true" tabindex="-1"></a><span class="al">![PPO epochs sweep: sample efficiency improves dramatically up to 16 epochs, then saturates. Final return saturates at ~9.85. Clip fraction grows from 0% to 2.6% as more epochs cause more policy drift.](../figures/02c_sol2_epochs_sweep.png)</span></span>
+<span id="cb2-268"><a href="#cb2-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-269"><a href="#cb2-269" aria-hidden="true" tabindex="-1"></a>**What you should see.** Three coupled effects, plotted in three panels:</span>
+<span id="cb2-270"><a href="#cb2-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-271"><a href="#cb2-271" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sample efficiency** drops from 14k transitions (1 epoch) to 1.4k (32 epochs) — a 10× improvement.</span>
+<span id="cb2-272"><a href="#cb2-272" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Final return** rises from 8.3 to 9.85, saturating at the optimum around 8 epochs.</span>
+<span id="cb2-273"><a href="#cb2-273" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Clip fraction** grows from essentially 0% (1 epoch) to 2.6% (32 epochs).</span>
+<span id="cb2-274"><a href="#cb2-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-275"><a href="#cb2-275" aria-hidden="true" tabindex="-1"></a>The clip fraction story is the key. At 1 epoch, the policy barely moves, so the clip never engages. At 32 epochs, the cumulative drift per batch is much larger, and the clip starts protecting against runaway updates.</span>
+<span id="cb2-276"><a href="#cb2-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-277"><a href="#cb2-277" aria-hidden="true" tabindex="-1"></a>**Why diminishing returns.** Past about 16 epochs, the policy is moving as far as the clip will allow — the optimization has saturated within the trust region. More epochs would change nothing because every additional gradient step on this batch has zero gradient (we're in the clipped region for most samples).</span>
+<span id="cb2-278"><a href="#cb2-278" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-279"><a href="#cb2-279" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — PPO is self-regulating.** The standard PPO default is $n_{\text{epochs}} = 4$ to $10$. This isn't a magic number; it's "enough that you extract most of the available signal per batch, but not so many that you're computing zero gradients." The clip provides a natural stopping criterion. Going beyond the saturation point is wasted compute, not a stability risk.</span>
+<span id="cb2-280"><a href="#cb2-280" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-281"><a href="#cb2-281" aria-hidden="true" tabindex="-1"></a>This self-regulation is part of why PPO is so practical. Vanilla policy gradient with $n_{\text{epochs}} &gt; 1$ can be wildly unstable. PPO with $n_{\text{epochs}} = 100$ would just be wasteful, not dangerous.</span>
+<span id="cb2-282"><a href="#cb2-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-283"><a href="#cb2-283" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Environment shift — `experiments/02c_sol3_environment_shift.py`</span></span>
+<span id="cb2-284"><a href="#cb2-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-285"><a href="#cb2-285" aria-hidden="true" tabindex="-1"></a><span class="al">![PPO and REINFORCE under a hard environment switch at episode 1500. Both crash to return ≈ -1 immediately (the previously-good action now hits the -1 terminal). Both struggle to recover; PPO shows slightly smoother dynamics but doesn't accelerate adaptation.](../figures/02c_sol3_environment_shift.png)</span></span>
+<span id="cb2-286"><a href="#cb2-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-287"><a href="#cb2-287" aria-hidden="true" tabindex="-1"></a>**What you should see.** Pre-switch (episodes 0-1500), both methods learn the +1 terminal and reach return ~0.85. At the switch (episode 1500), both immediately drop to -1 — the policy that was confidently heading to the bottom-right now confidently heads to a tiger. Post-switch (1500-3000), both methods take a long time to recover, with PPO slightly smoother but not faster.</span>
+<span id="cb2-288"><a href="#cb2-288" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-289"><a href="#cb2-289" aria-hidden="true" tabindex="-1"></a>**Why both struggle to adapt.** Both REINFORCE and PPO have been *trained* into confident policies pointing toward the wrong corner. Recovering requires:</span>
+<span id="cb2-290"><a href="#cb2-290" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-291"><a href="#cb2-291" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Random exploration to discover the new +1 location.</span>
+<span id="cb2-292"><a href="#cb2-292" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Enough gradient signal to overcome the existing momentum in $\theta$.</span>
+<span id="cb2-293"><a href="#cb2-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-294"><a href="#cb2-294" aria-hidden="true" tabindex="-1"></a>PPO's clip makes step 2 slower, not faster. The clip prevents large per-iteration policy changes, which is exactly the *opposite* of what you want when the environment changes drastically. You'd actually want to *increase* $\epsilon$ or take bigger steps to escape the bad commitment.</span>
+<span id="cb2-295"><a href="#cb2-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-296"><a href="#cb2-296" aria-hidden="true" tabindex="-1"></a>**The honest finding: PPO trades adaptation speed for stability, not the other way around.** This is the dual of the variance-vs-bias tradeoff. PPO is great when the environment is stable; it's relatively poor when the environment changes faster than the trust region can accommodate.</span>
+<span id="cb2-297"><a href="#cb2-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-298"><a href="#cb2-298" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — entropy regularization is the right fix for non-stationarity.** What both methods lack here is *exploration*. With entropy regularization, the policy would never collapse to 99% confidence in a single direction; some probability mass would always be available to discover the new optimum. We saw this in <span class="co">[</span><span class="ot">Post 2b §8.4</span><span class="co">](02b-actor-critic.qmd)</span>: entropy regularization with $\beta = 0.1$ keeps the policy responsive.</span>
+<span id="cb2-299"><a href="#cb2-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-300"><a href="#cb2-300" aria-hidden="true" tabindex="-1"></a>This generalizes far beyond gridworlds. In LLM RLHF, **the KL penalty against the reference model is doing exactly the entropy-regularization job**: it prevents the policy from collapsing to a degenerate distribution. Without it, the policy would commit too hard to whatever the reward model rewards, and lose the ability to recover if the reward model is even slightly wrong.</span>
+<span id="cb2-301"><a href="#cb2-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-302"><a href="#cb2-302" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 PPO stability across learning rates — `experiments/02c_sol4_lr_stability.py`</span></span>
+<span id="cb2-303"><a href="#cb2-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-304"><a href="#cb2-304" aria-hidden="true" tabindex="-1"></a><span class="al">![Final return vs actor learning rate for A2C and PPO. A2C is stable from 0.01 to 1.0, then catastrophically fails at lr=2.0 (mean 8.96, huge error bars). PPO is monotonically increasing and stable across the entire range, peaking at lr=2.0.](../figures/02c_sol4_lr_stability.png)</span></span>
+<span id="cb2-305"><a href="#cb2-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-306"><a href="#cb2-306" aria-hidden="true" tabindex="-1"></a>**What you should see.** A2C is well-behaved across two orders of magnitude (lr 0.01 to 1.0) but **catastrophically fails at lr = 2.0**, dropping to mean 8.96 with std 1.09 — some seeds work, some collapse entirely. PPO, in contrast, *peaks* at lr = 2.0 (9.87) with std 0.00 — perfectly reproducible across seeds.</span>
+<span id="cb2-307"><a href="#cb2-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-308"><a href="#cb2-308" aria-hidden="true" tabindex="-1"></a>This is the textbook demonstration. PPO transforms the lr-sensitivity curve from a sharp peak (A2C) into a saturating monotonic curve. **You can dial lr much higher under PPO without collapse.**</span>
+<span id="cb2-309"><a href="#cb2-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-310"><a href="#cb2-310" aria-hidden="true" tabindex="-1"></a>**Why PPO is monotonic.** Increasing lr makes the gradient steps within a batch bigger. With vanilla A2C, big steps mean the next batch is from a very different policy than the gradient assumed; instability compounds. With PPO, big steps engage the clip more often, which simply caps the per-iteration change. The policy can't move further than the clip allows, regardless of lr.</span>
+<span id="cb2-311"><a href="#cb2-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-312"><a href="#cb2-312" aria-hidden="true" tabindex="-1"></a>So at high lr, PPO is effectively limited by the clip rather than by gradient magnitude. The trust region becomes the dominant constraint. Returns saturate at the policy that's optimal-within-trust-region.</span>
+<span id="cb2-313"><a href="#cb2-313" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-314"><a href="#cb2-314" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — PPO trades lr-tuning for ε-tuning.** With A2C, you have to carefully tune lr. With PPO, you can use a wide range of lr and instead tune $\epsilon$ (which is much more robust — see 7.1). This is *huge* in practice: hyperparameter tuning is expensive, and "the algorithm just works with default settings" is the central virtue of PPO.</span>
+<span id="cb2-315"><a href="#cb2-315" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-316"><a href="#cb2-316" aria-hidden="true" tabindex="-1"></a>This is a major reason PPO became the default for everything from MuJoCo control to LLM RLHF. The defaults work. You can change the problem (different environment, different policy architecture, different reward scale) and the same $\epsilon = 0.2$, $\lambda = 0.95$, and a wide range of lrs all just work.</span>
+<span id="cb2-317"><a href="#cb2-317" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-318"><a href="#cb2-318" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-319"><a href="#cb2-319" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-320"><a href="#cb2-320" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Further reading</span></span>
+<span id="cb2-321"><a href="#cb2-321" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-322"><a href="#cb2-322" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schulman, Levine, Abbeel, Jordan &amp; Moritz, "Trust Region Policy Optimization" (ICML 2015).** TRPO.</span>
+<span id="cb2-323"><a href="#cb2-323" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schulman, Wolski, Dhariwal, Radford &amp; Klimov, "Proximal Policy Optimization Algorithms" (2017).** PPO.</span>
+<span id="cb2-324"><a href="#cb2-324" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Engstrom et al., "Implementation Matters in Deep Policy Gradients: A Case Study on PPO and TRPO" (ICLR 2020).** A meticulous study of the implementation tricks that make PPO actually work in practice. Highly recommended.</span>
+<span id="cb2-325"><a href="#cb2-325" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Andrychowicz et al., "What Matters in On-Policy Reinforcement Learning? A Large-Scale Empirical Study" (ICLR 2021).** A 250,000-experiment ablation of PPO's design choices.</span>
+<span id="cb2-326"><a href="#cb2-326" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Huang, Dossa, Raffin, Kanervisto &amp; Wang, "The 37 Implementation Details of Proximal Policy Optimization" (ICLR Blog Track 2022).** What separates a PPO that works from one that doesn't.</span>
+<span id="cb2-327"><a href="#cb2-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-328"><a href="#cb2-328" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-329"><a href="#cb2-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-330"><a href="#cb2-330" aria-hidden="true" tabindex="-1"></a>**Next up — Part 2d: RLHF, DPO, and GRPO.** We finally connect everything to LLM training. We'll see RLHF as PPO with a learned reward model, derive DPO's algebraic bypass of policy gradient, and look at GRPO's group-relative baseline that's making reasoning RL practical. The closing post of Topic 2, and the bridge from the "classical RL" we've been building to the modern LLM post-training stack.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/02c-trpo-and-ppo.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

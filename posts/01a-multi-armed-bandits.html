@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-19">
+<meta name="description" content="Decision-making under uncertainty, from scratch — 1 of 4. ε-greedy, UCB1, and Thompson Sampling derived from first principles, with intuition, worked examples, and all three implemented in ~80 lines of NumPy.">
+
+<title>Multi-Armed Bandits: The Atom of Decision-Making – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-73c813dbea455b23e33378fe00306777.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#a-casino-vignette" id="toc-a-casino-vignette" class="nav-link active" data-scroll-target="#a-casino-vignette">0. A casino vignette</a></li>
+  <li><a href="#formal-setup" id="toc-formal-setup" class="nav-link" data-scroll-target="#formal-setup">1. Formal setup</a></li>
+  <li><a href="#why-this-is-hard-the-exploration-exploitation-tradeoff" id="toc-why-this-is-hard-the-exploration-exploitation-tradeoff" class="nav-link" data-scroll-target="#why-this-is-hard-the-exploration-exploitation-tradeoff">2. Why this is hard: the exploration-exploitation tradeoff</a>
+  <ul class="collapse">
+  <li><a href="#how-low-can-we-go-the-lairobbins-lower-bound" id="toc-how-low-can-we-go-the-lairobbins-lower-bound" class="nav-link" data-scroll-target="#how-low-can-we-go-the-lairobbins-lower-bound">2.1 How low can we go? The Lai–Robbins lower bound</a></li>
+  </ul></li>
+  <li><a href="#ε-greedy-the-strawman" id="toc-ε-greedy-the-strawman" class="nav-link" data-scroll-target="#ε-greedy-the-strawman">3. ε-greedy: the strawman</a>
+  <ul class="collapse">
+  <li><a href="#why-it-mostly-fails" id="toc-why-it-mostly-fails" class="nav-link" data-scroll-target="#why-it-mostly-fails">3.1 Why it (mostly) fails</a></li>
+  <li><a href="#worked-example" id="toc-worked-example" class="nav-link" data-scroll-target="#worked-example">3.2 Worked example</a></li>
+  </ul></li>
+  <li><a href="#ucb1-optimism-in-the-face-of-uncertainty" id="toc-ucb1-optimism-in-the-face-of-uncertainty" class="nav-link" data-scroll-target="#ucb1-optimism-in-the-face-of-uncertainty">4. UCB1: Optimism in the face of uncertainty</a>
+  <ul class="collapse">
+  <li><a href="#deriving-the-bound-from-hoeffdings-inequality" id="toc-deriving-the-bound-from-hoeffdings-inequality" class="nav-link" data-scroll-target="#deriving-the-bound-from-hoeffdings-inequality">4.1 Deriving the bound from Hoeffding’s inequality</a></li>
+  <li><a href="#visualizing-the-mechanism" id="toc-visualizing-the-mechanism" class="nav-link" data-scroll-target="#visualizing-the-mechanism">4.2 Visualizing the mechanism</a></li>
+  <li><a href="#why-olog-t-regret" id="toc-why-olog-t-regret" class="nav-link" data-scroll-target="#why-olog-t-regret">4.3 Why <span class="math inline">O(\log T)</span> regret</a></li>
+  <li><a href="#worked-example-1" id="toc-worked-example-1" class="nav-link" data-scroll-target="#worked-example-1">4.4 Worked example</a></li>
+  </ul></li>
+  <li><a href="#thompson-sampling-the-bayesians-algorithm" id="toc-thompson-sampling-the-bayesians-algorithm" class="nav-link" data-scroll-target="#thompson-sampling-the-bayesians-algorithm">5. Thompson Sampling: the Bayesian’s algorithm</a>
+  <ul class="collapse">
+  <li><a href="#betabernoulli-refresher" id="toc-betabernoulli-refresher" class="nav-link" data-scroll-target="#betabernoulli-refresher">5.1 Beta–Bernoulli refresher</a></li>
+  <li><a href="#the-algorithm-in-full" id="toc-the-algorithm-in-full" class="nav-link" data-scroll-target="#the-algorithm-in-full">5.2 The algorithm in full</a></li>
+  <li><a href="#why-this-works-uncertainty-as-exploration" id="toc-why-this-works-uncertainty-as-exploration" class="nav-link" data-scroll-target="#why-this-works-uncertainty-as-exploration">5.3 Why this works — uncertainty as exploration</a></li>
+  <li><a href="#probability-matching-the-deepest-property" id="toc-probability-matching-the-deepest-property" class="nav-link" data-scroll-target="#probability-matching-the-deepest-property">5.4 Probability matching: the deepest property</a></li>
+  <li><a href="#regret-guarantees-and-why-ts-often-beats-ucb" id="toc-regret-guarantees-and-why-ts-often-beats-ucb" class="nav-link" data-scroll-target="#regret-guarantees-and-why-ts-often-beats-ucb">5.5 Regret guarantees and why TS often beats UCB</a></li>
+  <li><a href="#worked-example-2" id="toc-worked-example-2" class="nav-link" data-scroll-target="#worked-example-2">5.6 Worked example</a></li>
+  </ul></li>
+  <li><a href="#the-three-side-by-side" id="toc-the-three-side-by-side" class="nav-link" data-scroll-target="#the-three-side-by-side">6. The three side by side</a></li>
+  <li><a href="#why-this-matters-for-the-rest-of-the-series" id="toc-why-this-matters-for-the-rest-of-the-series" class="nav-link" data-scroll-target="#why-this-matters-for-the-rest-of-the-series">7. Why this matters for the rest of the series</a></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">8. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#gap-sensitivity" id="toc-gap-sensitivity" class="nav-link" data-scroll-target="#gap-sensitivity">8.1 Gap sensitivity</a></li>
+  <li><a href="#non-stationary-rewards" id="toc-non-stationary-rewards" class="nav-link" data-scroll-target="#non-stationary-rewards">8.2 Non-stationary rewards</a></li>
+  <li><a href="#gaussian-rewards" id="toc-gaussian-rewards" class="nav-link" data-scroll-target="#gaussian-rewards">8.3 Gaussian rewards</a></li>
+  <li><a href="#prior-sensitivity" id="toc-prior-sensitivity" class="nav-link" data-scroll-target="#prior-sensitivity">8.4 Prior sensitivity</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">9. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#gap-sensitivity-experiments01a_sol1_gap_sensitivity.py" id="toc-gap-sensitivity-experiments01a_sol1_gap_sensitivity.py" class="nav-link" data-scroll-target="#gap-sensitivity-experiments01a_sol1_gap_sensitivity.py">9.1 Gap sensitivity — <code>experiments/01a_sol1_gap_sensitivity.py</code></a></li>
+  <li><a href="#non-stationary-rewards-experiments01a_sol2_nonstationary.py" id="toc-non-stationary-rewards-experiments01a_sol2_nonstationary.py" class="nav-link" data-scroll-target="#non-stationary-rewards-experiments01a_sol2_nonstationary.py">9.2 Non-stationary rewards — <code>experiments/01a_sol2_nonstationary.py</code></a></li>
+  <li><a href="#gaussian-rewards-experiments01a_sol3_gaussian_rewards.py" id="toc-gaussian-rewards-experiments01a_sol3_gaussian_rewards.py" class="nav-link" data-scroll-target="#gaussian-rewards-experiments01a_sol3_gaussian_rewards.py">9.3 Gaussian rewards — <code>experiments/01a_sol3_gaussian_rewards.py</code></a></li>
+  <li><a href="#prior-sensitivity-for-thompson-experiments01a_sol4_prior_sensitivity.py" id="toc-prior-sensitivity-for-thompson-experiments01a_sol4_prior_sensitivity.py" class="nav-link" data-scroll-target="#prior-sensitivity-for-thompson-experiments01a_sol4_prior_sensitivity.py">9.4 Prior sensitivity for Thompson — <code>experiments/01a_sol4_prior_sensitivity.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">10. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/01a-multi-armed-bandits.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Multi-Armed Bandits: The Atom of Decision-Making</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">bandits</div>
+    <div class="quarto-category">bayesian</div>
+    <div class="quarto-category">decision-making</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Decision-making under uncertainty, from scratch — 1 of 4. ε-greedy, UCB1, and Thompson Sampling derived from first principles, with intuition, worked examples, and all three implemented in ~80 lines of NumPy.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 19, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Decision-making under uncertainty, from scratch — 1 of 4.</em></p>
+</blockquote>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_regret_curves.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.</figcaption>
+</figure>
+</div>
+<p>Before LLM agents, before MDPs, before policy gradients, there is the <strong>bandit</strong>. It is the smallest possible problem that contains the central tension of all sequential decision-making: <strong>exploration vs.&nbsp;exploitation.</strong> Every agentic AI algorithm I’ll cover in this series — Q-learning, PPO, RLHF, tool use, planning over thoughts — is in some sense a bandit with more structure layered on top.</p>
+<p>This post derives three classical algorithms — ε-greedy, UCB1, and Thompson Sampling — from first principles. By the end you’ll have written all three in under 100 lines of NumPy and reproduced the figure above. More importantly, you’ll have the <em>intuitions</em> that make the rest of the series make sense.</p>
+<hr>
+<section id="a-casino-vignette" class="level2">
+<h2 class="anchored" data-anchor-id="a-casino-vignette">0. A casino vignette</h2>
+<p>You walk into a casino. There are five slot machines. Some pay better than others, but you don’t know which. The machines look identical and the house won’t tell you the odds. You have 5000 quarters and 5000 pulls. What’s your strategy?</p>
+<p>The naive options both fail.</p>
+<p><strong>Pure exploration.</strong> Pull each machine 1000 times to estimate its payout rate accurately, then play whichever turned out best. After all that careful estimation, you’ve already burned 4/5 of your budget on machines you knew, in retrospect, were losers.</p>
+<p><strong>Pure exploitation.</strong> Try each machine a few times. The one that hit a couple of jackpots early — that must be the best one. Play it the rest of the night. But what if you got lucky on a mediocre machine and never tried the genuine winner? You can be locked into a bad arm forever, with no mechanism to discover your mistake.</p>
+<p>The bandit problem is the mathematical formalization of this dilemma, and it is one of those rare problems where the simplest version is rich enough to expose the central difficulty cleanly. There’s no state, no transitions, no discounting — just K choices, repeated, with stochastic feedback. And yet to do well, you must learn while earning, and balance both.</p>
+<hr>
+</section>
+<section id="formal-setup" class="level2">
+<h2 class="anchored" data-anchor-id="formal-setup">1. Formal setup</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_bandit_schematic.png" class="img-fluid figure-img"></p>
+<figcaption>The multi-armed bandit. Each arm produces rewards from an unknown distribution; the agent only sees the realized rewards, never the true means.</figcaption>
+</figure>
+</div>
+<p>We face <span class="math inline">K</span> arms (slot machines, ads, drug doses, recommendation candidates, treatment policies). Each arm <span class="math inline">k</span> has an unknown reward distribution <span class="math inline">P_k</span> with mean <span class="math inline">\mu_k</span>. At each timestep <span class="math inline">t = 1, 2, \dots, T</span> we pick an action <span class="math inline">a_t \in \{1, \dots, K\}</span> and observe a reward <span class="math inline">r_t \sim P_{a_t}</span>.</p>
+<p>We want to maximize expected cumulative reward over the horizon <span class="math inline">T</span>. Equivalently — and far more useful for analysis — we minimize <strong>regret</strong>:</p>
+<p><span class="math display">
+R(T) \;\equiv\; T \mu^\star - \mathbb{E}\!\left[\sum_{t=1}^{T} r_t\right] \;=\; \sum_{k=1}^{K} \Delta_k \, \mathbb{E}[n_k(T)],
+</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\mu^\star \equiv \max_k \mu_k</span> is the best arm’s expected reward,</li>
+<li><span class="math inline">\Delta_k \equiv \mu^\star - \mu_k</span> is the <em>suboptimality gap</em> of arm <span class="math inline">k</span> (zero for the best arm, positive for the rest),</li>
+<li><span class="math inline">n_k(T)</span> is the number of times we’ve pulled arm <span class="math inline">k</span> up to time <span class="math inline">T</span>.</li>
+</ul>
+<p>The first form is intuitive: regret is the expected reward we missed by not always playing the best arm. The second form is profound: regret is the sum, over arms, of <em>how bad each arm is</em> times <em>how often we pulled it</em>. To minimize regret, we don’t need to avoid bad arms entirely — we just need to avoid bad arms a lot. A small number of exploratory pulls on a known-loser is cheap.</p>
+<p>This rephrasing turns the problem from “predict the best arm” into “allocate a budget of pulls intelligently.” That shift is essentially the entire substance of the bandit literature.</p>
+<p><strong>A name note.</strong> The word “bandit” comes from “one-armed bandit,” American slang for a slot machine. A “multi-armed bandit” is a fanciful gambler facing several at once. The metaphor stuck because the math is identical and slot machines are evocative.</p>
+<hr>
+</section>
+<section id="why-this-is-hard-the-exploration-exploitation-tradeoff" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-is-hard-the-exploration-exploitation-tradeoff">2. Why this is hard: the exploration-exploitation tradeoff</h2>
+<p>We’ve already seen that pure exploration and pure exploitation both fail. Can we be more precise about why?</p>
+<p><strong>Pure exploration (uniform random).</strong> We pull each arm with probability <span class="math inline">1/K</span>, regardless of past data. Then <span class="math inline">\mathbb{E}[n_k(T)] = T/K</span> for all <span class="math inline">k</span>, so</p>
+<p><span class="math display">
+R(T) \;=\; \sum_{k=1}^{K} \Delta_k \cdot \frac{T}{K} \;=\; \frac{T}{K} \sum_k \Delta_k.
+</span></p>
+<p>This is <strong>linear in <span class="math inline">T</span></strong>. With <span class="math inline">T = 10^6</span> steps and average gap <span class="math inline">\bar\Delta</span>, the expected regret is about <span class="math inline">\bar\Delta \cdot 10^6</span>. Catastrophic.</p>
+<p><strong>Pure exploitation (greedy on empirical mean).</strong> After one pull of each arm, we play whichever has the highest empirical mean forever. By bad luck the best arm might return 0 on its single trial while a worse arm returns 1. Now we play the worse arm forever and incur <span class="math inline">\Delta_{\text{bad}} \cdot (T - K)</span> regret. Also linear, with positive probability.</p>
+<p>Linear regret means we never learn — our performance per step doesn’t improve. The bandit problem is interesting precisely because <strong>sublinear regret is possible</strong>: with the right algorithm, <span class="math inline">R(T) / T \to 0</span> as <span class="math inline">T \to \infty</span>. We will get a per-step reward arbitrarily close to optimal in the limit.</p>
+<section id="how-low-can-we-go-the-lairobbins-lower-bound" class="level3">
+<h3 class="anchored" data-anchor-id="how-low-can-we-go-the-lairobbins-lower-bound">2.1 How low can we go? The Lai–Robbins lower bound</h3>
+<p>How small can <span class="math inline">R(T)</span> be? Lai &amp; Robbins (1985) proved the <strong>fundamental lower bound</strong> for the bandit problem: for any reasonable<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> algorithm,</p>
+<p><span class="math display">
+\liminf_{T \to \infty} \frac{R(T)}{\log T} \;\geq\; \sum_{k: \Delta_k &gt; 0} \frac{\Delta_k}{\mathrm{KL}(P_k \,\|\, P_{\star})}.
+</span></p>
+<p>The right-hand side is a sum over suboptimal arms of “how much worse this arm is” divided by “how easily it can be distinguished from the optimum.” Hard-to-distinguish arms (small KL) must be sampled more, contributing more regret.</p>
+<p>The takeaway: <strong><span class="math inline">R(T) = \Theta(\log T)</span> is the best possible scaling.</strong> The three algorithms we’ll build all achieve <span class="math inline">O(\log T)</span>, matching the lower bound up to constants. The difference between <span class="math inline">\log T</span> and <span class="math inline">T</span> is the entire engineering challenge. Over a million pulls, <span class="math inline">\log T \approx 14</span> — about five orders of magnitude smaller than linear regret.</p>
+<hr>
+</section>
+</section>
+<section id="ε-greedy-the-strawman" class="level2">
+<h2 class="anchored" data-anchor-id="ε-greedy-the-strawman">3. ε-greedy: the strawman</h2>
+<p>The most intuitive idea: usually exploit, occasionally explore. With probability <span class="math inline">1 - \varepsilon</span>, pull the arm with the highest empirical mean; with probability <span class="math inline">\varepsilon</span>, pull a uniformly random arm.</p>
+<p><span class="math display">
+a_t = \begin{cases} \arg\max_k \hat{\mu}_k &amp; \text{w.p. } 1-\varepsilon, \\ \text{Uniform}(\{1,\dots,K\}) &amp; \text{w.p. } \varepsilon. \end{cases}
+</span></p>
+<section id="why-it-mostly-fails" class="level3">
+<h3 class="anchored" data-anchor-id="why-it-mostly-fails">3.1 Why it (mostly) fails</h3>
+<p>Run ε-greedy with a fixed <span class="math inline">\varepsilon = 0.1</span> for <span class="math inline">T</span> steps. The exploration phase pulls each arm <span class="math inline">\varepsilon T / K</span> times in expectation, and each suboptimal arm contributes <span class="math inline">\Delta_k</span> regret per exploration pull. So</p>
+<p><span class="math display">
+R(T) \;\geq\; \varepsilon \cdot \frac{T}{K} \sum_{k: \Delta_k&gt;0} \Delta_k.
+</span></p>
+<p><strong>Linear in <span class="math inline">T</span>, again.</strong> With <span class="math inline">\varepsilon = 0.1</span> you forever burn 10% of your pulls on uniform exploration, whether or not you still need it. Worse: as <span class="math inline">T</span> grows, you’ve identified the best arm with overwhelming confidence, yet you keep paying the 10% exploration tax.</p>
+<p>You can fix this by decaying <span class="math inline">\varepsilon</span> over time — e.g., <span class="math inline">\varepsilon_t = c / t</span>. Auer et al.&nbsp;(2002) show that the schedule <span class="math inline">\varepsilon_t = \min(1, cK / (d^2 t))</span> achieves <span class="math inline">O(\log T)</span> regret, but this requires knowing <span class="math inline">d = \min_k \Delta_k</span> in advance, which is information about the unknown environment. In practice you don’t have it.</p>
+</section>
+<section id="worked-example" class="level3">
+<h3 class="anchored" data-anchor-id="worked-example">3.2 Worked example</h3>
+<p>Two arms, <span class="math inline">\varepsilon = 0.5</span> (for visibility), <span class="math inline">T = 6</span>. Let true means be <span class="math inline">\mu_1 = 0.3</span>, <span class="math inline">\mu_2 = 0.7</span>.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th><span class="math inline">t</span></th>
+<th>random?</th>
+<th><span class="math inline">\hat\mu_1</span></th>
+<th><span class="math inline">\hat\mu_2</span></th>
+<th>action</th>
+<th>reward</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>yes</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>yes</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>no</td>
+<td>0</td>
+<td>1.0</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>yes</td>
+<td>0</td>
+<td>1.0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>no</td>
+<td>0.5</td>
+<td>1.0</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>no</td>
+<td>0.5</td>
+<td>0.5</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Notice the failure mode in row 6: the algorithm has an exact tie and the argmax breaks it deterministically (here, by picking the lower index), even though arm 2 is genuinely better. Real implementations often randomize ties or pick the more-pulled arm — small details that matter at small <span class="math inline">T</span>.</p>
+<p>ε-greedy is the strawman we’ll keep around for comparison. The next two algorithms beat it by being <em>adaptive</em>: their exploration shrinks naturally as confidence grows.</p>
+<hr>
+</section>
+</section>
+<section id="ucb1-optimism-in-the-face-of-uncertainty" class="level2">
+<h2 class="anchored" data-anchor-id="ucb1-optimism-in-the-face-of-uncertainty">4. UCB1: Optimism in the face of uncertainty</h2>
+<p>The frequentist insight: instead of acting on the empirical mean <span class="math inline">\hat\mu_k</span>, act on the <em>largest plausible value</em> that <span class="math inline">\mu_k</span> could take. If our estimate is tight, that’s basically <span class="math inline">\hat\mu_k</span> — exploitation. If our estimate is loose, the plausible upper bound is much higher than <span class="math inline">\hat\mu_k</span> — exploration. <strong>Optimism is automatic exploration.</strong></p>
+<p>This is one of the most beautiful ideas in the field. We don’t need a separate exploration schedule. We need a confidence interval, and the rest follows.</p>
+<section id="deriving-the-bound-from-hoeffdings-inequality" class="level3">
+<h3 class="anchored" data-anchor-id="deriving-the-bound-from-hoeffdings-inequality">4.1 Deriving the bound from Hoeffding’s inequality</h3>
+<p>We need an upper bound <span class="math inline">U_k(t)</span> such that <span class="math inline">\mu_k \leq U_k(t)</span> with high probability. <strong>Hoeffding’s inequality</strong> is the right tool. For i.i.d. bounded random variables <span class="math inline">X_1, \dots, X_n \in [0,1]</span> with mean <span class="math inline">\mu</span>,</p>
+<p><span class="math display">
+P\!\left(|\hat\mu_n - \mu| \geq \varepsilon\right) \;\leq\; 2 \exp(-2 n \varepsilon^2).
+</span></p>
+<p>In words: the empirical mean concentrates around the true mean exponentially fast in <span class="math inline">n</span>. The probability we’re off by more than <span class="math inline">\varepsilon</span> decays as <span class="math inline">e^{-2n\varepsilon^2}</span>.</p>
+<p>We want a one-sided bound that holds with probability at least <span class="math inline">1 - \delta_t</span>:</p>
+<p><span class="math display">
+P\!\left(\mu_k &gt; \hat\mu_k + \varepsilon\right) \;\leq\; \exp(-2 n_k \varepsilon^2) \;\leq\; \delta_t.
+</span></p>
+<p>Solve for <span class="math inline">\varepsilon</span>:</p>
+<p><span class="math display">
+\varepsilon \;=\; \sqrt{\frac{\log(1/\delta_t)}{2 n_k}}.
+</span></p>
+<p>Now choose <span class="math inline">\delta_t</span>. We want our failure probabilities to be summable over arms and time — otherwise some bad event eventually happens with probability 1. The standard choice is <span class="math inline">\delta_t = t^{-4}</span>, which gives <span class="math inline">\log(1/\delta_t) = 4 \log t</span>. Substituting:</p>
+<p><span class="math display">
+\boxed{\;a_t \;=\; \arg\max_k \left[\,\hat\mu_k \,+\, \sqrt{\frac{2 \log t}{n_k}}\,\right]\;}
+</span></p>
+<p>This is <strong>UCB1</strong>.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> The first term is exploitation (high if the arm looked good on average); the second is exploration (high if <span class="math inline">n_k</span> is small, low if we’ve pulled this arm many times; grows slowly with <span class="math inline">t</span> to keep us occasionally re-checking long-forgotten arms).</p>
+</section>
+<section id="visualizing-the-mechanism" class="level3">
+<h3 class="anchored" data-anchor-id="visualizing-the-mechanism">4.2 Visualizing the mechanism</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_ucb_bonus_shrinking.png" class="img-fluid figure-img"></p>
+<figcaption>UCB1 over time. The orange exploration bonus shrinks as each arm’s pull count grows; eventually the indices reflect empirical means and the best arm wins.</figcaption>
+</figure>
+</div>
+<p>This figure shows what UCB1 is actually doing. At <span class="math inline">t = 50</span>, every arm has a large bonus on top of its empirical mean — the algorithm is deeply uncertain and the index is dominated by exploration. The best arms (<span class="math inline">n_k = 14, 13</span>) already have shorter orange bars: pulling them shrinks their bonus, making them look less attractive on the next round, so the algorithm rotates.</p>
+<p>At <span class="math inline">t = 500</span>, the bonuses on the well-pulled arms are small and their indices closely match the truth. The poorly-explored arm 1 still has a large bonus, but that’s because UCB1 <em>can’t</em> be sure it’s bad without sampling it again occasionally.</p>
+<p>At <span class="math inline">t = 5000</span>, the bonuses are all small. The empirical means dominate, and the best arm wins decisively. UCB1 has converged.</p>
+</section>
+<section id="why-olog-t-regret" class="level3">
+<h3 class="anchored" data-anchor-id="why-olog-t-regret">4.3 Why <span class="math inline">O(\log T)</span> regret</h3>
+<p>The proof has a beautiful structure that’s worth understanding even at a sketch level. Consider any suboptimal arm <span class="math inline">k</span>. We pull it at time <span class="math inline">t</span> only if its UCB index is at least as high as the optimal arm’s:</p>
+<p><span class="math display">
+\hat\mu_k + \sqrt{\frac{2 \log t}{n_k}} \;\geq\; \hat\mu_\star + \sqrt{\frac{2 \log t}{n_\star}}.
+</span></p>
+<p>By concentration, <span class="math inline">\hat\mu_k \approx \mu_k</span> and <span class="math inline">\hat\mu_\star \approx \mu^\star</span> once the corresponding <span class="math inline">n</span> are large. For the inequality above to hold, we’d need</p>
+<p><span class="math display">
+\sqrt{\frac{2 \log t}{n_k}} \;\geq\; \Delta_k \quad \Longrightarrow \quad n_k \;\leq\; \frac{8 \log t}{\Delta_k^2}.
+</span></p>
+<p>So a suboptimal arm is pulled at most <span class="math inline">\sim 8 \log T / \Delta_k^2</span> times over the horizon. Total regret is the sum over suboptimal arms:</p>
+<p><span class="math display">
+R(T) \;\leq\; \sum_{k: \Delta_k &gt; 0} \frac{8 \log T}{\Delta_k} \;+\; O(1).
+</span></p>
+<p>This matches Lai–Robbins up to constants. UCB1 is <strong>near-optimal</strong>.</p>
+</section>
+<section id="worked-example-1" class="level3">
+<h3 class="anchored" data-anchor-id="worked-example-1">4.4 Worked example</h3>
+<p>Three arms. Let’s compute the UCB1 indices step by step. We initialize by pulling each arm once (line 16 of the implementation):</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 2%">
+<col style="width: 13%">
+<col style="width: 29%">
+<col style="width: 27%">
+<col style="width: 21%">
+<col style="width: 5%">
+</colgroup>
+<thead>
+<tr class="header">
+<th><span class="math inline">t</span></th>
+<th><span class="math inline">n_1, n_2, n_3</span></th>
+<th><span class="math inline">\hat\mu_1, \hat\mu_2, \hat\mu_3</span></th>
+<th>bonus <span class="math inline">\sqrt{2\log t / n_k}</span></th>
+<th>indices</th>
+<th>action</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>(0,0,0)</td>
+<td>(0,0,0)</td>
+<td>(∞,∞,∞)</td>
+<td>(∞,∞,∞)</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>(1,0,0)</td>
+<td>(0,0,0)</td>
+<td><span class="math inline">(1.18, \infty, \infty)</span></td>
+<td><span class="math inline">(1.18, \infty, \infty)</span></td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>(1,1,0)</td>
+<td>(0,1,0)</td>
+<td><span class="math inline">(1.48, 1.48, \infty)</span></td>
+<td><span class="math inline">(1.48, 2.48, \infty)</span></td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>(1,1,1)</td>
+<td>(0,1,1)</td>
+<td><span class="math inline">(1.67, 1.67, 1.67)</span></td>
+<td><span class="math inline">(1.67, 2.67, 2.67)</span></td>
+<td>2 or 3</td>
+</tr>
+</tbody>
+</table>
+<p>After every arm has been pulled once, <span class="math inline">\log t / n_k</span> becomes finite for all arms, and the algorithm makes interesting choices. Notice the bonus <span class="math inline">\sqrt{2 \log 4 / 1} \approx 1.67</span> is <em>enormous</em> relative to the rewards (which are 0 or 1). Early UCB1 is dominated by exploration; only after each arm has been pulled tens of times do the empirical means start to matter.</p>
+<p>This is why UCB1 can underperform ε-greedy at small <span class="math inline">T</span>: its bonus is calibrated for asymptotic optimality, not finite-time efficiency. We’ll see this clearly in the regret curves at the end.</p>
+<hr>
+</section>
+</section>
+<section id="thompson-sampling-the-bayesians-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="thompson-sampling-the-bayesians-algorithm">5. Thompson Sampling: the Bayesian’s algorithm</h2>
+<p>Now for a completely different paradigm. UCB1 is frequentist: it builds confidence intervals from concentration inequalities. Thompson Sampling is <strong>Bayesian</strong>: maintain a posterior over each arm’s parameters, sample once from each, and play the arm with the highest sample.</p>
+<p>That’s it. Two lines.</p>
+<p>It’s stunning how well such a small idea works. It was proposed by William R. Thompson in 1933 — decades before UCB — then largely forgotten, then rediscovered in the 2010s when people noticed that it routinely outperformed everything else on real-world problems despite being mathematically harder to analyze.</p>
+<section id="betabernoulli-refresher" class="level3">
+<h3 class="anchored" data-anchor-id="betabernoulli-refresher">5.1 Beta–Bernoulli refresher</h3>
+<p>For Bernoulli rewards <span class="math inline">r_t \in \{0, 1\}</span>, the conjugate prior is the <strong>Beta distribution</strong>. If we put</p>
+<p><span class="math display">
+\mu_k \sim \mathrm{Beta}(\alpha, \beta) \quad\text{(prior)}, \qquad r_t \mid \mu_k \sim \mathrm{Bernoulli}(\mu_k) \quad\text{(likelihood)},
+</span></p>
+<p>then after observing <span class="math inline">s_k</span> successes (rewards of 1) and <span class="math inline">f_k</span> failures (rewards of 0) on arm <span class="math inline">k</span>, the posterior is</p>
+<p><span class="math display">
+\mu_k \mid \mathcal{D}_t \;\sim\; \mathrm{Beta}(\alpha + s_k,\; \beta + f_k).
+</span></p>
+<p><strong>Conjugacy in one line.</strong> <span class="math inline">\alpha</span> and <span class="math inline">\beta</span> act as <em>pseudocounts</em>: <span class="math inline">\mathrm{Beta}(1, 1)</span> is the uniform prior (one prior success, one prior failure — i.e., no information). <span class="math inline">\mathrm{Beta}(10, 10)</span> is a stronger prior that takes more data to update away from <span class="math inline">\mu = 0.5</span>.</p>
+<p>The Beta posterior has mean <span class="math inline">\alpha / (\alpha + \beta)</span> and variance <span class="math inline">\alpha\beta / [(\alpha+\beta)^2(\alpha+\beta+1)]</span>. Variance shrinks like <span class="math inline">1/n</span> as data accumulates. This is exactly the kind of “uncertainty decreasing as we learn” that we want.</p>
+</section>
+<section id="the-algorithm-in-full" class="level3">
+<h3 class="anchored" data-anchor-id="the-algorithm-in-full">5.2 The algorithm in full</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ThompsonSampling:</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, K):</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.alpha <span class="op">=</span> np.ones(K)  <span class="co"># prior: Beta(1, 1)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.beta  <span class="op">=</span> np.ones(K)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> select(<span class="va">self</span>):</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        samples <span class="op">=</span> np.random.beta(<span class="va">self</span>.alpha, <span class="va">self</span>.beta)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">int</span>(np.argmax(samples))</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> update(<span class="va">self</span>, k, r):</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.alpha[k] <span class="op">+=</span> r</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.beta[k]  <span class="op">+=</span> <span class="dv">1</span> <span class="op">-</span> r</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Eleven lines. No bonus terms, no schedules, no hyperparameters. Just sample and act.</p>
+</section>
+<section id="why-this-works-uncertainty-as-exploration" class="level3">
+<h3 class="anchored" data-anchor-id="why-this-works-uncertainty-as-exploration">5.3 Why this works — uncertainty as exploration</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_beta_posterior_evolution.png" class="img-fluid figure-img"></p>
+<figcaption>Beta posteriors over time. By t=5000, the algorithm has identified Arm 3 (μ=0.7) as best. Arms 2 and 3 — the close competitors — are sampled most because they’re hardest to distinguish. Arm 1 is largely ignored once it’s clearly suboptimal, so its posterior stays wide.</figcaption>
+</figure>
+</div>
+<p>This figure is the heart of why Thompson Sampling works. Look at the posterior for Arm 1 (the worst, <span class="math inline">\mu = 0.3</span>) on the right panel. After 5000 steps, it has only been pulled 9 times. <strong>Its posterior is still wide.</strong> The algorithm hasn’t bothered tightening its estimate of arm 1’s mean because it doesn’t matter — arm 1 is clearly worse and we don’t need precision about <em>how much</em> worse.</p>
+<p>Compare to arm 3, which has been pulled 4583 times. Its posterior is razor-sharp, concentrated near 0.7.</p>
+<p>Now think about what this means for selection. The probability that arm 1 wins the next round (i.e., its sample exceeds all others’ samples) is tiny: even though its posterior is wide, the upper tail rarely reaches 0.7. Arm 1 gets <em>occasionally</em> sampled — just enough to make sure we don’t lock it out forever. Meanwhile, arms 2 and 3 keep getting sampled because their posteriors are close enough to genuinely overlap.</p>
+<p><strong>This is intelligent exploration, and it’s emerging from the math, not from a hand-designed schedule.</strong> No “decay your epsilon by 1/sqrt(t)” or “tune the UCB constant.” Just maintain a posterior, sample, act.</p>
+</section>
+<section id="probability-matching-the-deepest-property" class="level3">
+<h3 class="anchored" data-anchor-id="probability-matching-the-deepest-property">5.4 Probability matching: the deepest property</h3>
+<p>The probability that Thompson Sampling picks arm <span class="math inline">k</span> at time <span class="math inline">t</span> is <em>exactly</em> the posterior probability that arm <span class="math inline">k</span> is optimal:</p>
+<p><span class="math display">
+P(a_t = k \mid \mathcal{D}_t) \;=\; P\!\left(\mu_k = \max_{j} \mu_j \;\Big|\; \mathcal{D}_t\right).
+</span></p>
+<p>This is called <strong>probability matching</strong> or <strong>posterior sampling</strong>. The proof is trivial: by definition, Thompson selects <span class="math inline">k</span> when <span class="math inline">\tilde\mu_k &gt; \tilde\mu_j</span> for all <span class="math inline">j \neq k</span>, where the <span class="math inline">\tilde\mu_j</span> are independent samples from each marginal posterior. The probability of that event is, by construction, the probability that <span class="math inline">\mu_k</span> is the largest under independent sampling — which is the posterior probability that <span class="math inline">k</span> is optimal.</p>
+<p>Let’s verify it empirically.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_probability_matching.png" class="img-fluid figure-img"></p>
+<figcaption>Probability matching. Each pair of bars shows analytical <span class="math inline">P(\mu_k = \max)</span> vs the empirical frequency with which Thompson Sampling picks arm <span class="math inline">k</span> from 100,000 independent samples. They match to three decimal places.</figcaption>
+</figure>
+</div>
+<p>The left panel shows four posteriors with overlapping support: <span class="math inline">\mathrm{Beta}(8, 12)</span>, <span class="math inline">\mathrm{Beta}(15, 10)</span>, <span class="math inline">\mathrm{Beta}(5, 4)</span>, <span class="math inline">\mathrm{Beta}(3, 2)</span>. The right panel shows that the empirical pick frequencies from 100,000 Thompson trials match the analytical posterior optimality probabilities essentially exactly.</p>
+<p>The interesting case is <strong>arm 4</strong>. It has the highest pick probability (42.5%) despite having a <em>lower posterior mean</em> than arm 2. Why? Because its posterior is wide. The probability of being optimal isn’t determined by the mean alone — it’s determined by the full distribution. Arms with high mean <em>and</em> high variance can be more likely to be optimal than arms with high mean and low variance, because their upside is bigger.</p>
+<p>This is exactly why Thompson Sampling explores arms it’s uncertain about. The exploration isn’t a separate mechanism bolted on — it’s a consequence of the geometry of the posterior.</p>
+</section>
+<section id="regret-guarantees-and-why-ts-often-beats-ucb" class="level3">
+<h3 class="anchored" data-anchor-id="regret-guarantees-and-why-ts-often-beats-ucb">5.5 Regret guarantees and why TS often beats UCB</h3>
+<p>Russo &amp; Van Roy (2014) and Agrawal &amp; Goyal (2012) prove that Thompson Sampling achieves the same <span class="math inline">O(\log T)</span> asymptotic regret bound as UCB1, with matching constants up to the Lai–Robbins lower bound. So theoretically they’re equivalent.</p>
+<p>In practice, Thompson typically wins. Two reasons:</p>
+<ol type="1">
+<li><strong>Data-adaptive exploration.</strong> UCB’s bonus is a deterministic function of <span class="math inline">n_k</span> alone — it doesn’t know whether the data have produced a tight or loose posterior. TS uses the full posterior shape.</li>
+<li><strong>No conservative constants.</strong> UCB1’s <span class="math inline">\sqrt{2}</span> factor is calibrated for the worst case where rewards are at the boundary of <span class="math inline">[0,1]</span>. For nicer distributions the bound is loose. TS doesn’t have a constant to be conservative about.</li>
+</ol>
+<p>The flip side: UCB has stronger high-probability guarantees and is easier to analyze. If you need finite-sample guarantees with explicit confidence parameters, UCB is the right tool. If you want to do well on average, Thompson usually wins.</p>
+</section>
+<section id="worked-example-2" class="level3">
+<h3 class="anchored" data-anchor-id="worked-example-2">5.6 Worked example</h3>
+<p>Three arms, prior <span class="math inline">\mathrm{Beta}(1,1)</span> for all. Suppose after 9 pulls we have <span class="math inline">\alpha = (3, 2, 5)</span>, <span class="math inline">\beta = (4, 6, 1)</span> — meaning arm 1 had 2 successes and 3 failures, arm 2 had 1 success and 5 failures, arm 3 had 4 successes and 0 failures. Posteriors: <span class="math inline">\mathrm{Beta}(3,4)</span>, <span class="math inline">\mathrm{Beta}(2,6)</span>, <span class="math inline">\mathrm{Beta}(5,1)</span>.</p>
+<p>To select the next action, sample once from each:</p>
+<ul>
+<li><span class="math inline">\tilde\mu_1 \sim \mathrm{Beta}(3,4)</span> → say, 0.41</li>
+<li><span class="math inline">\tilde\mu_2 \sim \mathrm{Beta}(2,6)</span> → say, 0.18</li>
+<li><span class="math inline">\tilde\mu_3 \sim \mathrm{Beta}(5,1)</span> → say, 0.92</li>
+</ul>
+<p>Pick arm 3 (largest sample). Observe reward, update <span class="math inline">\alpha_3</span> or <span class="math inline">\beta_3</span>, repeat.</p>
+<p>Note how arm 3’s posterior is already very concentrated near 1 (one failure, four successes), so even a low draw is probably still high. Arm 1 has higher mean than arm 2, but both are unlikely to beat arm 3 on most draws. The algorithm has effectively decided.</p>
+<hr>
+</section>
+</section>
+<section id="the-three-side-by-side" class="level2">
+<h2 class="anchored" data-anchor-id="the-three-side-by-side">6. The three side by side</h2>
+<p>We’ve now built all three algorithms. Time to compare them at the qualitative level.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_arm_pull_distribution.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative fraction of pulls allocated to each arm under each algorithm (averaged over 30 runs). The brightest band on top is the best arm (μ=0.8). ε-greedy keeps ~20% exploration forever. UCB1 explores aggressively then narrows but stays diffuse. Thompson concentrates fastest.</figcaption>
+</figure>
+</div>
+<p>This figure tells the qualitative truth that the regret curves obscure.</p>
+<ul>
+<li><strong>ε-greedy</strong> allocates ~80% of pulls to the best arm and splits the remaining 20% across the other arms forever. That fixed 20% exploration tax is <em>exactly</em> what makes its regret linear.</li>
+<li><strong>UCB1</strong> explores aggressively early (notice how diffuse the bands are for <span class="math inline">t &lt; 1000</span>) and then narrows. But even at <span class="math inline">t = 5000</span>, it’s still spending ~35% of pulls on suboptimal arms. The optimism is paying off slowly.</li>
+<li><strong>Thompson</strong> concentrates fastest. By <span class="math inline">t = 5000</span>, ~90% of pulls go to the best arm. Suboptimal arms are sampled only as much as the posterior uncertainty warrants.</li>
+</ul>
+<p>And here’s the regret figure again, in case you forgot what we were optimizing:</p>
+<p><img src="../figures/01a_regret_curves.png" class="img-fluid"></p>
+<p><strong>A small puzzle.</strong> UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?</p>
+<p>This is the classic <strong>finite-time vs asymptotic</strong> divergence. UCB1’s exploration bonus is calibrated to guarantee log-T regret <em>in the long run</em>. With <span class="math inline">T = 5000</span> and small gaps between the top arms (0.7, 0.75, 0.8), the bonus is overzealous: it forces the algorithm to keep checking close-but-suboptimal arms long after a smarter algorithm would have given up. The theoretical guarantees kick in at much larger <span class="math inline">T</span> or with larger gaps.</p>
+<p>ε-greedy, by contrast, has a <em>fixed</em> exploration cost — large but bounded. Over moderate horizons it can look better, but its regret grows linearly forever while UCB1’s grows logarithmically. The asymptotics catch up.</p>
+<p>Thompson Sampling avoids this trap entirely because its exploration is data-adaptive: when the posteriors for close arms tighten, the algorithm naturally stops sampling them.</p>
+<p>This is the kind of nuance that <em>only</em> shows up when you actually run the experiments. The textbook story (“UCB1 has <span class="math inline">O(\log T)</span> regret”) is asymptotic; the empirical truth is more interesting.</p>
+<hr>
+</section>
+<section id="why-this-matters-for-the-rest-of-the-series" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-matters-for-the-rest-of-the-series">7. Why this matters for the rest of the series</h2>
+<p>Every algorithm in this curriculum is, in a precise sense, <strong>a bandit with more structure</strong>. Here’s the mapping:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 47%">
+<col style="width: 31%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Setting</th>
+<th>Generalizes bandit how?</th>
+<th>Key new tool</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Contextual bandits</td>
+<td>Reward depends on a feature vector <span class="math inline">x_t</span></td>
+<td>Linear/neural reward models</td>
+</tr>
+<tr class="even">
+<td>MDPs</td>
+<td>State evolves based on action</td>
+<td>Bellman equations</td>
+</tr>
+<tr class="odd">
+<td>POMDPs</td>
+<td>State is hidden — agent maintains a belief</td>
+<td>Belief-state planning</td>
+</tr>
+<tr class="even">
+<td>RL with function approx</td>
+<td>State and action spaces are large/continuous</td>
+<td>Policy and value networks</td>
+</tr>
+<tr class="odd">
+<td>RLHF</td>
+<td>Reward is itself learned from preferences</td>
+<td>Bradley-Terry reward modeling</td>
+</tr>
+<tr class="even">
+<td>LLM tool use</td>
+<td>Action = “call this tool with these args”</td>
+<td>Structured decoding</td>
+</tr>
+<tr class="odd">
+<td>Agentic AI</td>
+<td>All of the above at once</td>
+<td>The whole stack</td>
+</tr>
+</tbody>
+</table>
+<p>The fundamental ideas you’ve built here recur everywhere:</p>
+<ol type="1">
+<li><strong>Regret as the right objective.</strong> Once you start thinking in terms of “what reward did I miss,” you’re set up for all of online learning.</li>
+<li><strong>Optimism (UCB) and posterior sampling (TS) as the two great families.</strong> Both ideas generalize. Bayesian RL is “Thompson at scale.” UCB-style bonuses appear in pessimistic value iteration, R-MAX, RLHF reward modeling under uncertainty.</li>
+<li><strong>Uncertainty as the source of exploration.</strong> This is the deepest principle. In any setting where you act under uncertainty, <em>propagate your beliefs honestly and exploration emerges</em>. This is the through-line of the entire series.</li>
+</ol>
+<p>In particular: <strong>LLM agents using tools are POMDPs</strong>, where the hidden state is “the actual state of the world” and the agent’s belief is the conversation history plus tool outputs. The exact analogue of Thompson Sampling in that setting is sampling from your posterior over what the world is, then acting optimally given that sample. Most current LLM agents don’t do this — they greedily pick actions from their highest-likelihood interpretation. That’s the agent-AI version of being too greedy. There is plenty of research room here, and it’s directly downstream of what you just learned.</p>
+<hr>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">8. Experiments to actually run</h2>
+<p>Reading is necessary but not sufficient. The intuitions that matter live in the experiments you run yourself. Here are four that build them.</p>
+<section id="gap-sensitivity" class="level3">
+<h3 class="anchored" data-anchor-id="gap-sensitivity">8.1 Gap sensitivity</h3>
+<p>Run the algorithms on two contrasting bandits:</p>
+<ul>
+<li><strong>Large gaps:</strong> <code>BernoulliBandit([0.1, 0.5, 0.9])</code> — arms are obviously different.</li>
+<li><strong>Small gaps:</strong> <code>BernoulliBandit([0.50, 0.51, 0.52])</code> — nearly indistinguishable.</li>
+</ul>
+<p>What you’ll see: in the easy case, all three algorithms converge quickly and the differences are small. In the hard case, UCB1 thrashes (it can’t tell which arm is best, so the bonus keeps it exploring), Thompson handles it gracefully, and ε-greedy quietly accumulates linear regret because most of its 10% exploration is going to nearly-equally-good arms anyway.</p>
+<p>The point: <strong>algorithm quality matters most when the problem is hard.</strong> Hard = small gaps relative to the reward variance.</p>
+</section>
+<section id="non-stationary-rewards" class="level3">
+<h3 class="anchored" data-anchor-id="non-stationary-rewards">8.2 Non-stationary rewards</h3>
+<p>Make the arm means drift over time, e.g., <code>mu_k(t) = mu_k(0) + sin(t / 1000) * 0.2</code>. None of our three algorithms will adapt — they all assume stationary distributions. UCB1 will trust its old empirical means; Thompson’s posterior will be slow to update; ε-greedy will eventually start looking better, because at least its exploration is permanent.</p>
+<p>Real applications (recommender systems, ad auctions, drug dosing) are almost never stationary. This motivates discounted variants (give more weight to recent observations) and sliding-window variants (forget data older than <span class="math inline">W</span> steps). Both can be derived as proper Bayesian inference under a non-stationary model. We’ll come back to this.</p>
+</section>
+<section id="gaussian-rewards" class="level3">
+<h3 class="anchored" data-anchor-id="gaussian-rewards">8.3 Gaussian rewards</h3>
+<p>Replace <code>BernoulliBandit</code> with <code>GaussianBandit</code> (already in the repo). For UCB1, the bound becomes <span class="math inline">\sqrt{2 \sigma^2 \log t / n_k}</span> — you need to know <span class="math inline">\sigma</span>. For Thompson, the conjugate prior is Normal-Inverse-Gamma; the posterior over <span class="math inline">\mu</span> is Student-<span class="math inline">t</span>. Derive this update yourself, then implement Gaussian Thompson Sampling. It’s a one-page derivation that crystallizes a lot of inference intuition.</p>
+</section>
+<section id="prior-sensitivity" class="level3">
+<h3 class="anchored" data-anchor-id="prior-sensitivity">8.4 Prior sensitivity</h3>
+<p>Try Thompson Sampling with different priors: <span class="math inline">\mathrm{Beta}(0.5, 0.5)</span> (Jeffreys, encourages extreme initial guesses), <span class="math inline">\mathrm{Beta}(1,1)</span> (uniform), <span class="math inline">\mathrm{Beta}(10, 10)</span> (strong belief near 0.5). Which converges fastest? Which thrashes most early?</p>
+<p>The lesson is general: <strong>a stronger prior is more informative but harder to update away from.</strong> If the prior is well-calibrated to your domain, strong helps. If it’s wrong, strong hurts. This is the central tension of Bayesian modeling and it shows up vividly even in this tiny problem.</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">9. Solutions</h2>
+<p>Try the experiments yourself first — most of the value is in struggling through them. Once you’ve done that, here are reference solutions and discussions. Each is a runnable script in <code>experiments/</code>; the figures are reproducible by running it.</p>
+<section id="gap-sensitivity-experiments01a_sol1_gap_sensitivity.py" class="level3">
+<h3 class="anchored" data-anchor-id="gap-sensitivity-experiments01a_sol1_gap_sensitivity.py">9.1 Gap sensitivity — <code>experiments/01a_sol1_gap_sensitivity.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_sol1_gap_sensitivity.png" class="img-fluid figure-img"></p>
+<figcaption>Gap sensitivity: the same three algorithms on an easy bandit (left) and a hard one (right). Note the very different y-axis scales — the hard bandit’s regret is ~5× smaller in absolute terms.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> On the easy problem with arm probabilities <span class="math inline">[0.1, 0.5, 0.9]</span>, the three algorithms separate cleanly: Thompson hugs <span class="math inline">\sim 6</span> at <span class="math inline">T=5000</span>, UCB1 sits at <span class="math inline">\sim 50</span>, and ε-greedy grows linearly to <span class="math inline">\sim 210</span>. On the hard problem with <span class="math inline">[0.50, 0.51, 0.52]</span>, all three are clustered near <span class="math inline">30</span>–<span class="math inline">45</span>, with Thompson narrowly winning.</p>
+<p><strong>Why it happens.</strong> Two simultaneous effects are working in opposite directions when gaps shrink:</p>
+<ol type="1">
+<li><strong>Per-step regret shrinks.</strong> Each suboptimal pull only costs you the gap. With gaps of <span class="math inline">0.01</span> instead of <span class="math inline">0.4</span>, a wrong pull is <span class="math inline">40\times</span> cheaper. So absolute regret is much smaller.</li>
+<li><strong>Distinguishing arms gets harder.</strong> The Lai–Robbins lower bound shows that the minimum pulls to confidently rank arms scales like <span class="math inline">1/\Delta_k^2</span>. With <span class="math inline">\Delta_k = 0.01</span> versus <span class="math inline">\Delta_k = 0.4</span>, you need <span class="math inline">1600\times</span> more samples per arm.</li>
+</ol>
+<p>Net effect: the <em>relative</em> regret (regret / oracle reward) gets worse with small gaps, but the <em>absolute</em> regret can stay small because each mistake is tiny. ε-greedy looks deceptively close to UCB1 on the hard problem only because there isn’t enough horizon to expose the linear-vs-logarithmic difference. At <span class="math inline">T = 100{,}000</span> that gap will be glaring.</p>
+<p><strong>The deeper lesson.</strong> When algorithm rankings flip between regimes, look at the <em>rate</em> of growth, not the absolute numbers. UCB1 is sublinear on both problems; ε-greedy is linear on both. The relative ordering at <span class="math inline">T = 5000</span> is a snapshot, not the story.</p>
+</section>
+<section id="non-stationary-rewards-experiments01a_sol2_nonstationary.py" class="level3">
+<h3 class="anchored" data-anchor-id="non-stationary-rewards-experiments01a_sol2_nonstationary.py">9.2 Non-stationary rewards — <code>experiments/01a_sol2_nonstationary.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_sol2_nonstationary.png" class="img-fluid figure-img"></p>
+<figcaption>Non-stationary bandit. Top: cumulative regret over 8000 steps as the true arm means drift sinusoidally (bottom). UCB1 — counter-intuitively — handles drift best of the three.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The setup is three arms with means oscillating between <span class="math inline">\sim 0.15</span> and <span class="math inline">\sim 0.85</span> on a period of <span class="math inline">2500</span> steps, phase-shifted so a different arm is best at different times. All three algorithms accumulate regret in step-like increments around every transition (visible as the upward jumps in the regret curve). But <strong>UCB1 ends up at <span class="math inline">\sim 570</span> regret while ε-greedy and Thompson both reach <span class="math inline">\sim 1800</span></strong> — roughly <span class="math inline">3\times</span> worse.</p>
+<p>This is the opposite of what naive intuition says (“Thompson is always best”). It’s worth understanding why.</p>
+<p><strong>Why it happens.</strong> The three algorithms differ in <em>what evidence persuades them to switch arms</em>.</p>
+<ul>
+<li><p><strong>Thompson Sampling</strong> maintains a Beta posterior. After many pulls on what <em>was</em> the best arm, that posterior is razor-sharp at the old mean. When the true mean drifts away, it takes many contrary observations to widen the posterior — and TS rarely <em>gives</em> the algorithm those observations, because it concentrates pulls on the current “best.” It’s stuck in a confidence trap of its own making.</p></li>
+<li><p><strong>ε-greedy</strong> explores uniformly at rate <span class="math inline">\varepsilon = 0.1</span>, so each arm gets roughly <span class="math inline">1/30</span> of its pulls as exploration regardless of current beliefs. That’s enough to <em>notice</em> drift but not to <em>react</em> — the empirical mean is a long-run average over the whole history, dominated by old data.</p></li>
+<li><p><strong>UCB1</strong>’s bonus is <span class="math inline">\sqrt{2 \log t / n_k}</span>. As <span class="math inline">t</span> grows, the bonus on rarely-pulled arms keeps inflating; once a “neglected” arm’s bonus exceeds the leader’s, UCB1 <em>has</em> to revisit it. This forced re-exploration is exactly what non-stationarity needs.</p></li>
+</ul>
+<p><strong>The deeper lesson.</strong> UCB1’s “weakness” — that it keeps probing arms it should be confident about — turns into a virtue under non-stationarity. Algorithms have implicit assumptions about the world; when those assumptions break, the algorithm with the most robustly-pessimistic posture often wins. This is a general lesson worth carrying into RL and agent design: <em>be suspicious of your own confidence</em>.</p>
+<p><strong>What you should build next.</strong> The principled fix is to add discounting or a sliding window. <em>Discounted UCB1</em> uses an exponentially-weighted mean and bonus: replace <span class="math inline">n_k</span> with <span class="math inline">\sum_t \gamma^{t-t'} \mathbf{1}[a_{t'} = k]</span> for <span class="math inline">\gamma \in (0, 1)</span>. <em>Sliding-window UCB1</em> only considers the last <span class="math inline">W</span> observations. Both have <span class="math inline">\tilde O(\sqrt{T})</span> regret against switching environments. Try implementing one and see whether it beats vanilla UCB1 on this problem.</p>
+</section>
+<section id="gaussian-rewards-experiments01a_sol3_gaussian_rewards.py" class="level3">
+<h3 class="anchored" data-anchor-id="gaussian-rewards-experiments01a_sol3_gaussian_rewards.py">9.3 Gaussian rewards — <code>experiments/01a_sol3_gaussian_rewards.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_sol3_gaussian_rewards.png" class="img-fluid figure-img"></p>
+<figcaption>Gaussian bandit with means [0.0, 0.5, 1.0, 1.2, 1.5] and σ=1.0. Gaussian UCB and NIG-Thompson both achieve sublinear regret; ε-greedy with the same configuration is markedly worse.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Gaussian UCB and the Normal-Inverse-Gamma Thompson Sampling reach <span class="math inline">\sim 70</span>–<span class="math inline">77</span> cumulative regret at <span class="math inline">T = 3000</span>; ε-greedy reaches <span class="math inline">\sim 280</span>. NIG Thompson edges out Gaussian UCB by a small margin, mirroring the Bernoulli case.</p>
+<p><strong>The derivation.</strong> For Gaussian rewards <span class="math inline">r_t \sim \mathcal{N}(\mu_k, \sigma^2)</span> with conjugate Normal-Inverse-Gamma prior on <span class="math inline">(\mu_k, \sigma_k^2)</span>, the posterior after <span class="math inline">n</span> observations with empirical mean <span class="math inline">\bar{x}</span> and SSE <span class="math inline">\sum (x_i - \bar x)^2</span> is</p>
+<p><span class="math display">
+\kappa_n = \kappa_0 + n, \qquad \mu_n = \frac{\kappa_0 \mu_0 + n \bar x}{\kappa_n},
+</span> <span class="math display">
+\alpha_n = \alpha_0 + n/2, \qquad \beta_n = \beta_0 + \tfrac{1}{2} \mathrm{SSE} + \frac{\kappa_0 n (\bar x - \mu_0)^2}{2 \kappa_n}.
+</span></p>
+<p>The marginal posterior for <span class="math inline">\mu</span> is Student-<span class="math inline">t_{2\alpha_n}(\mu_n, \beta_n / (\alpha_n \kappa_n))</span>. To sample, draw <span class="math inline">\sigma^2 \sim \mathrm{InvGamma}(\alpha_n, \beta_n)</span>, then <span class="math inline">\mu \sim \mathcal{N}(\mu_n, \sigma^2 / \kappa_n)</span>. Two lines, plus Welford updates for <span class="math inline">\bar x</span> and SSE.</p>
+<p><strong>Why this is worth doing.</strong> The Beta-Bernoulli case is uniquely elegant but also uniquely simple: each arm’s parameter is scalar. The NIG-Gaussian case forces you to track <em>two</em> parameters per arm (mean and variance) and to sample from a hierarchical posterior. This is the natural transition to high-dimensional posteriors (next post: 2D, then <span class="math inline">d</span>-dimensional), and the Welford trick is exactly what you’d use in production code for any streaming statistic.</p>
+<p>If you’re rusty on conjugate priors, this is the cleanest place to refresh. Bishop §3 or Murphy §3 cover it definitively.</p>
+</section>
+<section id="prior-sensitivity-for-thompson-experiments01a_sol4_prior_sensitivity.py" class="level3">
+<h3 class="anchored" data-anchor-id="prior-sensitivity-for-thompson-experiments01a_sol4_prior_sensitivity.py">9.4 Prior sensitivity for Thompson — <code>experiments/01a_sol4_prior_sensitivity.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_sol4_prior_sensitivity.png" class="img-fluid figure-img"></p>
+<figcaption>Prior sensitivity. Strong miscalibrated priors (Beta(100,100), red) force linear regret because the algorithm can’t update beliefs away from 0.5 fast enough. Weak priors and uniform priors are essentially equivalent.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Beta(0.5, 0.5), Beta(1, 1), and Beta(10, 10) all reach <span class="math inline">\sim 42</span>–<span class="math inline">48</span> cumulative regret — they’re essentially equivalent at <span class="math inline">T = 5000</span>. Beta(100, 100) is dramatically worse, reaching nearly <span class="math inline">100</span> and growing roughly linearly. The right panel shows why: Beta(100, 100) concentrates almost all its prior mass between 0.4 and 0.6, so updating to a true mean of <span class="math inline">0.8</span> requires fighting through a <em>lot</em> of pseudocounts.</p>
+<p><strong>Why it happens.</strong> The Beta posterior after <span class="math inline">n</span> pulls of an arm with <span class="math inline">s</span> successes is <span class="math inline">\mathrm{Beta}(\alpha_0 + s, \beta_0 + n - s)</span>. The posterior mean is <span class="math inline">(\alpha_0 + s) / (\alpha_0 + \beta_0 + n)</span>. With <span class="math inline">\alpha_0 = \beta_0 = 100</span>, even after 200 pulls of an arm with 80% success rate (160 successes), the posterior mean is only <span class="math inline">(100 + 160) / (100 + 100 + 200) = 0.65</span> — still far from the truth. The prior has 200 “pseudo-observations” of a 50% rate, and it takes hundreds of real observations to overrule them.</p>
+<p><strong>The deeper lesson.</strong> <strong>Priors are weights, not opinions.</strong> A strong prior near 0.5 is mathematically equivalent to having seen many observations with that empirical mean. If your real observations contradict it, you have to outvote the pseudo-data — and that’s expensive when the pseudo-data is plentiful.</p>
+<p>The connection to modern AI is direct: pre-training is a (very strong) prior. Aligning a model away from pre-training behavior — via RLHF, instruction tuning, refusal training, or character setting — requires fighting through implicit pseudocounts proportional to the pre-training corpus size. This is why alignment is hard, why it takes a lot of human feedback to materially shift model behavior, and why “prompting” can be far more efficient than fine-tuning when the desired behavior is consistent with the prior. The mathematical structure that makes Beta(100, 100) hard to move is the same structure that makes large language models hard to redirect.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">10. Further reading</h2>
+<ul>
+<li><strong>Lattimore &amp; Szepesvári, <em>Bandit Algorithms</em> (2020).</strong> The modern reference. Chapters 1-10 cover everything here rigorously. <a href="https://tor-lattimore.com/downloads/book/book.pdf">Free PDF</a>.</li>
+<li><strong>Russo, Van Roy, Kazerouni, Osband &amp; Wen, “A Tutorial on Thompson Sampling” (2018).</strong> The clearest introduction to TS. Short and beautifully written.</li>
+<li><strong>Auer, Cesa-Bianchi &amp; Fischer, “Finite-time Analysis of the Multiarmed Bandit Problem” (2002).</strong> The original UCB1 paper. The proof structure I sketched in §4.3 is theirs.</li>
+<li><strong>Lai &amp; Robbins, “Asymptotically Efficient Adaptive Allocation Rules” (1985).</strong> The lower bound and the modern statistical framing of bandits start here.</li>
+<li><strong>Sutton &amp; Barto, <em>Reinforcement Learning: An Introduction</em> (2018), Chapter 2.</strong> A more elementary treatment with great intuition.</li>
+</ul>
+<hr>
+<p><strong>Next up — Part 1b: Contextual bandits.</strong> We add a feature vector <span class="math inline">x_t</span> at each step. Arm rewards become functions of context, <span class="math inline">\mu_k(x_t)</span>. LinUCB and Linear Thompson Sampling generalize what we just did, and they’re the formal foundation of recommender systems and the first piece of machinery you need to understand RLHF reward models.</p>
+
+
+<!-- -->
+
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Specifically, <em>uniformly good</em> algorithms — those with regret <span class="math inline">o(T^a)</span> for every <span class="math inline">a &gt; 0</span> on every instance. This excludes silly algorithms that work great on some bandits and terribly on others.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Sutton &amp; Barto write the bonus as <span class="math inline">c \sqrt{\log t / n_k}</span> with <span class="math inline">c</span> a tunable parameter. The factor of <span class="math inline">\sqrt{2}</span> here is the value Hoeffding gives you for <span class="math inline">[0,1]</span> rewards. In practice <span class="math inline">c</span> is sometimes tuned smaller.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Multi-Armed Bandits: The Atom of Decision-Making"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Decision-making under uncertainty, from scratch — 1 of 4. ε-greedy, UCB1, and Thompson Sampling derived from first principles, with intuition, worked examples, and all three implemented in ~80 lines of NumPy."</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-19"</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [bandits, bayesian, decision-making]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/01a_regret_curves.png</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Decision-making under uncertainty, from scratch — 1 of 4.*</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="al">![Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.](../figures/01a_regret_curves.png)</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>Before LLM agents, before MDPs, before policy gradients, there is the **bandit**. It is the smallest possible problem that contains the central tension of all sequential decision-making: **exploration vs. exploitation.** Every agentic AI algorithm I'll cover in this series — Q-learning, PPO, RLHF, tool use, planning over thoughts — is in some sense a bandit with more structure layered on top.</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>This post derives three classical algorithms — ε-greedy, UCB1, and Thompson Sampling — from first principles. By the end you'll have written all three in under 100 lines of NumPy and reproduced the figure above. More importantly, you'll have the *intuitions* that make the rest of the series make sense.</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. A casino vignette</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>You walk into a casino. There are five slot machines. Some pay better than others, but you don't know which. The machines look identical and the house won't tell you the odds. You have 5000 quarters and 5000 pulls. What's your strategy?</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>The naive options both fail.</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>**Pure exploration.** Pull each machine 1000 times to estimate its payout rate accurately, then play whichever turned out best. After all that careful estimation, you've already burned 4/5 of your budget on machines you knew, in retrospect, were losers.</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>**Pure exploitation.** Try each machine a few times. The one that hit a couple of jackpots early — that must be the best one. Play it the rest of the night. But what if you got lucky on a mediocre machine and never tried the genuine winner? You can be locked into a bad arm forever, with no mechanism to discover your mistake.</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>The bandit problem is the mathematical formalization of this dilemma, and it is one of those rare problems where the simplest version is rich enough to expose the central difficulty cleanly. There's no state, no transitions, no discounting — just K choices, repeated, with stochastic feedback. And yet to do well, you must learn while earning, and balance both.</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Formal setup</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="al">![The multi-armed bandit. Each arm produces rewards from an unknown distribution; the agent only sees the realized rewards, never the true means.](../figures/01a_bandit_schematic.png)</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>We face $K$ arms (slot machines, ads, drug doses, recommendation candidates, treatment policies). Each arm $k$ has an unknown reward distribution $P_k$ with mean $\mu_k$. At each timestep $t = 1, 2, \dots, T$ we pick an action $a_t \in <span class="sc">\{</span>1, \dots, K<span class="sc">\}</span>$ and observe a reward $r_t \sim P_{a_t}$.</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>We want to maximize expected cumulative reward over the horizon $T$. Equivalently — and far more useful for analysis — we minimize **regret**:</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>R(T) \;\equiv\; T \mu^\star - \mathbb{E}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot">\sum_{t=1}^{T} r_t\right</span><span class="co">]</span> \;=\; \sum_{k=1}^{K} \Delta_k \, \mathbb{E}<span class="co">[</span><span class="ot">n_k(T)</span><span class="co">]</span>,</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>where:</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\mu^\star \equiv \max_k \mu_k$ is the best arm's expected reward,</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\Delta_k \equiv \mu^\star - \mu_k$ is the *suboptimality gap* of arm $k$ (zero for the best arm, positive for the rest),</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$n_k(T)$ is the number of times we've pulled arm $k$ up to time $T$.</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>The first form is intuitive: regret is the expected reward we missed by not always playing the best arm. The second form is profound: regret is the sum, over arms, of *how bad each arm is* times *how often we pulled it*. To minimize regret, we don't need to avoid bad arms entirely — we just need to avoid bad arms a lot. A small number of exploratory pulls on a known-loser is cheap.</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>This rephrasing turns the problem from "predict the best arm" into "allocate a budget of pulls intelligently." That shift is essentially the entire substance of the bandit literature.</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>**A name note.** The word "bandit" comes from "one-armed bandit," American slang for a slot machine. A "multi-armed bandit" is a fanciful gambler facing several at once. The metaphor stuck because the math is identical and slot machines are evocative.</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Why this is hard: the exploration-exploitation tradeoff</span></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>We've already seen that pure exploration and pure exploitation both fail. Can we be more precise about why?</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>**Pure exploration (uniform random).** We pull each arm with probability $1/K$, regardless of past data. Then $\mathbb{E}<span class="co">[</span><span class="ot">n_k(T)</span><span class="co">]</span> = T/K$ for all $k$, so</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>R(T) \;=\; \sum_{k=1}^{K} \Delta_k \cdot \frac{T}{K} \;=\; \frac{T}{K} \sum_k \Delta_k.</span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>This is **linear in $T$**. With $T = 10^6$ steps and average gap $\bar\Delta$, the expected regret is about $\bar\Delta \cdot 10^6$. Catastrophic.</span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>**Pure exploitation (greedy on empirical mean).** After one pull of each arm, we play whichever has the highest empirical mean forever. By bad luck the best arm might return 0 on its single trial while a worse arm returns 1. Now we play the worse arm forever and incur $\Delta_{\text{bad}} \cdot (T - K)$ regret. Also linear, with positive probability.</span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>Linear regret means we never learn — our performance per step doesn't improve. The bandit problem is interesting precisely because **sublinear regret is possible**: with the right algorithm, $R(T) / T \to 0$ as $T \to \infty$. We will get a per-step reward arbitrarily close to optimal in the limit.</span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 How low can we go? The Lai–Robbins lower bound</span></span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>How small can $R(T)$ be? Lai &amp; Robbins (1985) proved the **fundamental lower bound** for the bandit problem: for any reasonable<span class="ot">[^1]</span> algorithm,</span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>\liminf_{T \to \infty} \frac{R(T)}{\log T} \;\geq\; \sum_{k: \Delta_k &gt; 0} \frac{\Delta_k}{\mathrm{KL}(P_k \,<span class="sc">\|</span>\, P_{\star})}.</span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a><span class="ot">[^1]: </span>Specifically, *uniformly good* algorithms — those with regret $o(T^a)$ for every $a &gt; 0$ on every instance. This excludes silly algorithms that work great on some bandits and terribly on others.</span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>The right-hand side is a sum over suboptimal arms of "how much worse this arm is" divided by "how easily it can be distinguished from the optimum." Hard-to-distinguish arms (small KL) must be sampled more, contributing more regret.</span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>The takeaway: **$R(T) = \Theta(\log T)$ is the best possible scaling.** The three algorithms we'll build all achieve $O(\log T)$, matching the lower bound up to constants. The difference between $\log T$ and $T$ is the entire engineering challenge. Over a million pulls, $\log T \approx 14$ — about five orders of magnitude smaller than linear regret.</span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. ε-greedy: the strawman</span></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>The most intuitive idea: usually exploit, occasionally explore. With probability $1 - \varepsilon$, pull the arm with the highest empirical mean; with probability $\varepsilon$, pull a uniformly random arm.</span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>a_t = \begin{cases} \arg\max_k \hat{\mu}_k &amp; \text{w.p. } 1-\varepsilon, <span class="sc">\\</span> \text{Uniform}(<span class="sc">\{</span>1,\dots,K<span class="sc">\}</span>) &amp; \text{w.p. } \varepsilon. \end{cases}</span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Why it (mostly) fails</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>Run ε-greedy with a fixed $\varepsilon = 0.1$ for $T$ steps. The exploration phase pulls each arm $\varepsilon T / K$ times in expectation, and each suboptimal arm contributes $\Delta_k$ regret per exploration pull. So</span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>R(T) \;\geq\; \varepsilon \cdot \frac{T}{K} \sum_{k: \Delta_k&gt;0} \Delta_k.</span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>**Linear in $T$, again.** With $\varepsilon = 0.1$ you forever burn 10% of your pulls on uniform exploration, whether or not you still need it. Worse: as $T$ grows, you've identified the best arm with overwhelming confidence, yet you keep paying the 10% exploration tax.</span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>You can fix this by decaying $\varepsilon$ over time — e.g., $\varepsilon_t = c / t$. Auer et al. (2002) show that the schedule $\varepsilon_t = \min(1, cK / (d^2 t))$ achieves $O(\log T)$ regret, but this requires knowing $d = \min_k \Delta_k$ in advance, which is information about the unknown environment. In practice you don't have it.</span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.2 Worked example</span></span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>Two arms, $\varepsilon = 0.5$ (for visibility), $T = 6$. Let true means be $\mu_1 = 0.3$, $\mu_2 = 0.7$.</span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $t$ <span class="pp">|</span> random? <span class="pp">|</span> $\hat\mu_1$ <span class="pp">|</span> $\hat\mu_2$ <span class="pp">|</span> action <span class="pp">|</span> reward <span class="pp">|</span></span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a><span class="pp">| ---</span> <span class="pp">| -------</span> <span class="pp">| -----------</span> <span class="pp">| -----------</span> <span class="pp">| ------</span> <span class="pp">| ------</span> <span class="pp">|</span></span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 1   <span class="pp">|</span> yes     <span class="pp">|</span> 0           <span class="pp">|</span> 0           <span class="pp">|</span> 1      <span class="pp">|</span> 0      <span class="pp">|</span></span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2   <span class="pp">|</span> yes     <span class="pp">|</span> 0           <span class="pp">|</span> 0           <span class="pp">|</span> 2      <span class="pp">|</span> 1      <span class="pp">|</span></span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 3   <span class="pp">|</span> no      <span class="pp">|</span> 0           <span class="pp">|</span> 1.0         <span class="pp">|</span> 2      <span class="pp">|</span> 1      <span class="pp">|</span></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 4   <span class="pp">|</span> yes     <span class="pp">|</span> 0           <span class="pp">|</span> 1.0         <span class="pp">|</span> 1      <span class="pp">|</span> 1      <span class="pp">|</span></span>
+<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 5   <span class="pp">|</span> no      <span class="pp">|</span> 0.5         <span class="pp">|</span> 1.0         <span class="pp">|</span> 2      <span class="pp">|</span> 0      <span class="pp">|</span></span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 6   <span class="pp">|</span> no      <span class="pp">|</span> 0.5         <span class="pp">|</span> 0.5         <span class="pp">|</span> 1      <span class="pp">|</span> 0      <span class="pp">|</span></span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>Notice the failure mode in row 6: the algorithm has an exact tie and the argmax breaks it deterministically (here, by picking the lower index), even though arm 2 is genuinely better. Real implementations often randomize ties or pick the more-pulled arm — small details that matter at small $T$.</span>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a>ε-greedy is the strawman we'll keep around for comparison. The next two algorithms beat it by being *adaptive*: their exploration shrinks naturally as confidence grows.</span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. UCB1: Optimism in the face of uncertainty</span></span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>The frequentist insight: instead of acting on the empirical mean $\hat\mu_k$, act on the *largest plausible value* that $\mu_k$ could take. If our estimate is tight, that's basically $\hat\mu_k$ — exploitation. If our estimate is loose, the plausible upper bound is much higher than $\hat\mu_k$ — exploration. **Optimism is automatic exploration.**</span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a>This is one of the most beautiful ideas in the field. We don't need a separate exploration schedule. We need a confidence interval, and the rest follows.</span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 Deriving the bound from Hoeffding's inequality</span></span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a>We need an upper bound $U_k(t)$ such that $\mu_k \leq U_k(t)$ with high probability. **Hoeffding's inequality** is the right tool. For i.i.d. bounded random variables $X_1, \dots, X_n \in <span class="co">[</span><span class="ot">0,1</span><span class="co">]</span>$ with mean $\mu$,</span>
+<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a>P<span class="sc">\!</span>\left(|\hat\mu_n - \mu| \geq \varepsilon\right) \;\leq\; 2 \exp(-2 n \varepsilon^2).</span>
+<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a>In words: the empirical mean concentrates around the true mean exponentially fast in $n$. The probability we're off by more than $\varepsilon$ decays as $e^{-2n\varepsilon^2}$.</span>
+<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a>We want a one-sided bound that holds with probability at least $1 - \delta_t$:</span>
+<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-148"><a href="#cb2-148" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-149"><a href="#cb2-149" aria-hidden="true" tabindex="-1"></a>P<span class="sc">\!</span>\left(\mu_k &gt; \hat\mu_k + \varepsilon\right) \;\leq\; \exp(-2 n_k \varepsilon^2) \;\leq\; \delta_t.</span>
+<span id="cb2-150"><a href="#cb2-150" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-151"><a href="#cb2-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-152"><a href="#cb2-152" aria-hidden="true" tabindex="-1"></a>Solve for $\varepsilon$:</span>
+<span id="cb2-153"><a href="#cb2-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-154"><a href="#cb2-154" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-155"><a href="#cb2-155" aria-hidden="true" tabindex="-1"></a>\varepsilon \;=\; \sqrt{\frac{\log(1/\delta_t)}{2 n_k}}.</span>
+<span id="cb2-156"><a href="#cb2-156" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-157"><a href="#cb2-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-158"><a href="#cb2-158" aria-hidden="true" tabindex="-1"></a>Now choose $\delta_t$. We want our failure probabilities to be summable over arms and time — otherwise some bad event eventually happens with probability 1. The standard choice is $\delta_t = t^{-4}$, which gives $\log(1/\delta_t) = 4 \log t$. Substituting:</span>
+<span id="cb2-159"><a href="#cb2-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-160"><a href="#cb2-160" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-161"><a href="#cb2-161" aria-hidden="true" tabindex="-1"></a>\boxed{\;a_t \;=\; \arg\max_k \left<span class="co">[</span><span class="ot">\,\hat\mu_k \,+\, \sqrt{\frac{2 \log t}{n_k}}\,\right</span><span class="co">]</span>\;}</span>
+<span id="cb2-162"><a href="#cb2-162" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-163"><a href="#cb2-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-164"><a href="#cb2-164" aria-hidden="true" tabindex="-1"></a>This is **UCB1**.<span class="ot">[^2]</span> The first term is exploitation (high if the arm looked good on average); the second is exploration (high if $n_k$ is small, low if we've pulled this arm many times; grows slowly with $t$ to keep us occasionally re-checking long-forgotten arms).</span>
+<span id="cb2-165"><a href="#cb2-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-166"><a href="#cb2-166" aria-hidden="true" tabindex="-1"></a><span class="ot">[^2]: </span>Sutton &amp; Barto write the bonus as $c \sqrt{\log t / n_k}$ with $c$ a tunable parameter. The factor of $\sqrt{2}$ here is the value Hoeffding gives you for $<span class="co">[</span><span class="ot">0,1</span><span class="co">]</span>$ rewards. In practice $c$ is sometimes tuned smaller.</span>
+<span id="cb2-167"><a href="#cb2-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-168"><a href="#cb2-168" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 Visualizing the mechanism</span></span>
+<span id="cb2-169"><a href="#cb2-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-170"><a href="#cb2-170" aria-hidden="true" tabindex="-1"></a><span class="al">![UCB1 over time. The orange exploration bonus shrinks as each arm's pull count grows; eventually the indices reflect empirical means and the best arm wins.](../figures/01a_ucb_bonus_shrinking.png)</span></span>
+<span id="cb2-171"><a href="#cb2-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-172"><a href="#cb2-172" aria-hidden="true" tabindex="-1"></a>This figure shows what UCB1 is actually doing. At $t = 50$, every arm has a large bonus on top of its empirical mean — the algorithm is deeply uncertain and the index is dominated by exploration. The best arms ($n_k = 14, 13$) already have shorter orange bars: pulling them shrinks their bonus, making them look less attractive on the next round, so the algorithm rotates.</span>
+<span id="cb2-173"><a href="#cb2-173" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-174"><a href="#cb2-174" aria-hidden="true" tabindex="-1"></a>At $t = 500$, the bonuses on the well-pulled arms are small and their indices closely match the truth. The poorly-explored arm 1 still has a large bonus, but that's because UCB1 *can't* be sure it's bad without sampling it again occasionally.</span>
+<span id="cb2-175"><a href="#cb2-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-176"><a href="#cb2-176" aria-hidden="true" tabindex="-1"></a>At $t = 5000$, the bonuses are all small. The empirical means dominate, and the best arm wins decisively. UCB1 has converged.</span>
+<span id="cb2-177"><a href="#cb2-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-178"><a href="#cb2-178" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.3 Why $O(\log T)$ regret</span></span>
+<span id="cb2-179"><a href="#cb2-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-180"><a href="#cb2-180" aria-hidden="true" tabindex="-1"></a>The proof has a beautiful structure that's worth understanding even at a sketch level. Consider any suboptimal arm $k$. We pull it at time $t$ only if its UCB index is at least as high as the optimal arm's:</span>
+<span id="cb2-181"><a href="#cb2-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-182"><a href="#cb2-182" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-183"><a href="#cb2-183" aria-hidden="true" tabindex="-1"></a>\hat\mu_k + \sqrt{\frac{2 \log t}{n_k}} \;\geq\; \hat\mu_\star + \sqrt{\frac{2 \log t}{n_\star}}.</span>
+<span id="cb2-184"><a href="#cb2-184" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-185"><a href="#cb2-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-186"><a href="#cb2-186" aria-hidden="true" tabindex="-1"></a>By concentration, $\hat\mu_k \approx \mu_k$ and $\hat\mu_\star \approx \mu^\star$ once the corresponding $n$ are large. For the inequality above to hold, we'd need</span>
+<span id="cb2-187"><a href="#cb2-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-188"><a href="#cb2-188" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-189"><a href="#cb2-189" aria-hidden="true" tabindex="-1"></a>\sqrt{\frac{2 \log t}{n_k}} \;\geq\; \Delta_k \quad \Longrightarrow \quad n_k \;\leq\; \frac{8 \log t}{\Delta_k^2}.</span>
+<span id="cb2-190"><a href="#cb2-190" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-191"><a href="#cb2-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-192"><a href="#cb2-192" aria-hidden="true" tabindex="-1"></a>So a suboptimal arm is pulled at most $\sim 8 \log T / \Delta_k^2$ times over the horizon. Total regret is the sum over suboptimal arms:</span>
+<span id="cb2-193"><a href="#cb2-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-194"><a href="#cb2-194" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-195"><a href="#cb2-195" aria-hidden="true" tabindex="-1"></a>R(T) \;\leq\; \sum_{k: \Delta_k &gt; 0} \frac{8 \log T}{\Delta_k} \;+\; O(1).</span>
+<span id="cb2-196"><a href="#cb2-196" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-197"><a href="#cb2-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-198"><a href="#cb2-198" aria-hidden="true" tabindex="-1"></a>This matches Lai–Robbins up to constants. UCB1 is **near-optimal**.</span>
+<span id="cb2-199"><a href="#cb2-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-200"><a href="#cb2-200" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.4 Worked example</span></span>
+<span id="cb2-201"><a href="#cb2-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-202"><a href="#cb2-202" aria-hidden="true" tabindex="-1"></a>Three arms. Let's compute the UCB1 indices step by step. We initialize by pulling each arm once (line 16 of the implementation):</span>
+<span id="cb2-203"><a href="#cb2-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-204"><a href="#cb2-204" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> $t$ <span class="pp">|</span> $n_1, n_2, n_3$ <span class="pp">|</span> $\hat\mu_1, \hat\mu_2, \hat\mu_3$ <span class="pp">|</span> bonus $\sqrt{2\log t / n_k}$    <span class="pp">|</span> indices                  <span class="pp">|</span> action <span class="pp">|</span></span>
+<span id="cb2-205"><a href="#cb2-205" aria-hidden="true" tabindex="-1"></a><span class="pp">| ---</span> <span class="pp">| ---------------</span> <span class="pp">| ---------------------------------</span> <span class="pp">| -------------------------------</span> <span class="pp">| ------------------------</span> <span class="pp">| ------</span> <span class="pp">|</span></span>
+<span id="cb2-206"><a href="#cb2-206" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 1   <span class="pp">|</span> (0,0,0)         <span class="pp">|</span> (0,0,0)                           <span class="pp">|</span> (∞,∞,∞)                         <span class="pp">|</span> (∞,∞,∞)                  <span class="pp">|</span> 1      <span class="pp">|</span></span>
+<span id="cb2-207"><a href="#cb2-207" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 2   <span class="pp">|</span> (1,0,0)         <span class="pp">|</span> (0,0,0)                           <span class="pp">|</span> $(1.18, \infty, \infty)$        <span class="pp">|</span> $(1.18, \infty, \infty)$ <span class="pp">|</span> 2      <span class="pp">|</span></span>
+<span id="cb2-208"><a href="#cb2-208" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 3   <span class="pp">|</span> (1,1,0)         <span class="pp">|</span> (0,1,0)                           <span class="pp">|</span> $(1.48, 1.48, \infty)$          <span class="pp">|</span> $(1.48, 2.48, \infty)$   <span class="pp">|</span> 3      <span class="pp">|</span></span>
+<span id="cb2-209"><a href="#cb2-209" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> 4   <span class="pp">|</span> (1,1,1)         <span class="pp">|</span> (0,1,1)                           <span class="pp">|</span> $(1.67, 1.67, 1.67)$            <span class="pp">|</span> $(1.67, 2.67, 2.67)$     <span class="pp">|</span> 2 or 3 <span class="pp">|</span></span>
+<span id="cb2-210"><a href="#cb2-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-211"><a href="#cb2-211" aria-hidden="true" tabindex="-1"></a>After every arm has been pulled once, $\log t / n_k$ becomes finite for all arms, and the algorithm makes interesting choices. Notice the bonus $\sqrt{2 \log 4 / 1} \approx 1.67$ is *enormous* relative to the rewards (which are 0 or 1). Early UCB1 is dominated by exploration; only after each arm has been pulled tens of times do the empirical means start to matter.</span>
+<span id="cb2-212"><a href="#cb2-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-213"><a href="#cb2-213" aria-hidden="true" tabindex="-1"></a>This is why UCB1 can underperform ε-greedy at small $T$: its bonus is calibrated for asymptotic optimality, not finite-time efficiency. We'll see this clearly in the regret curves at the end.</span>
+<span id="cb2-214"><a href="#cb2-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-215"><a href="#cb2-215" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-216"><a href="#cb2-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-217"><a href="#cb2-217" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Thompson Sampling: the Bayesian's algorithm</span></span>
+<span id="cb2-218"><a href="#cb2-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-219"><a href="#cb2-219" aria-hidden="true" tabindex="-1"></a>Now for a completely different paradigm. UCB1 is frequentist: it builds confidence intervals from concentration inequalities. Thompson Sampling is **Bayesian**: maintain a posterior over each arm's parameters, sample once from each, and play the arm with the highest sample.</span>
+<span id="cb2-220"><a href="#cb2-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-221"><a href="#cb2-221" aria-hidden="true" tabindex="-1"></a>That's it. Two lines.</span>
+<span id="cb2-222"><a href="#cb2-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-223"><a href="#cb2-223" aria-hidden="true" tabindex="-1"></a>It's stunning how well such a small idea works. It was proposed by William R. Thompson in 1933 — decades before UCB — then largely forgotten, then rediscovered in the 2010s when people noticed that it routinely outperformed everything else on real-world problems despite being mathematically harder to analyze.</span>
+<span id="cb2-224"><a href="#cb2-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-225"><a href="#cb2-225" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.1 Beta–Bernoulli refresher</span></span>
+<span id="cb2-226"><a href="#cb2-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-227"><a href="#cb2-227" aria-hidden="true" tabindex="-1"></a>For Bernoulli rewards $r_t \in <span class="sc">\{</span>0, 1<span class="sc">\}</span>$, the conjugate prior is the **Beta distribution**. If we put</span>
+<span id="cb2-228"><a href="#cb2-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-229"><a href="#cb2-229" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-230"><a href="#cb2-230" aria-hidden="true" tabindex="-1"></a>\mu_k \sim \mathrm{Beta}(\alpha, \beta) \quad\text{(prior)}, \qquad r_t \mid \mu_k \sim \mathrm{Bernoulli}(\mu_k) \quad\text{(likelihood)},</span>
+<span id="cb2-231"><a href="#cb2-231" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-232"><a href="#cb2-232" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-233"><a href="#cb2-233" aria-hidden="true" tabindex="-1"></a>then after observing $s_k$ successes (rewards of 1) and $f_k$ failures (rewards of 0) on arm $k$, the posterior is</span>
+<span id="cb2-234"><a href="#cb2-234" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-235"><a href="#cb2-235" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-236"><a href="#cb2-236" aria-hidden="true" tabindex="-1"></a>\mu_k \mid \mathcal{D}_t \;\sim\; \mathrm{Beta}(\alpha + s_k,\; \beta + f_k).</span>
+<span id="cb2-237"><a href="#cb2-237" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-238"><a href="#cb2-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-239"><a href="#cb2-239" aria-hidden="true" tabindex="-1"></a>**Conjugacy in one line.** $\alpha$ and $\beta$ act as *pseudocounts*: $\mathrm{Beta}(1, 1)$ is the uniform prior (one prior success, one prior failure — i.e., no information). $\mathrm{Beta}(10, 10)$ is a stronger prior that takes more data to update away from $\mu = 0.5$.</span>
+<span id="cb2-240"><a href="#cb2-240" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-241"><a href="#cb2-241" aria-hidden="true" tabindex="-1"></a>The Beta posterior has mean $\alpha / (\alpha + \beta)$ and variance $\alpha\beta / <span class="co">[</span><span class="ot">(\alpha+\beta)^2(\alpha+\beta+1)</span><span class="co">]</span>$. Variance shrinks like $1/n$ as data accumulates. This is exactly the kind of "uncertainty decreasing as we learn" that we want.</span>
+<span id="cb2-242"><a href="#cb2-242" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-243"><a href="#cb2-243" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.2 The algorithm in full</span></span>
+<span id="cb2-244"><a href="#cb2-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-245"><a href="#cb2-245" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb2-246"><a href="#cb2-246" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ThompsonSampling:</span>
+<span id="cb2-247"><a href="#cb2-247" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, K):</span>
+<span id="cb2-248"><a href="#cb2-248" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.alpha <span class="op">=</span> np.ones(K)  <span class="co"># prior: Beta(1, 1)</span></span>
+<span id="cb2-249"><a href="#cb2-249" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.beta  <span class="op">=</span> np.ones(K)</span>
+<span id="cb2-250"><a href="#cb2-250" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-251"><a href="#cb2-251" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> select(<span class="va">self</span>):</span>
+<span id="cb2-252"><a href="#cb2-252" aria-hidden="true" tabindex="-1"></a>        samples <span class="op">=</span> np.random.beta(<span class="va">self</span>.alpha, <span class="va">self</span>.beta)</span>
+<span id="cb2-253"><a href="#cb2-253" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">int</span>(np.argmax(samples))</span>
+<span id="cb2-254"><a href="#cb2-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-255"><a href="#cb2-255" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> update(<span class="va">self</span>, k, r):</span>
+<span id="cb2-256"><a href="#cb2-256" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.alpha[k] <span class="op">+=</span> r</span>
+<span id="cb2-257"><a href="#cb2-257" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.beta[k]  <span class="op">+=</span> <span class="dv">1</span> <span class="op">-</span> r</span>
+<span id="cb2-258"><a href="#cb2-258" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb2-259"><a href="#cb2-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-260"><a href="#cb2-260" aria-hidden="true" tabindex="-1"></a>Eleven lines. No bonus terms, no schedules, no hyperparameters. Just sample and act.</span>
+<span id="cb2-261"><a href="#cb2-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-262"><a href="#cb2-262" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.3 Why this works — uncertainty as exploration</span></span>
+<span id="cb2-263"><a href="#cb2-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-264"><a href="#cb2-264" aria-hidden="true" tabindex="-1"></a><span class="al">![Beta posteriors over time. By t=5000, the algorithm has identified Arm 3 (μ=0.7) as best. Arms 2 and 3 — the close competitors — are sampled most because they're hardest to distinguish. Arm 1 is largely ignored once it's clearly suboptimal, so its posterior stays wide.](../figures/01a_beta_posterior_evolution.png)</span></span>
+<span id="cb2-265"><a href="#cb2-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-266"><a href="#cb2-266" aria-hidden="true" tabindex="-1"></a>This figure is the heart of why Thompson Sampling works. Look at the posterior for Arm 1 (the worst, $\mu = 0.3$) on the right panel. After 5000 steps, it has only been pulled 9 times. **Its posterior is still wide.** The algorithm hasn't bothered tightening its estimate of arm 1's mean because it doesn't matter — arm 1 is clearly worse and we don't need precision about *how much* worse.</span>
+<span id="cb2-267"><a href="#cb2-267" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-268"><a href="#cb2-268" aria-hidden="true" tabindex="-1"></a>Compare to arm 3, which has been pulled 4583 times. Its posterior is razor-sharp, concentrated near 0.7.</span>
+<span id="cb2-269"><a href="#cb2-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-270"><a href="#cb2-270" aria-hidden="true" tabindex="-1"></a>Now think about what this means for selection. The probability that arm 1 wins the next round (i.e., its sample exceeds all others' samples) is tiny: even though its posterior is wide, the upper tail rarely reaches 0.7. Arm 1 gets *occasionally* sampled — just enough to make sure we don't lock it out forever. Meanwhile, arms 2 and 3 keep getting sampled because their posteriors are close enough to genuinely overlap.</span>
+<span id="cb2-271"><a href="#cb2-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-272"><a href="#cb2-272" aria-hidden="true" tabindex="-1"></a>**This is intelligent exploration, and it's emerging from the math, not from a hand-designed schedule.** No "decay your epsilon by 1/sqrt(t)" or "tune the UCB constant." Just maintain a posterior, sample, act.</span>
+<span id="cb2-273"><a href="#cb2-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-274"><a href="#cb2-274" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.4 Probability matching: the deepest property</span></span>
+<span id="cb2-275"><a href="#cb2-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-276"><a href="#cb2-276" aria-hidden="true" tabindex="-1"></a>The probability that Thompson Sampling picks arm $k$ at time $t$ is *exactly* the posterior probability that arm $k$ is optimal:</span>
+<span id="cb2-277"><a href="#cb2-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-278"><a href="#cb2-278" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-279"><a href="#cb2-279" aria-hidden="true" tabindex="-1"></a>P(a_t = k \mid \mathcal{D}_t) \;=\; P\!\left(\mu_k = \max_{j} \mu_j \;\Big|\; \mathcal{D}_t\right).</span>
+<span id="cb2-280"><a href="#cb2-280" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-281"><a href="#cb2-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-282"><a href="#cb2-282" aria-hidden="true" tabindex="-1"></a>This is called **probability matching** or **posterior sampling**. The proof is trivial: by definition, Thompson selects $k$ when $\tilde\mu_k &gt; \tilde\mu_j$ for all $j \neq k$, where the $\tilde\mu_j$ are independent samples from each marginal posterior. The probability of that event is, by construction, the probability that $\mu_k$ is the largest under independent sampling — which is the posterior probability that $k$ is optimal.</span>
+<span id="cb2-283"><a href="#cb2-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-284"><a href="#cb2-284" aria-hidden="true" tabindex="-1"></a>Let's verify it empirically.</span>
+<span id="cb2-285"><a href="#cb2-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-286"><a href="#cb2-286" aria-hidden="true" tabindex="-1"></a><span class="al">![Probability matching. Each pair of bars shows analytical $P(\mu_k = \max)$ vs the empirical frequency with which Thompson Sampling picks arm $k$ from 100,000 independent samples. They match to three decimal places.](../figures/01a_probability_matching.png)</span></span>
+<span id="cb2-287"><a href="#cb2-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-288"><a href="#cb2-288" aria-hidden="true" tabindex="-1"></a>The left panel shows four posteriors with overlapping support: $\mathrm{Beta}(8, 12)$, $\mathrm{Beta}(15, 10)$, $\mathrm{Beta}(5, 4)$, $\mathrm{Beta}(3, 2)$. The right panel shows that the empirical pick frequencies from 100,000 Thompson trials match the analytical posterior optimality probabilities essentially exactly.</span>
+<span id="cb2-289"><a href="#cb2-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-290"><a href="#cb2-290" aria-hidden="true" tabindex="-1"></a>The interesting case is **arm 4**. It has the highest pick probability (42.5%) despite having a *lower posterior mean* than arm 2. Why? Because its posterior is wide. The probability of being optimal isn't determined by the mean alone — it's determined by the full distribution. Arms with high mean *and* high variance can be more likely to be optimal than arms with high mean and low variance, because their upside is bigger.</span>
+<span id="cb2-291"><a href="#cb2-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-292"><a href="#cb2-292" aria-hidden="true" tabindex="-1"></a>This is exactly why Thompson Sampling explores arms it's uncertain about. The exploration isn't a separate mechanism bolted on — it's a consequence of the geometry of the posterior.</span>
+<span id="cb2-293"><a href="#cb2-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-294"><a href="#cb2-294" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.5 Regret guarantees and why TS often beats UCB</span></span>
+<span id="cb2-295"><a href="#cb2-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-296"><a href="#cb2-296" aria-hidden="true" tabindex="-1"></a>Russo &amp; Van Roy (2014) and Agrawal &amp; Goyal (2012) prove that Thompson Sampling achieves the same $O(\log T)$ asymptotic regret bound as UCB1, with matching constants up to the Lai–Robbins lower bound. So theoretically they're equivalent.</span>
+<span id="cb2-297"><a href="#cb2-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-298"><a href="#cb2-298" aria-hidden="true" tabindex="-1"></a>In practice, Thompson typically wins. Two reasons:</span>
+<span id="cb2-299"><a href="#cb2-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-300"><a href="#cb2-300" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Data-adaptive exploration.** UCB's bonus is a deterministic function of $n_k$ alone — it doesn't know whether the data have produced a tight or loose posterior. TS uses the full posterior shape.</span>
+<span id="cb2-301"><a href="#cb2-301" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**No conservative constants.** UCB1's $\sqrt{2}$ factor is calibrated for the worst case where rewards are at the boundary of $<span class="co">[</span><span class="ot">0,1</span><span class="co">]</span>$. For nicer distributions the bound is loose. TS doesn't have a constant to be conservative about.</span>
+<span id="cb2-302"><a href="#cb2-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-303"><a href="#cb2-303" aria-hidden="true" tabindex="-1"></a>The flip side: UCB has stronger high-probability guarantees and is easier to analyze. If you need finite-sample guarantees with explicit confidence parameters, UCB is the right tool. If you want to do well on average, Thompson usually wins.</span>
+<span id="cb2-304"><a href="#cb2-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-305"><a href="#cb2-305" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.6 Worked example</span></span>
+<span id="cb2-306"><a href="#cb2-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-307"><a href="#cb2-307" aria-hidden="true" tabindex="-1"></a>Three arms, prior $\mathrm{Beta}(1,1)$ for all. Suppose after 9 pulls we have $\alpha = (3, 2, 5)$, $\beta = (4, 6, 1)$ — meaning arm 1 had 2 successes and 3 failures, arm 2 had 1 success and 5 failures, arm 3 had 4 successes and 0 failures. Posteriors: $\mathrm{Beta}(3,4)$, $\mathrm{Beta}(2,6)$, $\mathrm{Beta}(5,1)$.</span>
+<span id="cb2-308"><a href="#cb2-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-309"><a href="#cb2-309" aria-hidden="true" tabindex="-1"></a>To select the next action, sample once from each:</span>
+<span id="cb2-310"><a href="#cb2-310" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-311"><a href="#cb2-311" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\tilde\mu_1 \sim \mathrm{Beta}(3,4)$ → say, 0.41</span>
+<span id="cb2-312"><a href="#cb2-312" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\tilde\mu_2 \sim \mathrm{Beta}(2,6)$ → say, 0.18</span>
+<span id="cb2-313"><a href="#cb2-313" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\tilde\mu_3 \sim \mathrm{Beta}(5,1)$ → say, 0.92</span>
+<span id="cb2-314"><a href="#cb2-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-315"><a href="#cb2-315" aria-hidden="true" tabindex="-1"></a>Pick arm 3 (largest sample). Observe reward, update $\alpha_3$ or $\beta_3$, repeat.</span>
+<span id="cb2-316"><a href="#cb2-316" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-317"><a href="#cb2-317" aria-hidden="true" tabindex="-1"></a>Note how arm 3's posterior is already very concentrated near 1 (one failure, four successes), so even a low draw is probably still high. Arm 1 has higher mean than arm 2, but both are unlikely to beat arm 3 on most draws. The algorithm has effectively decided.</span>
+<span id="cb2-318"><a href="#cb2-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-319"><a href="#cb2-319" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-320"><a href="#cb2-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-321"><a href="#cb2-321" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. The three side by side</span></span>
+<span id="cb2-322"><a href="#cb2-322" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-323"><a href="#cb2-323" aria-hidden="true" tabindex="-1"></a>We've now built all three algorithms. Time to compare them at the qualitative level.</span>
+<span id="cb2-324"><a href="#cb2-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-325"><a href="#cb2-325" aria-hidden="true" tabindex="-1"></a><span class="al">![Cumulative fraction of pulls allocated to each arm under each algorithm (averaged over 30 runs). The brightest band on top is the best arm (μ=0.8). ε-greedy keeps ~20% exploration forever. UCB1 explores aggressively then narrows but stays diffuse. Thompson concentrates fastest.](../figures/01a_arm_pull_distribution.png)</span></span>
+<span id="cb2-326"><a href="#cb2-326" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-327"><a href="#cb2-327" aria-hidden="true" tabindex="-1"></a>This figure tells the qualitative truth that the regret curves obscure.</span>
+<span id="cb2-328"><a href="#cb2-328" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-329"><a href="#cb2-329" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**ε-greedy** allocates ~80% of pulls to the best arm and splits the remaining 20% across the other arms forever. That fixed 20% exploration tax is *exactly* what makes its regret linear.</span>
+<span id="cb2-330"><a href="#cb2-330" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**UCB1** explores aggressively early (notice how diffuse the bands are for $t &lt; 1000$) and then narrows. But even at $t = 5000$, it's still spending ~35% of pulls on suboptimal arms. The optimism is paying off slowly.</span>
+<span id="cb2-331"><a href="#cb2-331" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Thompson** concentrates fastest. By $t = 5000$, ~90% of pulls go to the best arm. Suboptimal arms are sampled only as much as the posterior uncertainty warrants.</span>
+<span id="cb2-332"><a href="#cb2-332" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-333"><a href="#cb2-333" aria-hidden="true" tabindex="-1"></a>And here's the regret figure again, in case you forgot what we were optimizing:</span>
+<span id="cb2-334"><a href="#cb2-334" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-335"><a href="#cb2-335" aria-hidden="true" tabindex="-1"></a><span class="al">![](../figures/01a_regret_curves.png)</span></span>
+<span id="cb2-336"><a href="#cb2-336" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-337"><a href="#cb2-337" aria-hidden="true" tabindex="-1"></a>**A small puzzle.** UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?</span>
+<span id="cb2-338"><a href="#cb2-338" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-339"><a href="#cb2-339" aria-hidden="true" tabindex="-1"></a>This is the classic **finite-time vs asymptotic** divergence. UCB1's exploration bonus is calibrated to guarantee log-T regret *in the long run*. With $T = 5000$ and small gaps between the top arms (0.7, 0.75, 0.8), the bonus is overzealous: it forces the algorithm to keep checking close-but-suboptimal arms long after a smarter algorithm would have given up. The theoretical guarantees kick in at much larger $T$ or with larger gaps.</span>
+<span id="cb2-340"><a href="#cb2-340" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-341"><a href="#cb2-341" aria-hidden="true" tabindex="-1"></a>ε-greedy, by contrast, has a *fixed* exploration cost — large but bounded. Over moderate horizons it can look better, but its regret grows linearly forever while UCB1's grows logarithmically. The asymptotics catch up.</span>
+<span id="cb2-342"><a href="#cb2-342" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-343"><a href="#cb2-343" aria-hidden="true" tabindex="-1"></a>Thompson Sampling avoids this trap entirely because its exploration is data-adaptive: when the posteriors for close arms tighten, the algorithm naturally stops sampling them.</span>
+<span id="cb2-344"><a href="#cb2-344" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-345"><a href="#cb2-345" aria-hidden="true" tabindex="-1"></a>This is the kind of nuance that *only* shows up when you actually run the experiments. The textbook story ("UCB1 has $O(\log T)$ regret") is asymptotic; the empirical truth is more interesting.</span>
+<span id="cb2-346"><a href="#cb2-346" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-347"><a href="#cb2-347" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-348"><a href="#cb2-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-349"><a href="#cb2-349" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Why this matters for the rest of the series</span></span>
+<span id="cb2-350"><a href="#cb2-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-351"><a href="#cb2-351" aria-hidden="true" tabindex="-1"></a>Every algorithm in this curriculum is, in a precise sense, **a bandit with more structure**. Here's the mapping:</span>
+<span id="cb2-352"><a href="#cb2-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-353"><a href="#cb2-353" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Setting              <span class="pp">|</span> Generalizes bandit how?                       <span class="pp">|</span> Key new tool                   <span class="pp">|</span></span>
+<span id="cb2-354"><a href="#cb2-354" aria-hidden="true" tabindex="-1"></a><span class="pp">| --------------------</span> <span class="pp">| ---------------------------------------------</span> <span class="pp">| ------------------------------</span> <span class="pp">|</span></span>
+<span id="cb2-355"><a href="#cb2-355" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Contextual bandits   <span class="pp">|</span> Reward depends on a feature vector $x_t$      <span class="pp">|</span> Linear/neural reward models    <span class="pp">|</span></span>
+<span id="cb2-356"><a href="#cb2-356" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> MDPs                 <span class="pp">|</span> State evolves based on action                 <span class="pp">|</span> Bellman equations              <span class="pp">|</span></span>
+<span id="cb2-357"><a href="#cb2-357" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> POMDPs               <span class="pp">|</span> State is hidden — agent maintains a belief    <span class="pp">|</span> Belief-state planning          <span class="pp">|</span></span>
+<span id="cb2-358"><a href="#cb2-358" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> RL with function approx <span class="pp">|</span> State and action spaces are large/continuous <span class="pp">|</span> Policy and value networks      <span class="pp">|</span></span>
+<span id="cb2-359"><a href="#cb2-359" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> RLHF                 <span class="pp">|</span> Reward is itself learned from preferences     <span class="pp">|</span> Bradley-Terry reward modeling  <span class="pp">|</span></span>
+<span id="cb2-360"><a href="#cb2-360" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> LLM tool use         <span class="pp">|</span> Action = "call this tool with these args"     <span class="pp">|</span> Structured decoding            <span class="pp">|</span></span>
+<span id="cb2-361"><a href="#cb2-361" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Agentic AI           <span class="pp">|</span> All of the above at once                      <span class="pp">|</span> The whole stack                <span class="pp">|</span></span>
+<span id="cb2-362"><a href="#cb2-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-363"><a href="#cb2-363" aria-hidden="true" tabindex="-1"></a>The fundamental ideas you've built here recur everywhere:</span>
+<span id="cb2-364"><a href="#cb2-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-365"><a href="#cb2-365" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Regret as the right objective.** Once you start thinking in terms of "what reward did I miss," you're set up for all of online learning.</span>
+<span id="cb2-366"><a href="#cb2-366" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Optimism (UCB) and posterior sampling (TS) as the two great families.** Both ideas generalize. Bayesian RL is "Thompson at scale." UCB-style bonuses appear in pessimistic value iteration, R-MAX, RLHF reward modeling under uncertainty.</span>
+<span id="cb2-367"><a href="#cb2-367" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Uncertainty as the source of exploration.** This is the deepest principle. In any setting where you act under uncertainty, *propagate your beliefs honestly and exploration emerges*. This is the through-line of the entire series.</span>
+<span id="cb2-368"><a href="#cb2-368" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-369"><a href="#cb2-369" aria-hidden="true" tabindex="-1"></a>In particular: **LLM agents using tools are POMDPs**, where the hidden state is "the actual state of the world" and the agent's belief is the conversation history plus tool outputs. The exact analogue of Thompson Sampling in that setting is sampling from your posterior over what the world is, then acting optimally given that sample. Most current LLM agents don't do this — they greedily pick actions from their highest-likelihood interpretation. That's the agent-AI version of being too greedy. There is plenty of research room here, and it's directly downstream of what you just learned.</span>
+<span id="cb2-370"><a href="#cb2-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-371"><a href="#cb2-371" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-372"><a href="#cb2-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-373"><a href="#cb2-373" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Experiments to actually run</span></span>
+<span id="cb2-374"><a href="#cb2-374" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-375"><a href="#cb2-375" aria-hidden="true" tabindex="-1"></a>Reading is necessary but not sufficient. The intuitions that matter live in the experiments you run yourself. Here are four that build them.</span>
+<span id="cb2-376"><a href="#cb2-376" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-377"><a href="#cb2-377" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Gap sensitivity</span></span>
+<span id="cb2-378"><a href="#cb2-378" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-379"><a href="#cb2-379" aria-hidden="true" tabindex="-1"></a>Run the algorithms on two contrasting bandits:</span>
+<span id="cb2-380"><a href="#cb2-380" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-381"><a href="#cb2-381" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Large gaps:** <span class="in">`BernoulliBandit([0.1, 0.5, 0.9])`</span> — arms are obviously different.</span>
+<span id="cb2-382"><a href="#cb2-382" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Small gaps:** <span class="in">`BernoulliBandit([0.50, 0.51, 0.52])`</span> — nearly indistinguishable.</span>
+<span id="cb2-383"><a href="#cb2-383" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-384"><a href="#cb2-384" aria-hidden="true" tabindex="-1"></a>What you'll see: in the easy case, all three algorithms converge quickly and the differences are small. In the hard case, UCB1 thrashes (it can't tell which arm is best, so the bonus keeps it exploring), Thompson handles it gracefully, and ε-greedy quietly accumulates linear regret because most of its 10% exploration is going to nearly-equally-good arms anyway.</span>
+<span id="cb2-385"><a href="#cb2-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-386"><a href="#cb2-386" aria-hidden="true" tabindex="-1"></a>The point: **algorithm quality matters most when the problem is hard.** Hard = small gaps relative to the reward variance.</span>
+<span id="cb2-387"><a href="#cb2-387" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-388"><a href="#cb2-388" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 Non-stationary rewards</span></span>
+<span id="cb2-389"><a href="#cb2-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-390"><a href="#cb2-390" aria-hidden="true" tabindex="-1"></a>Make the arm means drift over time, e.g., <span class="in">`mu_k(t) = mu_k(0) + sin(t / 1000) * 0.2`</span>. None of our three algorithms will adapt — they all assume stationary distributions. UCB1 will trust its old empirical means; Thompson's posterior will be slow to update; ε-greedy will eventually start looking better, because at least its exploration is permanent.</span>
+<span id="cb2-391"><a href="#cb2-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-392"><a href="#cb2-392" aria-hidden="true" tabindex="-1"></a>Real applications (recommender systems, ad auctions, drug dosing) are almost never stationary. This motivates discounted variants (give more weight to recent observations) and sliding-window variants (forget data older than $W$ steps). Both can be derived as proper Bayesian inference under a non-stationary model. We'll come back to this.</span>
+<span id="cb2-393"><a href="#cb2-393" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-394"><a href="#cb2-394" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Gaussian rewards</span></span>
+<span id="cb2-395"><a href="#cb2-395" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-396"><a href="#cb2-396" aria-hidden="true" tabindex="-1"></a>Replace <span class="in">`BernoulliBandit`</span> with <span class="in">`GaussianBandit`</span> (already in the repo). For UCB1, the bound becomes $\sqrt{2 \sigma^2 \log t / n_k}$ — you need to know $\sigma$. For Thompson, the conjugate prior is Normal-Inverse-Gamma; the posterior over $\mu$ is Student-$t$. Derive this update yourself, then implement Gaussian Thompson Sampling. It's a one-page derivation that crystallizes a lot of inference intuition.</span>
+<span id="cb2-397"><a href="#cb2-397" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-398"><a href="#cb2-398" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 Prior sensitivity</span></span>
+<span id="cb2-399"><a href="#cb2-399" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-400"><a href="#cb2-400" aria-hidden="true" tabindex="-1"></a>Try Thompson Sampling with different priors: $\mathrm{Beta}(0.5, 0.5)$ (Jeffreys, encourages extreme initial guesses), $\mathrm{Beta}(1,1)$ (uniform), $\mathrm{Beta}(10, 10)$ (strong belief near 0.5). Which converges fastest? Which thrashes most early?</span>
+<span id="cb2-401"><a href="#cb2-401" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-402"><a href="#cb2-402" aria-hidden="true" tabindex="-1"></a>The lesson is general: **a stronger prior is more informative but harder to update away from.** If the prior is well-calibrated to your domain, strong helps. If it's wrong, strong hurts. This is the central tension of Bayesian modeling and it shows up vividly even in this tiny problem.</span>
+<span id="cb2-403"><a href="#cb2-403" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-404"><a href="#cb2-404" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-405"><a href="#cb2-405" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-406"><a href="#cb2-406" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Solutions</span></span>
+<span id="cb2-407"><a href="#cb2-407" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-408"><a href="#cb2-408" aria-hidden="true" tabindex="-1"></a>Try the experiments yourself first — most of the value is in struggling through them. Once you've done that, here are reference solutions and discussions. Each is a runnable script in <span class="in">`experiments/`</span>; the figures are reproducible by running it.</span>
+<span id="cb2-409"><a href="#cb2-409" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-410"><a href="#cb2-410" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.1 Gap sensitivity — `experiments/01a_sol1_gap_sensitivity.py`</span></span>
+<span id="cb2-411"><a href="#cb2-411" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-412"><a href="#cb2-412" aria-hidden="true" tabindex="-1"></a><span class="al">![Gap sensitivity: the same three algorithms on an easy bandit (left) and a hard one (right). Note the very different y-axis scales — the hard bandit's regret is ~5× smaller in absolute terms.](../figures/01a_sol1_gap_sensitivity.png)</span></span>
+<span id="cb2-413"><a href="#cb2-413" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-414"><a href="#cb2-414" aria-hidden="true" tabindex="-1"></a>**What you should see.** On the easy problem with arm probabilities $<span class="co">[</span><span class="ot">0.1, 0.5, 0.9</span><span class="co">]</span>$, the three algorithms separate cleanly: Thompson hugs $\sim 6$ at $T=5000$, UCB1 sits at $\sim 50$, and ε-greedy grows linearly to $\sim 210$. On the hard problem with $<span class="co">[</span><span class="ot">0.50, 0.51, 0.52</span><span class="co">]</span>$, all three are clustered near $30$–$45$, with Thompson narrowly winning.</span>
+<span id="cb2-415"><a href="#cb2-415" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-416"><a href="#cb2-416" aria-hidden="true" tabindex="-1"></a>**Why it happens.** Two simultaneous effects are working in opposite directions when gaps shrink:</span>
+<span id="cb2-417"><a href="#cb2-417" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-418"><a href="#cb2-418" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Per-step regret shrinks.** Each suboptimal pull only costs you the gap. With gaps of $0.01$ instead of $0.4$, a wrong pull is $40\times$ cheaper. So absolute regret is much smaller.</span>
+<span id="cb2-419"><a href="#cb2-419" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Distinguishing arms gets harder.** The Lai–Robbins lower bound shows that the minimum pulls to confidently rank arms scales like $1/\Delta_k^2$. With $\Delta_k = 0.01$ versus $\Delta_k = 0.4$, you need $1600\times$ more samples per arm.</span>
+<span id="cb2-420"><a href="#cb2-420" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-421"><a href="#cb2-421" aria-hidden="true" tabindex="-1"></a>Net effect: the *relative* regret (regret / oracle reward) gets worse with small gaps, but the *absolute* regret can stay small because each mistake is tiny. ε-greedy looks deceptively close to UCB1 on the hard problem only because there isn't enough horizon to expose the linear-vs-logarithmic difference. At $T = 100{,}000$ that gap will be glaring.</span>
+<span id="cb2-422"><a href="#cb2-422" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-423"><a href="#cb2-423" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** When algorithm rankings flip between regimes, look at the *rate* of growth, not the absolute numbers. UCB1 is sublinear on both problems; ε-greedy is linear on both. The relative ordering at $T = 5000$ is a snapshot, not the story.</span>
+<span id="cb2-424"><a href="#cb2-424" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-425"><a href="#cb2-425" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.2 Non-stationary rewards — `experiments/01a_sol2_nonstationary.py`</span></span>
+<span id="cb2-426"><a href="#cb2-426" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-427"><a href="#cb2-427" aria-hidden="true" tabindex="-1"></a><span class="al">![Non-stationary bandit. Top: cumulative regret over 8000 steps as the true arm means drift sinusoidally (bottom). UCB1 — counter-intuitively — handles drift best of the three.](../figures/01a_sol2_nonstationary.png)</span></span>
+<span id="cb2-428"><a href="#cb2-428" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-429"><a href="#cb2-429" aria-hidden="true" tabindex="-1"></a>**What you should see.** The setup is three arms with means oscillating between $\sim 0.15$ and $\sim 0.85$ on a period of $2500$ steps, phase-shifted so a different arm is best at different times. All three algorithms accumulate regret in step-like increments around every transition (visible as the upward jumps in the regret curve). But **UCB1 ends up at $\sim 570$ regret while ε-greedy and Thompson both reach $\sim 1800$** — roughly $3\times$ worse.</span>
+<span id="cb2-430"><a href="#cb2-430" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-431"><a href="#cb2-431" aria-hidden="true" tabindex="-1"></a>This is the opposite of what naive intuition says ("Thompson is always best"). It's worth understanding why.</span>
+<span id="cb2-432"><a href="#cb2-432" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-433"><a href="#cb2-433" aria-hidden="true" tabindex="-1"></a>**Why it happens.** The three algorithms differ in *what evidence persuades them to switch arms*.</span>
+<span id="cb2-434"><a href="#cb2-434" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-435"><a href="#cb2-435" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Thompson Sampling** maintains a Beta posterior. After many pulls on what *was* the best arm, that posterior is razor-sharp at the old mean. When the true mean drifts away, it takes many contrary observations to widen the posterior — and TS rarely *gives* the algorithm those observations, because it concentrates pulls on the current "best." It's stuck in a confidence trap of its own making.</span>
+<span id="cb2-436"><a href="#cb2-436" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-437"><a href="#cb2-437" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**ε-greedy** explores uniformly at rate $\varepsilon = 0.1$, so each arm gets roughly $1/30$ of its pulls as exploration regardless of current beliefs. That's enough to *notice* drift but not to *react* — the empirical mean is a long-run average over the whole history, dominated by old data.</span>
+<span id="cb2-438"><a href="#cb2-438" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-439"><a href="#cb2-439" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**UCB1**'s bonus is $\sqrt{2 \log t / n_k}$. As $t$ grows, the bonus on rarely-pulled arms keeps inflating; once a "neglected" arm's bonus exceeds the leader's, UCB1 *has* to revisit it. This forced re-exploration is exactly what non-stationarity needs.</span>
+<span id="cb2-440"><a href="#cb2-440" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-441"><a href="#cb2-441" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** UCB1's "weakness" — that it keeps probing arms it should be confident about — turns into a virtue under non-stationarity. Algorithms have implicit assumptions about the world; when those assumptions break, the algorithm with the most robustly-pessimistic posture often wins. This is a general lesson worth carrying into RL and agent design: *be suspicious of your own confidence*.</span>
+<span id="cb2-442"><a href="#cb2-442" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-443"><a href="#cb2-443" aria-hidden="true" tabindex="-1"></a>**What you should build next.** The principled fix is to add discounting or a sliding window. *Discounted UCB1* uses an exponentially-weighted mean and bonus: replace $n_k$ with $\sum_t \gamma^{t-t'} \mathbf{1}[a_{t'} = k]$ for $\gamma \in (0, 1)$. *Sliding-window UCB1* only considers the last $W$ observations. Both have $\tilde O(\sqrt{T})$ regret against switching environments. Try implementing one and see whether it beats vanilla UCB1 on this problem.</span>
+<span id="cb2-444"><a href="#cb2-444" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-445"><a href="#cb2-445" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.3 Gaussian rewards — `experiments/01a_sol3_gaussian_rewards.py`</span></span>
+<span id="cb2-446"><a href="#cb2-446" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-447"><a href="#cb2-447" aria-hidden="true" tabindex="-1"></a>!<span class="co">[</span><span class="ot">Gaussian bandit with means [0.0, 0.5, 1.0, 1.2, 1.5] and σ=1.0. Gaussian UCB and NIG-Thompson both achieve sublinear regret; ε-greedy with the same configuration is markedly worse.</span><span class="co">](../figures/01a_sol3_gaussian_rewards.png)</span></span>
+<span id="cb2-448"><a href="#cb2-448" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-449"><a href="#cb2-449" aria-hidden="true" tabindex="-1"></a>**What you should see.** Gaussian UCB and the Normal-Inverse-Gamma Thompson Sampling reach $\sim 70$–$77$ cumulative regret at $T = 3000$; ε-greedy reaches $\sim 280$. NIG Thompson edges out Gaussian UCB by a small margin, mirroring the Bernoulli case.</span>
+<span id="cb2-450"><a href="#cb2-450" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-451"><a href="#cb2-451" aria-hidden="true" tabindex="-1"></a>**The derivation.** For Gaussian rewards $r_t \sim \mathcal{N}(\mu_k, \sigma^2)$ with conjugate Normal-Inverse-Gamma prior on $(\mu_k, \sigma_k^2)$, the posterior after $n$ observations with empirical mean $\bar{x}$ and SSE $\sum (x_i - \bar x)^2$ is</span>
+<span id="cb2-452"><a href="#cb2-452" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-453"><a href="#cb2-453" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-454"><a href="#cb2-454" aria-hidden="true" tabindex="-1"></a>\kappa_n = \kappa_0 + n, \qquad \mu_n = \frac{\kappa_0 \mu_0 + n \bar x}{\kappa_n},</span>
+<span id="cb2-455"><a href="#cb2-455" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-456"><a href="#cb2-456" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-457"><a href="#cb2-457" aria-hidden="true" tabindex="-1"></a>\alpha_n = \alpha_0 + n/2, \qquad \beta_n = \beta_0 + \tfrac{1}{2} \mathrm{SSE} + \frac{\kappa_0 n (\bar x - \mu_0)^2}{2 \kappa_n}.</span>
+<span id="cb2-458"><a href="#cb2-458" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-459"><a href="#cb2-459" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-460"><a href="#cb2-460" aria-hidden="true" tabindex="-1"></a>The marginal posterior for $\mu$ is Student-$t_{2\alpha_n}(\mu_n, \beta_n / (\alpha_n \kappa_n))$. To sample, draw $\sigma^2 \sim \mathrm{InvGamma}(\alpha_n, \beta_n)$, then $\mu \sim \mathcal{N}(\mu_n, \sigma^2 / \kappa_n)$. Two lines, plus Welford updates for $\bar x$ and SSE.</span>
+<span id="cb2-461"><a href="#cb2-461" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-462"><a href="#cb2-462" aria-hidden="true" tabindex="-1"></a>**Why this is worth doing.** The Beta-Bernoulli case is uniquely elegant but also uniquely simple: each arm's parameter is scalar. The NIG-Gaussian case forces you to track *two* parameters per arm (mean and variance) and to sample from a hierarchical posterior. This is the natural transition to high-dimensional posteriors (next post: 2D, then $d$-dimensional), and the Welford trick is exactly what you'd use in production code for any streaming statistic.</span>
+<span id="cb2-463"><a href="#cb2-463" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-464"><a href="#cb2-464" aria-hidden="true" tabindex="-1"></a>If you're rusty on conjugate priors, this is the cleanest place to refresh. Bishop §3 or Murphy §3 cover it definitively.</span>
+<span id="cb2-465"><a href="#cb2-465" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-466"><a href="#cb2-466" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.4 Prior sensitivity for Thompson — `experiments/01a_sol4_prior_sensitivity.py`</span></span>
+<span id="cb2-467"><a href="#cb2-467" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-468"><a href="#cb2-468" aria-hidden="true" tabindex="-1"></a><span class="al">![Prior sensitivity. Strong miscalibrated priors (Beta(100,100), red) force linear regret because the algorithm can't update beliefs away from 0.5 fast enough. Weak priors and uniform priors are essentially equivalent.](../figures/01a_sol4_prior_sensitivity.png)</span></span>
+<span id="cb2-469"><a href="#cb2-469" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-470"><a href="#cb2-470" aria-hidden="true" tabindex="-1"></a>**What you should see.** Beta(0.5, 0.5), Beta(1, 1), and Beta(10, 10) all reach $\sim 42$–$48$ cumulative regret — they're essentially equivalent at $T = 5000$. Beta(100, 100) is dramatically worse, reaching nearly $100$ and growing roughly linearly. The right panel shows why: Beta(100, 100) concentrates almost all its prior mass between 0.4 and 0.6, so updating to a true mean of $0.8$ requires fighting through a *lot* of pseudocounts.</span>
+<span id="cb2-471"><a href="#cb2-471" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-472"><a href="#cb2-472" aria-hidden="true" tabindex="-1"></a>**Why it happens.** The Beta posterior after $n$ pulls of an arm with $s$ successes is $\mathrm{Beta}(\alpha_0 + s, \beta_0 + n - s)$. The posterior mean is $(\alpha_0 + s) / (\alpha_0 + \beta_0 + n)$. With $\alpha_0 = \beta_0 = 100$, even after 200 pulls of an arm with 80% success rate (160 successes), the posterior mean is only $(100 + 160) / (100 + 100 + 200) = 0.65$ — still far from the truth. The prior has 200 "pseudo-observations" of a 50% rate, and it takes hundreds of real observations to overrule them.</span>
+<span id="cb2-473"><a href="#cb2-473" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-474"><a href="#cb2-474" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** **Priors are weights, not opinions.** A strong prior near 0.5 is mathematically equivalent to having seen many observations with that empirical mean. If your real observations contradict it, you have to outvote the pseudo-data — and that's expensive when the pseudo-data is plentiful.</span>
+<span id="cb2-475"><a href="#cb2-475" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-476"><a href="#cb2-476" aria-hidden="true" tabindex="-1"></a>The connection to modern AI is direct: pre-training is a (very strong) prior. Aligning a model away from pre-training behavior — via RLHF, instruction tuning, refusal training, or character setting — requires fighting through implicit pseudocounts proportional to the pre-training corpus size. This is why alignment is hard, why it takes a lot of human feedback to materially shift model behavior, and why "prompting" can be far more efficient than fine-tuning when the desired behavior is consistent with the prior. The mathematical structure that makes Beta(100, 100) hard to move is the same structure that makes large language models hard to redirect.</span>
+<span id="cb2-477"><a href="#cb2-477" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-478"><a href="#cb2-478" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-479"><a href="#cb2-479" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-480"><a href="#cb2-480" aria-hidden="true" tabindex="-1"></a><span class="fu">## 10. Further reading</span></span>
+<span id="cb2-481"><a href="#cb2-481" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-482"><a href="#cb2-482" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Lattimore &amp; Szepesvári, *Bandit Algorithms* (2020).** The modern reference. Chapters 1-10 cover everything here rigorously. <span class="co">[</span><span class="ot">Free PDF</span><span class="co">](https://tor-lattimore.com/downloads/book/book.pdf)</span>.</span>
+<span id="cb2-483"><a href="#cb2-483" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Russo, Van Roy, Kazerouni, Osband &amp; Wen, "A Tutorial on Thompson Sampling" (2018).** The clearest introduction to TS. Short and beautifully written.</span>
+<span id="cb2-484"><a href="#cb2-484" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Auer, Cesa-Bianchi &amp; Fischer, "Finite-time Analysis of the Multiarmed Bandit Problem" (2002).** The original UCB1 paper. The proof structure I sketched in §4.3 is theirs.</span>
+<span id="cb2-485"><a href="#cb2-485" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Lai &amp; Robbins, "Asymptotically Efficient Adaptive Allocation Rules" (1985).** The lower bound and the modern statistical framing of bandits start here.</span>
+<span id="cb2-486"><a href="#cb2-486" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sutton &amp; Barto, *Reinforcement Learning: An Introduction* (2018), Chapter 2.** A more elementary treatment with great intuition.</span>
+<span id="cb2-487"><a href="#cb2-487" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-488"><a href="#cb2-488" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-489"><a href="#cb2-489" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-490"><a href="#cb2-490" aria-hidden="true" tabindex="-1"></a>**Next up — Part 1b: Contextual bandits.** We add a feature vector $x_t$ at each step. Arm rewards become functions of context, $\mu_k(x_t)$. LinUCB and Linear Thompson Sampling generalize what we just did, and they're the formal foundation of recommender systems and the first piece of machinery you need to understand RLHF reward models.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/01a-multi-armed-bandits.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

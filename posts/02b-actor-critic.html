@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-23">
+<meta name="description" content="Policy gradient methods, from scratch — 2 of 4. We make the baseline learnable. Two networks — an actor and a critic — learn together, with the critic providing a low-variance baseline for the policy gradient. We derive GAE (Generalized Advantage Estimation), implement A2C in NumPy, and trace the bias-variance trade-off that governs every modern policy-gradient method.">
+
+<title>Actor-Critic and Variance Reduction – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-73c813dbea455b23e33378fe00306777.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-architecture" id="toc-the-architecture" class="nav-link active" data-scroll-target="#the-architecture">0. The architecture</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">1. Setup</a></li>
+  <li><a href="#advantage-estimation" id="toc-advantage-estimation" class="nav-link" data-scroll-target="#advantage-estimation">2. Advantage estimation</a>
+  <ul class="collapse">
+  <li><a href="#the-spectrum-monte-carlo-to-td0" id="toc-the-spectrum-monte-carlo-to-td0" class="nav-link" data-scroll-target="#the-spectrum-monte-carlo-to-td0">2.1 The spectrum: Monte Carlo to TD(0)</a></li>
+  <li><a href="#n-step-returns-tuning-the-trade-off" id="toc-n-step-returns-tuning-the-trade-off" class="nav-link" data-scroll-target="#n-step-returns-tuning-the-trade-off">2.2 n-step returns: tuning the trade-off</a></li>
+  <li><a href="#gae-an-exponentially-weighted-combination" id="toc-gae-an-exponentially-weighted-combination" class="nav-link" data-scroll-target="#gae-an-exponentially-weighted-combination">2.3 GAE: an exponentially weighted combination</a></li>
+  <li><a href="#bias-vs-variance-in-practice" id="toc-bias-vs-variance-in-practice" class="nav-link" data-scroll-target="#bias-vs-variance-in-practice">2.4 Bias vs variance in practice</a></li>
+  </ul></li>
+  <li><a href="#the-a2c-algorithm" id="toc-the-a2c-algorithm" class="nav-link" data-scroll-target="#the-a2c-algorithm">3. The A2C algorithm</a>
+  <ul class="collapse">
+  <li><a href="#optional-entropy-bonus" id="toc-optional-entropy-bonus" class="nav-link" data-scroll-target="#optional-entropy-bonus">3.1 Optional: entropy bonus</a></li>
+  </ul></li>
+  <li><a href="#a2c-on-the-gridworld" id="toc-a2c-on-the-gridworld" class="nav-link" data-scroll-target="#a2c-on-the-gridworld">4. A2C on the gridworld</a>
+  <ul class="collapse">
+  <li><a href="#comparison-to-vanilla-reinforce" id="toc-comparison-to-vanilla-reinforce" class="nav-link" data-scroll-target="#comparison-to-vanilla-reinforce">4.1 Comparison to vanilla REINFORCE</a></li>
+  <li><a href="#final-policy" id="toc-final-policy" class="nav-link" data-scroll-target="#final-policy">4.2 Final policy</a></li>
+  </ul></li>
+  <li><a href="#why-a2c-is-the-chassis-under-modern-rl" id="toc-why-a2c-is-the-chassis-under-modern-rl" class="nav-link" data-scroll-target="#why-a2c-is-the-chassis-under-modern-rl">5. Why A2C is the chassis under modern RL</a></li>
+  <li><a href="#forward-connections" id="toc-forward-connections" class="nav-link" data-scroll-target="#forward-connections">6. Forward connections</a>
+  <ul class="collapse">
+  <li><a href="#ppo-needs-all-of-this" id="toc-ppo-needs-all-of-this" class="nav-link" data-scroll-target="#ppo-needs-all-of-this">6.1 PPO needs all of this</a></li>
+  <li><a href="#rlhf-uses-a2cgaeppo" id="toc-rlhf-uses-a2cgaeppo" class="nav-link" data-scroll-target="#rlhf-uses-a2cgaeppo">6.2 RLHF uses A2C+GAE+PPO</a></li>
+  <li><a href="#grpo-bypasses-the-critic" id="toc-grpo-bypasses-the-critic" class="nav-link" data-scroll-target="#grpo-bypasses-the-critic">6.3 GRPO bypasses the critic</a></li>
+  </ul></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">7. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#gradient-variance-under-different-advantage-estimators" id="toc-gradient-variance-under-different-advantage-estimators" class="nav-link" data-scroll-target="#gradient-variance-under-different-advantage-estimators">7.1 Gradient variance under different advantage estimators</a></li>
+  <li><a href="#gae-λ-sweep-on-a-hard-problem" id="toc-gae-λ-sweep-on-a-hard-problem" class="nav-link" data-scroll-target="#gae-λ-sweep-on-a-hard-problem">7.2 GAE λ sweep on a hard problem</a></li>
+  <li><a href="#joint-sensitivity-to-actor-and-critic-learning-rates" id="toc-joint-sensitivity-to-actor-and-critic-learning-rates" class="nav-link" data-scroll-target="#joint-sensitivity-to-actor-and-critic-learning-rates">7.3 Joint sensitivity to actor and critic learning rates</a></li>
+  <li><a href="#entropy-regularization" id="toc-entropy-regularization" class="nav-link" data-scroll-target="#entropy-regularization">7.4 Entropy regularization</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">8. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#variance-of-advantage-estimators-experiments02b_sol1_advantage_variance.py" id="toc-variance-of-advantage-estimators-experiments02b_sol1_advantage_variance.py" class="nav-link" data-scroll-target="#variance-of-advantage-estimators-experiments02b_sol1_advantage_variance.py">8.1 Variance of advantage estimators — <code>experiments/02b_sol1_advantage_variance.py</code></a></li>
+  <li><a href="#gae-λ-sweep-experiments02b_sol2_gae_lambda_sweep.py" id="toc-gae-λ-sweep-experiments02b_sol2_gae_lambda_sweep.py" class="nav-link" data-scroll-target="#gae-λ-sweep-experiments02b_sol2_gae_lambda_sweep.py">8.2 GAE λ sweep — <code>experiments/02b_sol2_gae_lambda_sweep.py</code></a></li>
+  <li><a href="#actor-vs-critic-learning-rates-experiments02b_sol3_actor_critic_lr.py" id="toc-actor-vs-critic-learning-rates-experiments02b_sol3_actor_critic_lr.py" class="nav-link" data-scroll-target="#actor-vs-critic-learning-rates-experiments02b_sol3_actor_critic_lr.py">8.3 Actor vs critic learning rates — <code>experiments/02b_sol3_actor_critic_lr.py</code></a></li>
+  <li><a href="#entropy-regularization-experiments02b_sol4_entropy_regularization.py" id="toc-entropy-regularization-experiments02b_sol4_entropy_regularization.py" class="nav-link" data-scroll-target="#entropy-regularization-experiments02b_sol4_entropy_regularization.py">8.4 Entropy regularization — <code>experiments/02b_sol4_entropy_regularization.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">9. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/02b-actor-critic.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Actor-Critic and Variance Reduction</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">actor-critic</div>
+    <div class="quarto-category">gae</div>
+    <div class="quarto-category">variance reduction</div>
+    <div class="quarto-category">a2c</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Policy gradient methods, from scratch — 2 of 4. We make the baseline learnable. Two networks — an actor and a critic — learn together, with the critic providing a low-variance baseline for the policy gradient. We derive GAE (Generalized Advantage Estimation), implement A2C in NumPy, and trace the bias-variance trade-off that governs every modern policy-gradient method.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 23, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Policy gradient methods, from scratch — 2 of 4.</em></p>
+</blockquote>
+<p><a href="../posts/02a-reinforce-and-policy-gradient.html">Part 2a</a> ended with a question that this post answers. We saw that REINFORCE’s gradient has high variance, and that subtracting a baseline reduces it. The best baseline is <span class="math inline">V^{\pi_\theta}</span> — the <em>current</em> policy’s value function. But we don’t have it. The running-mean baseline was a crude substitute that helped a lot but not enough.</p>
+<p>The natural next step is to <strong>learn the baseline</strong>. That’s the actor-critic architecture: maintain a value network <span class="math inline">V_\phi</span> alongside the policy network <span class="math inline">\pi_\theta</span>, and update both. The actor gets a high-quality, state-conditional baseline; the critic gets training data from the actor’s interaction with the environment. Two networks learn together.</p>
+<p>This is the second post of Topic 2 and the algorithmic chassis under PPO, SAC, A3C, and basically every modern policy-gradient method. The math is what we derived in Post 2a plus one new trick — <strong>GAE</strong>, which smoothly interpolates between Monte Carlo and TD advantages and is the standard choice in modern implementations.</p>
+<hr>
+<section id="the-architecture" class="level2">
+<h2 class="anchored" data-anchor-id="the-architecture">0. The architecture</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_actor_critic_schematic.png" class="img-fluid figure-img"></p>
+<figcaption>Actor-critic: two networks learn together. The actor improves on advantages provided by the critic; the critic learns to predict returns from the actor’s trajectories.</figcaption>
+</figure>
+</div>
+<p>Each episode, the actor (policy <span class="math inline">\pi_\theta</span>) interacts with the environment and produces a trajectory. The critic (<span class="math inline">V_\phi</span>) evaluates each state along the trajectory and provides a value estimate <span class="math inline">V_\phi(s_t)</span>. The actor uses these values to compute <strong>advantages</strong> <span class="math inline">A_t \approx G_t - V_\phi(s_t)</span>, which are then used as gradient weights. The critic uses the same trajectory to update toward bootstrapped value targets via TD regression.</p>
+<p>The two updates happen on the same data and feed each other. The actor’s policy determines which states the critic sees; the critic’s accuracy determines how informative the actor’s advantages are. This is a classic <strong>mutual learning</strong> dynamic.</p>
+<hr>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">1. Setup</h2>
+<p>The actor is the policy from Post 2a — a softmax over actions, parameterized by <span class="math inline">\theta</span>:</p>
+<p><span class="math display">
+\pi_\theta(a \mid s) \;=\; \text{softmax}(\theta_{s, \cdot})_a.
+</span></p>
+<p>The critic is a value function <span class="math inline">V_\phi</span>. For tabular state spaces, <span class="math inline">V_\phi</span> is just a vector indexed by state — one parameter per state. For neural-network policies, both <span class="math inline">\pi_\theta</span> and <span class="math inline">V_\phi</span> would be networks; the algorithm is identical.</p>
+<p>We need three pieces of math to make this work:</p>
+<ol type="1">
+<li><strong>The actor update</strong>: policy gradient with the critic’s value as baseline.</li>
+<li><strong>The critic update</strong>: regression toward a TD target.</li>
+<li><strong>The advantage estimator</strong>: how to combine sampled returns with <span class="math inline">V_\phi</span>.</li>
+</ol>
+<p>The first two are standard (policy gradient + TD learning, both from previous posts). The third is where the new ideas live.</p>
+<hr>
+</section>
+<section id="advantage-estimation" class="level2">
+<h2 class="anchored" data-anchor-id="advantage-estimation">2. Advantage estimation</h2>
+<p>The advantage at time <span class="math inline">t</span> is</p>
+<p><span class="math display">
+A^\pi(s_t, a_t) \;=\; Q^\pi(s_t, a_t) - V^\pi(s_t).
+</span></p>
+<p>It measures how much better action <span class="math inline">a_t</span> was than what the policy would do on average. We never compute this exactly — we estimate it from data. There are many estimators, each with different bias and variance properties.</p>
+<section id="the-spectrum-monte-carlo-to-td0" class="level3">
+<h3 class="anchored" data-anchor-id="the-spectrum-monte-carlo-to-td0">2.1 The spectrum: Monte Carlo to TD(0)</h3>
+<p>The simplest two estimators bracket the spectrum.</p>
+<p><strong>Monte Carlo</strong>: <span class="math display">
+\hat A_t^{\text{MC}} \;=\; G_t - V_\phi(s_t).
+</span></p>
+<p>This is what we used in Post 2a (just with <span class="math inline">V_\phi</span> replacing the running mean). It’s <em>unbiased</em> (if <span class="math inline">V_\phi</span> is also a state-dependent function, the gradient bias is zero by the standard argument). But it has high variance: <span class="math inline">G_t</span> involves all the noise from the entire trajectory.</p>
+<p><strong>TD(0)</strong>: <span class="math display">
+\hat A_t^{\text{TD}} \;=\; r_{t+1} + \gamma V_\phi(s_{t+1}) - V_\phi(s_t).
+</span></p>
+<p>This uses only one step of actual reward, plus the critic’s value estimate to bootstrap the rest. It’s <em>biased</em> if <span class="math inline">V_\phi</span> is wrong — and <span class="math inline">V_\phi</span> is always somewhat wrong during training. But it has very low variance: only one step of randomness enters.</p>
+</section>
+<section id="n-step-returns-tuning-the-trade-off" class="level3">
+<h3 class="anchored" data-anchor-id="n-step-returns-tuning-the-trade-off">2.2 n-step returns: tuning the trade-off</h3>
+<p>A natural family is the <strong>n-step</strong> estimator:</p>
+<p><span class="math display">
+\hat A_t^{(n)} \;=\; \left[\sum_{k=0}^{n-1} \gamma^k r_{t+k+1}\right] + \gamma^n V_\phi(s_{t+n}) - V_\phi(s_t).
+</span></p>
+<p>It uses <span class="math inline">n</span> actual rewards, then bootstraps. <span class="math inline">n = 1</span> recovers TD(0); <span class="math inline">n \to \infty</span> recovers Monte Carlo. Intermediate <span class="math inline">n</span> trade off bias (decreasing in <span class="math inline">n</span>) against variance (increasing in <span class="math inline">n</span>).</p>
+</section>
+<section id="gae-an-exponentially-weighted-combination" class="level3">
+<h3 class="anchored" data-anchor-id="gae-an-exponentially-weighted-combination">2.3 GAE: an exponentially weighted combination</h3>
+<p>The downside of picking a single <span class="math inline">n</span> is that it’s an all-or-nothing choice. <strong>Generalized Advantage Estimation</strong> (Schulman et al.&nbsp;2015) takes an exponentially weighted average over all <span class="math inline">n</span>-step estimators:</p>
+<p><span class="math display">
+\hat A_t^{\text{GAE}(\gamma, \lambda)} \;=\; \sum_{k=0}^{\infty} (\gamma \lambda)^k \delta_{t+k},
+\qquad
+\text{where} \quad \delta_t \;=\; r_{t+1} + \gamma V_\phi(s_{t+1}) - V_\phi(s_t).
+</span></p>
+<p>The parameter <span class="math inline">\lambda \in [0, 1]</span> smoothly controls the trade-off:</p>
+<ul>
+<li><span class="math inline">\lambda = 0</span>: <span class="math inline">\hat A_t = \delta_t</span>, the TD(0) estimator.</li>
+<li><span class="math inline">\lambda = 1</span>: <span class="math inline">\hat A_t = \sum_k \gamma^k \delta_{t+k}</span>, which by telescoping equals <span class="math inline">G_t - V_\phi(s_t)</span> — Monte Carlo.</li>
+<li>Intermediate <span class="math inline">\lambda</span>: a smooth blend.</li>
+</ul>
+<p>Implementation is one backward pass through the trajectory:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gae(rewards, values, next_value, gamma, lam):</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    T <span class="op">=</span> <span class="bu">len</span>(rewards)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    advantages <span class="op">=</span> np.zeros(T)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    last_adv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="bu">reversed</span>(<span class="bu">range</span>(T)):</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        v_next <span class="op">=</span> next_value <span class="cf">if</span> t <span class="op">==</span> T <span class="op">-</span> <span class="dv">1</span> <span class="cf">else</span> values[t <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        delta <span class="op">=</span> rewards[t] <span class="op">+</span> gamma <span class="op">*</span> v_next <span class="op">-</span> values[t]</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        advantages[t] <span class="op">=</span> delta <span class="op">+</span> gamma <span class="op">*</span> lam <span class="op">*</span> last_adv</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        last_adv <span class="op">=</span> advantages[t]</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> advantages</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Six lines, <span class="math inline">O(T)</span> runtime. In modern RL implementations this is what computes the advantages every iteration.</p>
+</section>
+<section id="bias-vs-variance-in-practice" class="level3">
+<h3 class="anchored" data-anchor-id="bias-vs-variance-in-practice">2.4 Bias vs variance in practice</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_bias_variance.png" class="img-fluid figure-img"></p>
+<figcaption>GAE bias vs variance as λ varies. λ = 0 (TD): low variance, large bias from inaccurate critic. λ = 1 (MC): high variance, low bias. Intermediate λ ≈ 0.8 sits closest to zero bias with moderate variance.</figcaption>
+</figure>
+</div>
+<p>The figure illustrates this with a partially-trained policy and a noisy critic (<span class="math inline">\sigma_{\text{noise}} = 1.5</span> added to <span class="math inline">V^\star</span>):</p>
+<ul>
+<li>At <span class="math inline">\lambda = 0</span>, variance is small but bias is large and negative (the critic underestimates).</li>
+<li>At <span class="math inline">\lambda = 1</span>, bias is large and positive (the bootstrap term carries no critic information at all; bias comes from the single empirical sample).</li>
+<li>The curve passes through zero bias around <span class="math inline">\lambda \in [0.6, 0.8]</span>.</li>
+</ul>
+<p>This is the typical pattern. In practice, <span class="math inline">\lambda \in [0.9, 0.97]</span> is the standard choice — high enough that the bias from the critic is small, low enough to keep variance manageable. PPO defaults to <span class="math inline">\lambda = 0.95</span>.</p>
+<hr>
+</section>
+</section>
+<section id="the-a2c-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="the-a2c-algorithm">3. The A2C algorithm</h2>
+<p>Now we tie it together. <strong>Advantage Actor-Critic</strong> (A2C) is the bread-and-butter actor-critic algorithm. Each episode:</p>
+<ol type="1">
+<li>Collect a trajectory <span class="math inline">(s_0, a_0, r_1, s_1, \ldots, s_T)</span> under <span class="math inline">\pi_\theta</span>.</li>
+<li>Compute critic values <span class="math inline">V_\phi(s_t)</span> along the trajectory.</li>
+<li>Compute advantages <span class="math inline">\hat A_t</span> via GAE.</li>
+<li><strong>Actor update</strong>: <span class="math inline">\theta \leftarrow \theta + \alpha_\theta \sum_t \hat A_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)</span>.</li>
+<li><strong>Critic update</strong>: for each <span class="math inline">t</span>, <span class="math inline">V_\phi(s_t) \leftarrow V_\phi(s_t) + \alpha_\phi (\hat A_t + V_\phi(s_t) - V_\phi(s_t))</span>. The target <span class="math inline">\hat A_t + V_\phi(s_t)</span> is the bootstrapped return; we regress <span class="math inline">V_\phi(s_t)</span> toward it.</li>
+</ol>
+<p>In our tabular NumPy version, both updates are explicit gradient steps. For neural-network policies, both would use autodiff on appropriate loss functions:</p>
+<p><span class="math display">
+\mathcal{L}_{\text{actor}} = -\sum_t \hat A_t \log \pi_\theta(a_t \mid s_t),
+\qquad
+\mathcal{L}_{\text{critic}} = \sum_t \frac{1}{2}\big(\hat A_t + V_\phi(s_t) - V_\phi(s_t)^\text{detached}\big)^2.
+</span></p>
+<p>The <code>detached</code> trick is essential: we don’t want the critic loss to backprop through the advantage computation, because that would couple the gradient of <span class="math inline">V_\phi</span> inappropriately.</p>
+<section id="optional-entropy-bonus" class="level3">
+<h3 class="anchored" data-anchor-id="optional-entropy-bonus">3.1 Optional: entropy bonus</h3>
+<p>In practice, vanilla A2C tends to collapse the policy too quickly — the policy commits to a “good enough” action distribution before exploring sufficiently. A standard fix is to add an <strong>entropy bonus</strong> to the objective:</p>
+<p><span class="math display">
+\mathcal{L}_{\text{actor}} = -\sum_t \hat A_t \log \pi_\theta(a_t \mid s_t) \;-\; \beta \sum_t H[\pi_\theta(\cdot \mid s_t)].
+</span></p>
+<p>The entropy <span class="math inline">H = -\sum_a \pi(a) \log \pi(a)</span> is maximized by the uniform distribution. Subtracting <span class="math inline">\beta H</span> from the loss (or adding <span class="math inline">\beta \nabla H</span> to the gradient) pushes the policy toward higher entropy. With small <span class="math inline">\beta</span> this regularizes exploration without preventing eventual convergence.</p>
+<p>This is the same idea as the temperature in Soft Actor-Critic (SAC); SAC just makes <span class="math inline">\beta</span> a learnable parameter that automatically adjusts to match a target entropy level.</p>
+<hr>
+</section>
+</section>
+<section id="a2c-on-the-gridworld" class="level2">
+<h2 class="anchored" data-anchor-id="a2c-on-the-gridworld">4. A2C on the gridworld</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_critic_accuracy.png" class="img-fluid figure-img"></p>
+<figcaption>A2C+GAE critic accuracy over training. Left: ||V_φ − V<em>||∞ drops from ~10 to ~1 by episode 1500. Middle: V</em> (true value). Right: V_φ after 2000 episodes — accurate where the policy visits often, less accurate on rarely-visited states near the small +1 goal.</figcaption>
+</figure>
+</div>
+<p>The critic learns to approximate <span class="math inline">V^\star</span> to within ~1.0 max-norm error on most states. The biggest errors are at cells near the small +1 goal — the policy quickly commits to going right toward +10, so those states are visited rarely, and the critic doesn’t accumulate enough data there.</p>
+<p>This is a critical observation: <strong>the critic learns <span class="math inline">V^{\pi_\theta}</span>, not <span class="math inline">V^\star</span></strong>. They’re equal at the optimal policy, but during training the critic only sees states the current policy visits. If the policy never visits a state, the critic doesn’t learn its value. <em>This is the “exploration-exploitation tradeoff” of the critic itself.</em></p>
+<section id="comparison-to-vanilla-reinforce" class="level3">
+<h3 class="anchored" data-anchor-id="comparison-to-vanilla-reinforce">4.1 Comparison to vanilla REINFORCE</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_learning_curves.png" class="img-fluid figure-img"></p>
+<figcaption>REINFORCE vs A2C vs A2C+GAE on TwoGoalGridWorld. All three converge to similar returns (~9.85). On this small problem the advantages of A2C are subtle — the differences show up much more on harder problems.</figcaption>
+</figure>
+</div>
+<p>On the TwoGoalGridWorld, all three methods converge to essentially the same performance. This is an honest finding worth noting: <strong>on small finite MDPs, the value-of-baseline-quality is modest</strong>. The variance reduction from a learned baseline is real but not dramatic when the problem is small enough that the running mean is already a reasonable approximation.</p>
+<p>The advantages of A2C+GAE show up dramatically on (a) larger problems with more diverse states, (b) stochastic transitions where bootstrap is more informative, and (c) longer episodes where MC variance becomes prohibitive. We’ll see hints of these effects in §8.</p>
+</section>
+<section id="final-policy" class="level3">
+<h3 class="anchored" data-anchor-id="final-policy">4.2 Final policy</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_a2c_vs_vi.png" class="img-fluid figure-img"></p>
+<figcaption>A2C+GAE recovers the optimal policy from sampled trajectories. Policy matches VI on 21/23 non-terminal states. Critic error ||V_φ − V*||∞ = 0.12.</figcaption>
+</figure>
+</div>
+<p>Final A2C agrees with VI on 21/23 non-terminal states — slightly better than REINFORCE’s 17/19 in Post 2a, with a much more accurate value function (<span class="math inline">\|V_\phi - V^\star\|_\infty = 0.12</span>). The two states that disagree are at near-tied positions where multiple actions are similarly good.</p>
+<hr>
+</section>
+</section>
+<section id="why-a2c-is-the-chassis-under-modern-rl" class="level2">
+<h2 class="anchored" data-anchor-id="why-a2c-is-the-chassis-under-modern-rl">5. Why A2C is the chassis under modern RL</h2>
+<p>The actor-critic pattern is more pervasive than its name suggests. Almost every modern policy-gradient method is a variation:</p>
+<ul>
+<li><strong>A3C</strong> (Mnih et al.&nbsp;2016): A2C with multiple parallel workers, each updating shared parameters asynchronously. Solved a lot of stability issues that arose from on-policy data being too correlated.</li>
+<li><strong>PPO</strong> (Schulman et al.&nbsp;2017): A2C+GAE plus a clipping mechanism on the policy ratio to prevent overly-large updates. The next post (2c) builds it.</li>
+<li><strong>SAC</strong> (Haarnoja et al.&nbsp;2018): A2C with a learned entropy temperature, off-policy data, and a Q-function critic instead of V. Common for continuous control.</li>
+<li><strong>TRPO</strong> (Schulman et al.&nbsp;2015): A2C+GAE plus an explicit KL trust region constraint.</li>
+<li><strong>GRPO</strong> (Shao et al.&nbsp;2024): A2C with a group-relative baseline that bypasses the critic entirely — particularly effective for LLM reasoning.</li>
+</ul>
+<p>In all of them, the GAE machinery from §2.3 is the standard way to compute advantages. The “actor + critic + advantages” template is what makes RL tractable at scale.</p>
+<p>There’s also a deep conceptual connection: <strong>A2C is the natural deep-RL extension of policy iteration from Part 1c</strong>. Recall PI alternates <em>evaluation</em> (compute <span class="math inline">V^\pi</span>) and <em>improvement</em> (compute greedy <span class="math inline">\pi</span> from <span class="math inline">V^\pi</span>). Actor-critic does the same thing in soft form: the critic does (partial) evaluation; the actor does (partial) improvement; both update continuously. <strong>Generalized policy iteration</strong>, the term Sutton &amp; Barto give this pattern, is exactly what’s happening here.</p>
+<hr>
+</section>
+<section id="forward-connections" class="level2">
+<h2 class="anchored" data-anchor-id="forward-connections">6. Forward connections</h2>
+<section id="ppo-needs-all-of-this" class="level3">
+<h3 class="anchored" data-anchor-id="ppo-needs-all-of-this">6.1 PPO needs all of this</h3>
+<p>When we build PPO in Post 2c, the inner machinery is exactly A2C+GAE. The only addition is a <strong>clipped surrogate objective</strong> that prevents the actor from changing too much per update. The clip is essentially a fix to the learning-rate-sensitivity problem we saw in Post 2a §8.4 — large lr collapses REINFORCE. PPO instead lets you take many gradient steps per batch of data while keeping the policy close to the data-generating policy.</p>
+<p>So PPO = (A2C+GAE) + (a way to take more updates per batch). That’s it.</p>
+</section>
+<section id="rlhf-uses-a2cgaeppo" class="level3">
+<h3 class="anchored" data-anchor-id="rlhf-uses-a2cgaeppo">6.2 RLHF uses A2C+GAE+PPO</h3>
+<p>When you train a language model with RLHF, the standard recipe (used by OpenAI, Anthropic, and others) is:</p>
+<ol type="1">
+<li>Sample completions from the policy (the LLM).</li>
+<li>Score them with a learned reward model.</li>
+<li>Compute advantages via GAE (with <span class="math inline">\gamma</span> usually 1 since LLM “episodes” are token sequences).</li>
+<li>Update the policy via PPO with the reward as the “return.”</li>
+<li>The critic is a separate value head, also a transformer.</li>
+</ol>
+<p>Every conceptual piece you just built is in there. The function approximators are big and the engineering is complex, but the algorithmic skeleton is what’s on this page.</p>
+</section>
+<section id="grpo-bypasses-the-critic" class="level3">
+<h3 class="anchored" data-anchor-id="grpo-bypasses-the-critic">6.3 GRPO bypasses the critic</h3>
+<p>In late 2023 / early 2024, DeepSeek published <strong>Group Relative Policy Optimization</strong> for training reasoning models. Their key observation: training a separate value critic adds engineering complexity and can be unstable. What if you replaced the critic with a <em>group-relative</em> baseline?</p>
+<p>For each prompt, sample <span class="math inline">G</span> completions. Use the <em>group mean</em> of their rewards as the baseline. The advantage of completion <span class="math inline">i</span> is <span class="math inline">A_i = r_i - \frac{1}{G}\sum_j r_j</span>.</p>
+<p>This is essentially “no learned critic, but an empirical batch baseline.” On the surface it sounds like a step backward — we worked hard to learn a state-dependent baseline. But for LLM training:</p>
+<ul>
+<li>The state space is too high-dimensional for tabular methods anyway.</li>
+<li>A learned critic in LLM space is expensive (another transformer-sized network).</li>
+<li>The within-prompt variance reduction from a group baseline is enormous (much more than across-prompt variance).</li>
+</ul>
+<p>GRPO is what DeepSeek-R1 used. We’ll cover it in detail in Post 2d, along with DPO. The conceptual point: <strong>the variance reduction machinery we built is a toolbox</strong>, not a fixed recipe. Different problem structures call for different baseline choices. The first-principles understanding is what lets you make those choices intelligently.</p>
+<hr>
+</section>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">7. Experiments to actually run</h2>
+<section id="gradient-variance-under-different-advantage-estimators" class="level3">
+<h3 class="anchored" data-anchor-id="gradient-variance-under-different-advantage-estimators">7.1 Gradient variance under different advantage estimators</h3>
+<p>We compared variance with and without a baseline in Post 2a. Now compare four estimators: REINFORCE (no baseline), TD(0) advantages, GAE(<span class="math inline">\lambda = 0.95</span>), and Monte Carlo with learned baseline. Which has the lowest empirical variance?</p>
+</section>
+<section id="gae-λ-sweep-on-a-hard-problem" class="level3">
+<h3 class="anchored" data-anchor-id="gae-λ-sweep-on-a-hard-problem">7.2 GAE λ sweep on a hard problem</h3>
+<p>On the TwoGoalGridWorld, A2C+GAE shows little λ sensitivity. Move to a <em>slippery</em> gridworld (slip = 0.2) and sweep λ from 0 to 1. Where’s the sweet spot?</p>
+</section>
+<section id="joint-sensitivity-to-actor-and-critic-learning-rates" class="level3">
+<h3 class="anchored" data-anchor-id="joint-sensitivity-to-actor-and-critic-learning-rates">7.3 Joint sensitivity to actor and critic learning rates</h3>
+<p>A2C has two learning rates. Conventional wisdom says the critic should be faster than the actor. Test it: sweep both and visualize the 2D heatmap of final returns.</p>
+</section>
+<section id="entropy-regularization" class="level3">
+<h3 class="anchored" data-anchor-id="entropy-regularization">7.4 Entropy regularization</h3>
+<p>Add an entropy bonus <span class="math inline">\beta H[\pi(\cdot \mid s)]</span> to the actor objective. Sweep <span class="math inline">\beta</span> from 0 to 1. Plot both the return and the average policy entropy over training. What does <span class="math inline">\beta</span> buy you?</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">8. Solutions</h2>
+<section id="variance-of-advantage-estimators-experiments02b_sol1_advantage_variance.py" class="level3">
+<h3 class="anchored" data-anchor-id="variance-of-advantage-estimators-experiments02b_sol1_advantage_variance.py">8.1 Variance of advantage estimators — <code>experiments/02b_sol1_advantage_variance.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_sol1_advantage_variance.png" class="img-fluid figure-img"></p>
+<figcaption>Histogram of single-trajectory gradient norms under four advantage estimators. REINFORCE has std 5.84 (wide spread). TD(0), GAE(0.95), and MC-with-baseline are all ~10× tighter (std around 1.0).</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> REINFORCE (no baseline) has gradient norms scattered up to ~30, with std 5.84. All three learned-baseline estimators are tightly clustered below 5 with std around 1. <strong>TD(0) has the lowest variance (std 0.96)</strong> — but at the cost of bias from the imperfect critic.</p>
+<p><strong>Why it happens.</strong> The “no baseline” case has gradients proportional to the <em>full</em> return <span class="math inline">G_t</span>, which on this problem is roughly <span class="math inline">10</span> for successful trajectories and much lower for failing ones. So gradient norms are large and highly variable.</p>
+<p>The learned-baseline cases subtract <span class="math inline">V_\phi(s_t)</span> from <span class="math inline">G_t</span> (or use bootstrapping). After training, <span class="math inline">V_\phi</span> is approximately <span class="math inline">E[G_t \mid s_t]</span>, so <span class="math inline">G_t - V_\phi(s_t)</span> is approximately zero-mean noise. The variance reduction is the central reason A2C is more stable than REINFORCE.</p>
+<p><strong>The deeper lesson — TD has lowest variance, MC has lowest bias.</strong> This is the well-known trade-off. In modern practice, GAE(<span class="math inline">\lambda \approx 0.95</span>) hits a sweet spot: most of the variance reduction of TD with little of the bias. The choice of <span class="math inline">\lambda</span> encodes a belief about how much to trust the critic vs the actual sampled returns.</p>
+<p>For LLM training, where critics are expensive and noisy, lower <span class="math inline">\lambda</span> values (or no critic at all, à la GRPO) are common. For continuous control with a small reliable critic (SAC, PPO on MuJoCo), higher <span class="math inline">\lambda</span> tends to work better.</p>
+</section>
+<section id="gae-λ-sweep-experiments02b_sol2_gae_lambda_sweep.py" class="level3">
+<h3 class="anchored" data-anchor-id="gae-λ-sweep-experiments02b_sol2_gae_lambda_sweep.py">8.2 GAE λ sweep — <code>experiments/02b_sol2_gae_lambda_sweep.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_sol2_gae_lambda_sweep.png" class="img-fluid figure-img"></p>
+<figcaption>Final return vs GAE λ on a slippery gridworld. λ = 0 (TD) is clearly worst at 0.67. Middle values (λ = 0.3 to 0.95) are best, around 0.70. The differences are small but consistent.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> <span class="math inline">\lambda = 0</span> (pure TD) is the worst by a notable margin (return 0.673). All other λ values cluster between 0.687 and 0.705. The empirical best is <span class="math inline">\lambda = 0.8</span> at 0.705. <span class="math inline">\lambda = 1</span> (Monte Carlo) sits at 0.694, slightly below the peak.</p>
+<p>The differences are smaller than you might expect from theory. Several reasons:</p>
+<ul>
+<li>The slippery gridworld is small (25 states); the critic is easy to learn.</li>
+<li>The horizon is short, so MC’s variance doesn’t blow up.</li>
+<li>The reward structure is simple, so credit assignment is easy.</li>
+</ul>
+<p>On harder problems (longer horizons, sparser rewards, larger state spaces), the gap between <span class="math inline">\lambda \approx 0.95</span> and the extremes is much larger. This is why <span class="math inline">\lambda \approx 0.95</span> is the universal default in PPO implementations.</p>
+<p><strong>Why TD (<span class="math inline">\lambda = 0</span>) is so much worse.</strong> The TD estimator <span class="math inline">\delta_t = r_{t+1} + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)</span> depends entirely on the critic for credit assignment beyond one step. If the critic has any error, the policy gets a biased gradient. With <span class="math inline">\lambda &gt; 0</span>, some actual reward information from later steps is included, anchoring the estimate against critic errors.</p>
+<p><strong>The deeper lesson.</strong> <span class="math inline">\lambda</span> encodes your prior about critic accuracy. <strong>High <span class="math inline">\lambda</span></strong> says “trust the empirical samples more than the critic”; <strong>low <span class="math inline">\lambda</span></strong> says “trust the critic more.” In early training, the critic is bad, so high <span class="math inline">\lambda</span> helps. Late in training, the critic is accurate, so low <span class="math inline">\lambda</span> would be fine. Some practitioners actually anneal <span class="math inline">\lambda</span> down over training; this is rare but principled.</p>
+</section>
+<section id="actor-vs-critic-learning-rates-experiments02b_sol3_actor_critic_lr.py" class="level3">
+<h3 class="anchored" data-anchor-id="actor-vs-critic-learning-rates-experiments02b_sol3_actor_critic_lr.py">8.3 Actor vs critic learning rates — <code>experiments/02b_sol3_actor_critic_lr.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_sol3_actor_critic_lr.png" class="img-fluid figure-img"></p>
+<figcaption>Final return heatmap as a function of actor learning rate (rows) and critic learning rate (columns). Best at lr_actor=0.3, lr_critic=0.4. Larger actor learning rates dominate; critic learning rate matters less on this small problem.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The heatmap shows final returns from 9.66 to 9.88 across the 4×4 grid. Three observations:</p>
+<ol type="1">
+<li><p><strong>The actor learning rate dominates the picture.</strong> Top row (lr_actor = 0.3) all green/yellow; bottom row (lr_actor = 0.01) all darker. Bigger actor lr → faster convergence on this small problem.</p></li>
+<li><p><strong>The critic learning rate matters less.</strong> Across each row, the difference between lr_critic = 0.05 and lr_critic = 0.8 is at most 0.1, often less.</p></li>
+<li><p><strong>The conventional wisdom “critic faster than actor” is more subtle.</strong> The diagonal (similar lrs) is fine; the very-asymmetric cells (large actor, small critic) are also fine. What hurts is <em>both</em> being too small (slow critic + slow actor → slow training).</p></li>
+</ol>
+<p><strong>Why the conventional wisdom is conditional.</strong> “Critic faster than actor” makes most sense in two scenarios:</p>
+<ul>
+<li><strong>High-dimensional state spaces.</strong> When the critic has lots of parameters to learn, it needs more updates per actor step to be useful.</li>
+<li><strong>Off-policy training.</strong> When the critic is being trained from a replay buffer (DQN-style), it can use much more data per actor step.</li>
+</ul>
+<p>Our tabular gridworld is neither — the critic has only 25 parameters and is updated from the same on-policy data the actor uses. So a moderate critic lr is sufficient, and the actor’s lr is the bottleneck.</p>
+<p><strong>The deeper lesson.</strong> Hyperparameter advice in RL is highly problem-dependent. The “default” lr_actor = lr_critic ratio in PPO implementations is often 1:1 or 1:3, but for SAC it can be 1:1 or even reversed (actor much faster than the Q-network in some cases). When in doubt, sweep — the cost is small and the gains can be large.</p>
+</section>
+<section id="entropy-regularization-experiments02b_sol4_entropy_regularization.py" class="level3">
+<h3 class="anchored" data-anchor-id="entropy-regularization-experiments02b_sol4_entropy_regularization.py">8.4 Entropy regularization — <code>experiments/02b_sol4_entropy_regularization.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/02b_sol4_entropy_regularization.png" class="img-fluid figure-img"></p>
+<figcaption>Entropy regularization: returns (left) and policy entropy (right) for β ∈ {0, 0.01, 0.05, 0.1, 0.3, 1.0}. All β ≤ 0.3 reach near-optimal returns (~9.85); β = 1.0 plateaus at 9.6. Entropy stays much higher with larger β (e.g., β = 0.3 settles at 0.65 vs β = 0 collapsing to 0.2).</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Two clear stories:</p>
+<ul>
+<li><strong>Returns</strong>: <span class="math inline">\beta \in \{0, 0.01, 0.05, 0.1, 0.3\}</span> are all indistinguishable around return 9.85 — essentially optimal. <span class="math inline">\beta = 1.0</span> pays a noticeable cost, settling at 9.6.</li>
+<li><strong>Entropy</strong>: A monotonic ordering. <span class="math inline">\beta = 0</span> collapses to entropy 0.2 (the policy almost deterministic). <span class="math inline">\beta = 0.3</span> stays at 0.65 (some genuine stochasticity preserved). <span class="math inline">\beta = 1.0</span> stays near 1.1 (close to the uniform-policy entropy of 1.39).</li>
+</ul>
+<p><strong>Why small β is “free.”</strong> Adding <span class="math inline">\beta H[\pi(\cdot \mid s)]</span> to the objective biases the policy toward uniformity at every state. But the policy gradient term also pushes toward exploitation. With small <span class="math inline">\beta</span>, the gradient term dominates whenever the advantage signal is informative, and the entropy term is a soft regularizer that mostly keeps the long tail of unlikely actions from going to literally zero probability.</p>
+<p>When the policy converges to a good action, the entropy of <span class="math inline">\pi(\cdot \mid s)</span> doesn’t have to be zero — there can be one main action plus a 1% chance of each alternative, with entropy maybe 0.1 or 0.2. That’s enough exploration to keep the critic updated and to recover from environment changes, while still achieving near-greedy returns.</p>
+<p><strong>Why large β hurts.</strong> When <span class="math inline">\beta</span> is large, the entropy bonus actively prevents the policy from concentrating on the best action. At <span class="math inline">\beta = 1.0</span> on this 4-action gridworld, the policy stays close to <span class="math inline">(0.4, 0.2, 0.2, 0.2)</span> instead of <span class="math inline">(0.97, 0.01, 0.01, 0.01)</span>. The expected return per episode drops slightly.</p>
+<p><strong>The deeper lesson — exploration is free, but only in small doses.</strong> This is a recurring theme. ε-greedy with <span class="math inline">\varepsilon = 0.01</span> is essentially free; with <span class="math inline">\varepsilon = 0.3</span> it’s costly. UCB1’s bonus is “free” exploration. Entropy regularization at small <span class="math inline">\beta</span> is “free” exploration. The general principle: <strong>maintain enough stochasticity to keep the system responsive, but no more.</strong></p>
+<p>For LLM training, this is the role of the KL penalty against a reference model. The KL constraint prevents the policy from drifting too far from the pre-trained distribution, which (a) preserves diversity, (b) prevents reward hacking, and (c) keeps generated text fluent. It’s an entropy-like regularizer with a learned reference point.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">9. Further reading</h2>
+<ul>
+<li><strong>Sutton &amp; Barto, <em>Reinforcement Learning: An Introduction</em> (2018), Chapter 13.</strong> Coverage of actor-critic methods.</li>
+<li><strong>Mnih, Badia, Mirza, Graves, Lillicrap, Harley, Silver &amp; Kavukcuoglu, “Asynchronous Methods for Deep Reinforcement Learning” (ICML 2016).</strong> Introduced A3C.</li>
+<li><strong>Schulman, Moritz, Levine, Jordan &amp; Abbeel, “High-Dimensional Continuous Control Using Generalized Advantage Estimation” (ICLR 2016).</strong> The GAE paper.</li>
+<li><strong>Haarnoja, Zhou, Abbeel &amp; Levine, “Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor” (ICML 2018).</strong> SAC.</li>
+<li><strong>Mnih et al., “Playing Atari with Deep Reinforcement Learning” (NIPS Workshop 2013).</strong> Origin of deep value-based RL; informs the actor-critic combination.</li>
+<li><strong>Ziegler et al., “Fine-Tuning Language Models from Human Preferences” (2019).</strong> The first paper combining PPO and language models — the precursor of modern RLHF.</li>
+</ul>
+<hr>
+<p><strong>Next up — Part 2c: TRPO and PPO.</strong> We add the missing piece: a constraint on how much the policy can change per update. The result is PPO, the workhorse of modern policy-gradient methods. We’ll derive the clipped surrogate objective, build it on top of the A2C+GAE machinery from this post, and demonstrate how it makes RL training stable enough to work on LLMs at scale.</p>
+
+
+<!-- -->
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Actor-Critic and Variance Reduction"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Policy gradient methods, from scratch — 2 of 4. We make the baseline learnable. Two networks — an actor and a critic — learn together, with the critic providing a low-variance baseline for the policy gradient. We derive GAE (Generalized Advantage Estimation), implement A2C in NumPy, and trace the bias-variance trade-off that governs every modern policy-gradient method."</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-23"</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [actor-critic, gae, variance reduction, a2c]</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/02b_actor_critic_schematic.png</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Policy gradient methods, from scratch — 2 of 4.*</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Part 2a</span><span class="co">](02a-reinforce-and-policy-gradient.qmd)</span> ended with a question that this post answers. We saw that REINFORCE's gradient has high variance, and that subtracting a baseline reduces it. The best baseline is $V^{\pi_\theta}$ — the *current* policy's value function. But we don't have it. The running-mean baseline was a crude substitute that helped a lot but not enough.</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>The natural next step is to **learn the baseline**. That's the actor-critic architecture: maintain a value network $V_\phi$ alongside the policy network $\pi_\theta$, and update both. The actor gets a high-quality, state-conditional baseline; the critic gets training data from the actor's interaction with the environment. Two networks learn together.</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>This is the second post of Topic 2 and the algorithmic chassis under PPO, SAC, A3C, and basically every modern policy-gradient method. The math is what we derived in Post 2a plus one new trick — **GAE**, which smoothly interpolates between Monte Carlo and TD advantages and is the standard choice in modern implementations.</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. The architecture</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="al">![Actor-critic: two networks learn together. The actor improves on advantages provided by the critic; the critic learns to predict returns from the actor's trajectories.](../figures/02b_actor_critic_schematic.png)</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>Each episode, the actor (policy $\pi_\theta$) interacts with the environment and produces a trajectory. The critic ($V_\phi$) evaluates each state along the trajectory and provides a value estimate $V_\phi(s_t)$. The actor uses these values to compute **advantages** $A_t \approx G_t - V_\phi(s_t)$, which are then used as gradient weights. The critic uses the same trajectory to update toward bootstrapped value targets via TD regression.</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>The two updates happen on the same data and feed each other. The actor's policy determines which states the critic sees; the critic's accuracy determines how informative the actor's advantages are. This is a classic **mutual learning** dynamic.</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Setup</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>The actor is the policy from Post 2a — a softmax over actions, parameterized by $\theta$:</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>\pi_\theta(a \mid s) \;=\; \text{softmax}(\theta_{s, \cdot})_a.</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>The critic is a value function $V_\phi$. For tabular state spaces, $V_\phi$ is just a vector indexed by state — one parameter per state. For neural-network policies, both $\pi_\theta$ and $V_\phi$ would be networks; the algorithm is identical.</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>We need three pieces of math to make this work:</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**The actor update**: policy gradient with the critic's value as baseline.</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**The critic update**: regression toward a TD target.</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**The advantage estimator**: how to combine sampled returns with $V_\phi$.</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>The first two are standard (policy gradient + TD learning, both from previous posts). The third is where the new ideas live.</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Advantage estimation</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>The advantage at time $t$ is</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>A^\pi(s_t, a_t) \;=\; Q^\pi(s_t, a_t) - V^\pi(s_t).</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>It measures how much better action $a_t$ was than what the policy would do on average. We never compute this exactly — we estimate it from data. There are many estimators, each with different bias and variance properties.</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 The spectrum: Monte Carlo to TD(0)</span></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>The simplest two estimators bracket the spectrum.</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>**Monte Carlo**:</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>\hat A_t^{\text{MC}} \;=\; G_t - V_\phi(s_t).</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>This is what we used in Post 2a (just with $V_\phi$ replacing the running mean). It's *unbiased* (if $V_\phi$ is also a state-dependent function, the gradient bias is zero by the standard argument). But it has high variance: $G_t$ involves all the noise from the entire trajectory.</span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>**TD(0)**:</span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>\hat A_t^{\text{TD}} \;=\; r_{t+1} + \gamma V_\phi(s_{t+1}) - V_\phi(s_t).</span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>This uses only one step of actual reward, plus the critic's value estimate to bootstrap the rest. It's *biased* if $V_\phi$ is wrong — and $V_\phi$ is always somewhat wrong during training. But it has very low variance: only one step of randomness enters.</span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 n-step returns: tuning the trade-off</span></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>A natural family is the **n-step** estimator:</span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>\hat A_t^{(n)} \;=\; \left<span class="co">[</span><span class="ot">\sum_{k=0}^{n-1} \gamma^k r_{t+k+1}\right</span><span class="co">]</span> + \gamma^n V_\phi(s_{t+n}) - V_\phi(s_t).</span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>It uses $n$ actual rewards, then bootstraps. $n = 1$ recovers TD(0); $n \to \infty$ recovers Monte Carlo. Intermediate $n$ trade off bias (decreasing in $n$) against variance (increasing in $n$).</span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.3 GAE: an exponentially weighted combination</span></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>The downside of picking a single $n$ is that it's an all-or-nothing choice. **Generalized Advantage Estimation** (Schulman et al. 2015) takes an exponentially weighted average over all $n$-step estimators:</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>\hat A_t^{\text{GAE}(\gamma, \lambda)} \;=\; \sum_{k=0}^{\infty} (\gamma \lambda)^k \delta_{t+k},</span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>\qquad</span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a>\text{where} \quad \delta_t \;=\; r_{t+1} + \gamma V_\phi(s_{t+1}) - V_\phi(s_t).</span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>The parameter $\lambda \in <span class="co">[</span><span class="ot">0, 1</span><span class="co">]</span>$ smoothly controls the trade-off:</span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\lambda = 0$: $\hat A_t = \delta_t$, the TD(0) estimator.</span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$\lambda = 1$: $\hat A_t = \sum_k \gamma^k \delta_{t+k}$, which by telescoping equals $G_t - V_\phi(s_t)$ — Monte Carlo.</span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Intermediate $\lambda$: a smooth blend.</span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>Implementation is one backward pass through the trajectory:</span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gae(rewards, values, next_value, gamma, lam):</span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>    T <span class="op">=</span> <span class="bu">len</span>(rewards)</span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>    advantages <span class="op">=</span> np.zeros(T)</span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>    last_adv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="bu">reversed</span>(<span class="bu">range</span>(T)):</span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>        v_next <span class="op">=</span> next_value <span class="cf">if</span> t <span class="op">==</span> T <span class="op">-</span> <span class="dv">1</span> <span class="cf">else</span> values[t <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a>        delta <span class="op">=</span> rewards[t] <span class="op">+</span> gamma <span class="op">*</span> v_next <span class="op">-</span> values[t]</span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>        advantages[t] <span class="op">=</span> delta <span class="op">+</span> gamma <span class="op">*</span> lam <span class="op">*</span> last_adv</span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a>        last_adv <span class="op">=</span> advantages[t]</span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> advantages</span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a>Six lines, $O(T)$ runtime. In modern RL implementations this is what computes the advantages every iteration.</span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.4 Bias vs variance in practice</span></span>
+<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a><span class="al">![GAE bias vs variance as λ varies. λ = 0 (TD): low variance, large bias from inaccurate critic. λ = 1 (MC): high variance, low bias. Intermediate λ ≈ 0.8 sits closest to zero bias with moderate variance.](../figures/02b_bias_variance.png)</span></span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>The figure illustrates this with a partially-trained policy and a noisy critic ($\sigma_{\text{noise}} = 1.5$ added to $V^\star$):</span>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>At $\lambda = 0$, variance is small but bias is large and negative (the critic underestimates).</span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>At $\lambda = 1$, bias is large and positive (the bootstrap term carries no critic information at all; bias comes from the single empirical sample).</span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The curve passes through zero bias around $\lambda \in <span class="co">[</span><span class="ot">0.6, 0.8</span><span class="co">]</span>$.</span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>This is the typical pattern. In practice, $\lambda \in <span class="co">[</span><span class="ot">0.9, 0.97</span><span class="co">]</span>$ is the standard choice — high enough that the bias from the critic is small, low enough to keep variance manageable. PPO defaults to $\lambda = 0.95$.</span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. The A2C algorithm</span></span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a>Now we tie it together. **Advantage Actor-Critic** (A2C) is the bread-and-butter actor-critic algorithm. Each episode:</span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Collect a trajectory $(s_0, a_0, r_1, s_1, \ldots, s_T)$ under $\pi_\theta$.</span>
+<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Compute critic values $V_\phi(s_t)$ along the trajectory.</span>
+<span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Compute advantages $\hat A_t$ via GAE.</span>
+<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Actor update**: $\theta \leftarrow \theta + \alpha_\theta \sum_t \hat A_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)$.</span>
+<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>**Critic update**: for each $t$, $V_\phi(s_t) \leftarrow V_\phi(s_t) + \alpha_\phi (\hat A_t + V_\phi(s_t) - V_\phi(s_t))$. The target $\hat A_t + V_\phi(s_t)$ is the bootstrapped return; we regress $V_\phi(s_t)$ toward it.</span>
+<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a>In our tabular NumPy version, both updates are explicit gradient steps. For neural-network policies, both would use autodiff on appropriate loss functions:</span>
+<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a>\mathcal{L}_{\text{actor}} = -\sum_t \hat A_t \log \pi_\theta(a_t \mid s_t),</span>
+<span id="cb2-148"><a href="#cb2-148" aria-hidden="true" tabindex="-1"></a>\qquad</span>
+<span id="cb2-149"><a href="#cb2-149" aria-hidden="true" tabindex="-1"></a>\mathcal{L}_{\text{critic}} = \sum_t \frac{1}{2}\big(\hat A_t + V_\phi(s_t) - V_\phi(s_t)^\text{detached}\big)^2.</span>
+<span id="cb2-150"><a href="#cb2-150" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-151"><a href="#cb2-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-152"><a href="#cb2-152" aria-hidden="true" tabindex="-1"></a>The <span class="in">`detached`</span> trick is essential: we don't want the critic loss to backprop through the advantage computation, because that would couple the gradient of $V_\phi$ inappropriately.</span>
+<span id="cb2-153"><a href="#cb2-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-154"><a href="#cb2-154" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Optional: entropy bonus</span></span>
+<span id="cb2-155"><a href="#cb2-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-156"><a href="#cb2-156" aria-hidden="true" tabindex="-1"></a>In practice, vanilla A2C tends to collapse the policy too quickly — the policy commits to a "good enough" action distribution before exploring sufficiently. A standard fix is to add an **entropy bonus** to the objective:</span>
+<span id="cb2-157"><a href="#cb2-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-158"><a href="#cb2-158" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-159"><a href="#cb2-159" aria-hidden="true" tabindex="-1"></a>\mathcal{L}_{\text{actor}} = -\sum_t \hat A_t \log \pi_\theta(a_t \mid s_t) \;-\; \beta \sum_t H[\pi_\theta(\cdot \mid s_t)].</span>
+<span id="cb2-160"><a href="#cb2-160" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-161"><a href="#cb2-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-162"><a href="#cb2-162" aria-hidden="true" tabindex="-1"></a>The entropy $H = -\sum_a \pi(a) \log \pi(a)$ is maximized by the uniform distribution. Subtracting $\beta H$ from the loss (or adding $\beta \nabla H$ to the gradient) pushes the policy toward higher entropy. With small $\beta$ this regularizes exploration without preventing eventual convergence.</span>
+<span id="cb2-163"><a href="#cb2-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-164"><a href="#cb2-164" aria-hidden="true" tabindex="-1"></a>This is the same idea as the temperature in Soft Actor-Critic (SAC); SAC just makes $\beta$ a learnable parameter that automatically adjusts to match a target entropy level.</span>
+<span id="cb2-165"><a href="#cb2-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-166"><a href="#cb2-166" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-167"><a href="#cb2-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-168"><a href="#cb2-168" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. A2C on the gridworld</span></span>
+<span id="cb2-169"><a href="#cb2-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-170"><a href="#cb2-170" aria-hidden="true" tabindex="-1"></a><span class="al">![A2C+GAE critic accuracy over training. Left: ||V_φ − V*||∞ drops from ~10 to ~1 by episode 1500. Middle: V* (true value). Right: V_φ after 2000 episodes — accurate where the policy visits often, less accurate on rarely-visited states near the small +1 goal.](../figures/02b_critic_accuracy.png)</span></span>
+<span id="cb2-171"><a href="#cb2-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-172"><a href="#cb2-172" aria-hidden="true" tabindex="-1"></a>The critic learns to approximate $V^\star$ to within ~1.0 max-norm error on most states. The biggest errors are at cells near the small +1 goal — the policy quickly commits to going right toward +10, so those states are visited rarely, and the critic doesn't accumulate enough data there.</span>
+<span id="cb2-173"><a href="#cb2-173" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-174"><a href="#cb2-174" aria-hidden="true" tabindex="-1"></a>This is a critical observation: **the critic learns $V^{\pi_\theta}$, not $V^\star$**. They're equal at the optimal policy, but during training the critic only sees states the current policy visits. If the policy never visits a state, the critic doesn't learn its value. *This is the "exploration-exploitation tradeoff" of the critic itself.*</span>
+<span id="cb2-175"><a href="#cb2-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-176"><a href="#cb2-176" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 Comparison to vanilla REINFORCE</span></span>
+<span id="cb2-177"><a href="#cb2-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-178"><a href="#cb2-178" aria-hidden="true" tabindex="-1"></a><span class="al">![REINFORCE vs A2C vs A2C+GAE on TwoGoalGridWorld. All three converge to similar returns (~9.85). On this small problem the advantages of A2C are subtle — the differences show up much more on harder problems.](../figures/02b_learning_curves.png)</span></span>
+<span id="cb2-179"><a href="#cb2-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-180"><a href="#cb2-180" aria-hidden="true" tabindex="-1"></a>On the TwoGoalGridWorld, all three methods converge to essentially the same performance. This is an honest finding worth noting: **on small finite MDPs, the value-of-baseline-quality is modest**. The variance reduction from a learned baseline is real but not dramatic when the problem is small enough that the running mean is already a reasonable approximation.</span>
+<span id="cb2-181"><a href="#cb2-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-182"><a href="#cb2-182" aria-hidden="true" tabindex="-1"></a>The advantages of A2C+GAE show up dramatically on (a) larger problems with more diverse states, (b) stochastic transitions where bootstrap is more informative, and (c) longer episodes where MC variance becomes prohibitive. We'll see hints of these effects in §8.</span>
+<span id="cb2-183"><a href="#cb2-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-184"><a href="#cb2-184" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 Final policy</span></span>
+<span id="cb2-185"><a href="#cb2-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-186"><a href="#cb2-186" aria-hidden="true" tabindex="-1"></a><span class="al">![A2C+GAE recovers the optimal policy from sampled trajectories. Policy matches VI on 21/23 non-terminal states. Critic error ||V_φ − V*||∞ = 0.12.](../figures/02b_a2c_vs_vi.png)</span></span>
+<span id="cb2-187"><a href="#cb2-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-188"><a href="#cb2-188" aria-hidden="true" tabindex="-1"></a>Final A2C agrees with VI on 21/23 non-terminal states — slightly better than REINFORCE's 17/19 in Post 2a, with a much more accurate value function ($<span class="sc">\|</span>V_\phi - V^\star<span class="sc">\|</span>_\infty = 0.12$). The two states that disagree are at near-tied positions where multiple actions are similarly good.</span>
+<span id="cb2-189"><a href="#cb2-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-190"><a href="#cb2-190" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-191"><a href="#cb2-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-192"><a href="#cb2-192" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Why A2C is the chassis under modern RL</span></span>
+<span id="cb2-193"><a href="#cb2-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-194"><a href="#cb2-194" aria-hidden="true" tabindex="-1"></a>The actor-critic pattern is more pervasive than its name suggests. Almost every modern policy-gradient method is a variation:</span>
+<span id="cb2-195"><a href="#cb2-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-196"><a href="#cb2-196" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**A3C** (Mnih et al. 2016): A2C with multiple parallel workers, each updating shared parameters asynchronously. Solved a lot of stability issues that arose from on-policy data being too correlated.</span>
+<span id="cb2-197"><a href="#cb2-197" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**PPO** (Schulman et al. 2017): A2C+GAE plus a clipping mechanism on the policy ratio to prevent overly-large updates. The next post (2c) builds it.</span>
+<span id="cb2-198"><a href="#cb2-198" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**SAC** (Haarnoja et al. 2018): A2C with a learned entropy temperature, off-policy data, and a Q-function critic instead of V. Common for continuous control.</span>
+<span id="cb2-199"><a href="#cb2-199" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**TRPO** (Schulman et al. 2015): A2C+GAE plus an explicit KL trust region constraint.</span>
+<span id="cb2-200"><a href="#cb2-200" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**GRPO** (Shao et al. 2024): A2C with a group-relative baseline that bypasses the critic entirely — particularly effective for LLM reasoning.</span>
+<span id="cb2-201"><a href="#cb2-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-202"><a href="#cb2-202" aria-hidden="true" tabindex="-1"></a>In all of them, the GAE machinery from §2.3 is the standard way to compute advantages. The "actor + critic + advantages" template is what makes RL tractable at scale.</span>
+<span id="cb2-203"><a href="#cb2-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-204"><a href="#cb2-204" aria-hidden="true" tabindex="-1"></a>There's also a deep conceptual connection: **A2C is the natural deep-RL extension of policy iteration from Part 1c**. Recall PI alternates *evaluation* (compute $V^\pi$) and *improvement* (compute greedy $\pi$ from $V^\pi$). Actor-critic does the same thing in soft form: the critic does (partial) evaluation; the actor does (partial) improvement; both update continuously. **Generalized policy iteration**, the term Sutton &amp; Barto give this pattern, is exactly what's happening here.</span>
+<span id="cb2-205"><a href="#cb2-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-206"><a href="#cb2-206" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-207"><a href="#cb2-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-208"><a href="#cb2-208" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Forward connections</span></span>
+<span id="cb2-209"><a href="#cb2-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-210"><a href="#cb2-210" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 PPO needs all of this</span></span>
+<span id="cb2-211"><a href="#cb2-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-212"><a href="#cb2-212" aria-hidden="true" tabindex="-1"></a>When we build PPO in Post 2c, the inner machinery is exactly A2C+GAE. The only addition is a **clipped surrogate objective** that prevents the actor from changing too much per update. The clip is essentially a fix to the learning-rate-sensitivity problem we saw in Post 2a §8.4 — large lr collapses REINFORCE. PPO instead lets you take many gradient steps per batch of data while keeping the policy close to the data-generating policy.</span>
+<span id="cb2-213"><a href="#cb2-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-214"><a href="#cb2-214" aria-hidden="true" tabindex="-1"></a>So PPO = (A2C+GAE) + (a way to take more updates per batch). That's it.</span>
+<span id="cb2-215"><a href="#cb2-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-216"><a href="#cb2-216" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 RLHF uses A2C+GAE+PPO</span></span>
+<span id="cb2-217"><a href="#cb2-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-218"><a href="#cb2-218" aria-hidden="true" tabindex="-1"></a>When you train a language model with RLHF, the standard recipe (used by OpenAI, Anthropic, and others) is:</span>
+<span id="cb2-219"><a href="#cb2-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-220"><a href="#cb2-220" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Sample completions from the policy (the LLM).</span>
+<span id="cb2-221"><a href="#cb2-221" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Score them with a learned reward model.</span>
+<span id="cb2-222"><a href="#cb2-222" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Compute advantages via GAE (with $\gamma$ usually 1 since LLM "episodes" are token sequences).</span>
+<span id="cb2-223"><a href="#cb2-223" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Update the policy via PPO with the reward as the "return."</span>
+<span id="cb2-224"><a href="#cb2-224" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>The critic is a separate value head, also a transformer.</span>
+<span id="cb2-225"><a href="#cb2-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-226"><a href="#cb2-226" aria-hidden="true" tabindex="-1"></a>Every conceptual piece you just built is in there. The function approximators are big and the engineering is complex, but the algorithmic skeleton is what's on this page.</span>
+<span id="cb2-227"><a href="#cb2-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-228"><a href="#cb2-228" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 GRPO bypasses the critic</span></span>
+<span id="cb2-229"><a href="#cb2-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-230"><a href="#cb2-230" aria-hidden="true" tabindex="-1"></a>In late 2023 / early 2024, DeepSeek published **Group Relative Policy Optimization** for training reasoning models. Their key observation: training a separate value critic adds engineering complexity and can be unstable. What if you replaced the critic with a *group-relative* baseline?</span>
+<span id="cb2-231"><a href="#cb2-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-232"><a href="#cb2-232" aria-hidden="true" tabindex="-1"></a>For each prompt, sample $G$ completions. Use the *group mean* of their rewards as the baseline. The advantage of completion $i$ is $A_i = r_i - \frac{1}{G}\sum_j r_j$.</span>
+<span id="cb2-233"><a href="#cb2-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-234"><a href="#cb2-234" aria-hidden="true" tabindex="-1"></a>This is essentially "no learned critic, but an empirical batch baseline." On the surface it sounds like a step backward — we worked hard to learn a state-dependent baseline. But for LLM training:</span>
+<span id="cb2-235"><a href="#cb2-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-236"><a href="#cb2-236" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The state space is too high-dimensional for tabular methods anyway.</span>
+<span id="cb2-237"><a href="#cb2-237" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A learned critic in LLM space is expensive (another transformer-sized network).</span>
+<span id="cb2-238"><a href="#cb2-238" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The within-prompt variance reduction from a group baseline is enormous (much more than across-prompt variance).</span>
+<span id="cb2-239"><a href="#cb2-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-240"><a href="#cb2-240" aria-hidden="true" tabindex="-1"></a>GRPO is what DeepSeek-R1 used. We'll cover it in detail in Post 2d, along with DPO. The conceptual point: **the variance reduction machinery we built is a toolbox**, not a fixed recipe. Different problem structures call for different baseline choices. The first-principles understanding is what lets you make those choices intelligently.</span>
+<span id="cb2-241"><a href="#cb2-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-242"><a href="#cb2-242" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-243"><a href="#cb2-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-244"><a href="#cb2-244" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Experiments to actually run</span></span>
+<span id="cb2-245"><a href="#cb2-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-246"><a href="#cb2-246" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 Gradient variance under different advantage estimators</span></span>
+<span id="cb2-247"><a href="#cb2-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-248"><a href="#cb2-248" aria-hidden="true" tabindex="-1"></a>We compared variance with and without a baseline in Post 2a. Now compare four estimators: REINFORCE (no baseline), TD(0) advantages, GAE($\lambda = 0.95$), and Monte Carlo with learned baseline. Which has the lowest empirical variance?</span>
+<span id="cb2-249"><a href="#cb2-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-250"><a href="#cb2-250" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 GAE λ sweep on a hard problem</span></span>
+<span id="cb2-251"><a href="#cb2-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-252"><a href="#cb2-252" aria-hidden="true" tabindex="-1"></a>On the TwoGoalGridWorld, A2C+GAE shows little λ sensitivity. Move to a *slippery* gridworld (slip = 0.2) and sweep λ from 0 to 1. Where's the sweet spot?</span>
+<span id="cb2-253"><a href="#cb2-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-254"><a href="#cb2-254" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Joint sensitivity to actor and critic learning rates</span></span>
+<span id="cb2-255"><a href="#cb2-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-256"><a href="#cb2-256" aria-hidden="true" tabindex="-1"></a>A2C has two learning rates. Conventional wisdom says the critic should be faster than the actor. Test it: sweep both and visualize the 2D heatmap of final returns.</span>
+<span id="cb2-257"><a href="#cb2-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-258"><a href="#cb2-258" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 Entropy regularization</span></span>
+<span id="cb2-259"><a href="#cb2-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-260"><a href="#cb2-260" aria-hidden="true" tabindex="-1"></a>Add an entropy bonus $\beta H<span class="co">[</span><span class="ot">\pi(\cdot \mid s)</span><span class="co">]</span>$ to the actor objective. Sweep $\beta$ from 0 to 1. Plot both the return and the average policy entropy over training. What does $\beta$ buy you?</span>
+<span id="cb2-261"><a href="#cb2-261" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-262"><a href="#cb2-262" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-263"><a href="#cb2-263" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-264"><a href="#cb2-264" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Solutions</span></span>
+<span id="cb2-265"><a href="#cb2-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-266"><a href="#cb2-266" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Variance of advantage estimators — `experiments/02b_sol1_advantage_variance.py`</span></span>
+<span id="cb2-267"><a href="#cb2-267" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-268"><a href="#cb2-268" aria-hidden="true" tabindex="-1"></a><span class="al">![Histogram of single-trajectory gradient norms under four advantage estimators. REINFORCE has std 5.84 (wide spread). TD(0), GAE(0.95), and MC-with-baseline are all ~10× tighter (std around 1.0).](../figures/02b_sol1_advantage_variance.png)</span></span>
+<span id="cb2-269"><a href="#cb2-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-270"><a href="#cb2-270" aria-hidden="true" tabindex="-1"></a>**What you should see.** REINFORCE (no baseline) has gradient norms scattered up to ~30, with std 5.84. All three learned-baseline estimators are tightly clustered below 5 with std around 1. **TD(0) has the lowest variance (std 0.96)** — but at the cost of bias from the imperfect critic.</span>
+<span id="cb2-271"><a href="#cb2-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-272"><a href="#cb2-272" aria-hidden="true" tabindex="-1"></a>**Why it happens.** The "no baseline" case has gradients proportional to the *full* return $G_t$, which on this problem is roughly $10$ for successful trajectories and much lower for failing ones. So gradient norms are large and highly variable.</span>
+<span id="cb2-273"><a href="#cb2-273" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-274"><a href="#cb2-274" aria-hidden="true" tabindex="-1"></a>The learned-baseline cases subtract $V_\phi(s_t)$ from $G_t$ (or use bootstrapping). After training, $V_\phi$ is approximately $E<span class="co">[</span><span class="ot">G_t \mid s_t</span><span class="co">]</span>$, so $G_t - V_\phi(s_t)$ is approximately zero-mean noise. The variance reduction is the central reason A2C is more stable than REINFORCE.</span>
+<span id="cb2-275"><a href="#cb2-275" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-276"><a href="#cb2-276" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — TD has lowest variance, MC has lowest bias.** This is the well-known trade-off. In modern practice, GAE($\lambda \approx 0.95$) hits a sweet spot: most of the variance reduction of TD with little of the bias. The choice of $\lambda$ encodes a belief about how much to trust the critic vs the actual sampled returns.</span>
+<span id="cb2-277"><a href="#cb2-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-278"><a href="#cb2-278" aria-hidden="true" tabindex="-1"></a>For LLM training, where critics are expensive and noisy, lower $\lambda$ values (or no critic at all, à la GRPO) are common. For continuous control with a small reliable critic (SAC, PPO on MuJoCo), higher $\lambda$ tends to work better.</span>
+<span id="cb2-279"><a href="#cb2-279" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-280"><a href="#cb2-280" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 GAE λ sweep — `experiments/02b_sol2_gae_lambda_sweep.py`</span></span>
+<span id="cb2-281"><a href="#cb2-281" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-282"><a href="#cb2-282" aria-hidden="true" tabindex="-1"></a><span class="al">![Final return vs GAE λ on a slippery gridworld. λ = 0 (TD) is clearly worst at 0.67. Middle values (λ = 0.3 to 0.95) are best, around 0.70. The differences are small but consistent.](../figures/02b_sol2_gae_lambda_sweep.png)</span></span>
+<span id="cb2-283"><a href="#cb2-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-284"><a href="#cb2-284" aria-hidden="true" tabindex="-1"></a>**What you should see.** $\lambda = 0$ (pure TD) is the worst by a notable margin (return 0.673). All other λ values cluster between 0.687 and 0.705. The empirical best is $\lambda = 0.8$ at 0.705. $\lambda = 1$ (Monte Carlo) sits at 0.694, slightly below the peak.</span>
+<span id="cb2-285"><a href="#cb2-285" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-286"><a href="#cb2-286" aria-hidden="true" tabindex="-1"></a>The differences are smaller than you might expect from theory. Several reasons:</span>
+<span id="cb2-287"><a href="#cb2-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-288"><a href="#cb2-288" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The slippery gridworld is small (25 states); the critic is easy to learn.</span>
+<span id="cb2-289"><a href="#cb2-289" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The horizon is short, so MC's variance doesn't blow up.</span>
+<span id="cb2-290"><a href="#cb2-290" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The reward structure is simple, so credit assignment is easy.</span>
+<span id="cb2-291"><a href="#cb2-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-292"><a href="#cb2-292" aria-hidden="true" tabindex="-1"></a>On harder problems (longer horizons, sparser rewards, larger state spaces), the gap between $\lambda \approx 0.95$ and the extremes is much larger. This is why $\lambda \approx 0.95$ is the universal default in PPO implementations.</span>
+<span id="cb2-293"><a href="#cb2-293" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-294"><a href="#cb2-294" aria-hidden="true" tabindex="-1"></a>**Why TD ($\lambda = 0$) is so much worse.** The TD estimator $\delta_t = r_{t+1} + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)$ depends entirely on the critic for credit assignment beyond one step. If the critic has any error, the policy gets a biased gradient. With $\lambda &gt; 0$, some actual reward information from later steps is included, anchoring the estimate against critic errors.</span>
+<span id="cb2-295"><a href="#cb2-295" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-296"><a href="#cb2-296" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** $\lambda$ encodes your prior about critic accuracy. **High $\lambda$** says "trust the empirical samples more than the critic"; **low $\lambda$** says "trust the critic more." In early training, the critic is bad, so high $\lambda$ helps. Late in training, the critic is accurate, so low $\lambda$ would be fine. Some practitioners actually anneal $\lambda$ down over training; this is rare but principled.</span>
+<span id="cb2-297"><a href="#cb2-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-298"><a href="#cb2-298" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Actor vs critic learning rates — `experiments/02b_sol3_actor_critic_lr.py`</span></span>
+<span id="cb2-299"><a href="#cb2-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-300"><a href="#cb2-300" aria-hidden="true" tabindex="-1"></a><span class="al">![Final return heatmap as a function of actor learning rate (rows) and critic learning rate (columns). Best at lr_actor=0.3, lr_critic=0.4. Larger actor learning rates dominate; critic learning rate matters less on this small problem.](../figures/02b_sol3_actor_critic_lr.png)</span></span>
+<span id="cb2-301"><a href="#cb2-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-302"><a href="#cb2-302" aria-hidden="true" tabindex="-1"></a>**What you should see.** The heatmap shows final returns from 9.66 to 9.88 across the 4×4 grid. Three observations:</span>
+<span id="cb2-303"><a href="#cb2-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-304"><a href="#cb2-304" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**The actor learning rate dominates the picture.** Top row (lr_actor = 0.3) all green/yellow; bottom row (lr_actor = 0.01) all darker. Bigger actor lr → faster convergence on this small problem.</span>
+<span id="cb2-305"><a href="#cb2-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-306"><a href="#cb2-306" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**The critic learning rate matters less.** Across each row, the difference between lr_critic = 0.05 and lr_critic = 0.8 is at most 0.1, often less.</span>
+<span id="cb2-307"><a href="#cb2-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-308"><a href="#cb2-308" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**The conventional wisdom "critic faster than actor" is more subtle.** The diagonal (similar lrs) is fine; the very-asymmetric cells (large actor, small critic) are also fine. What hurts is *both* being too small (slow critic + slow actor → slow training).</span>
+<span id="cb2-309"><a href="#cb2-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-310"><a href="#cb2-310" aria-hidden="true" tabindex="-1"></a>**Why the conventional wisdom is conditional.** "Critic faster than actor" makes most sense in two scenarios:</span>
+<span id="cb2-311"><a href="#cb2-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-312"><a href="#cb2-312" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**High-dimensional state spaces.** When the critic has lots of parameters to learn, it needs more updates per actor step to be useful.</span>
+<span id="cb2-313"><a href="#cb2-313" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Off-policy training.** When the critic is being trained from a replay buffer (DQN-style), it can use much more data per actor step.</span>
+<span id="cb2-314"><a href="#cb2-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-315"><a href="#cb2-315" aria-hidden="true" tabindex="-1"></a>Our tabular gridworld is neither — the critic has only 25 parameters and is updated from the same on-policy data the actor uses. So a moderate critic lr is sufficient, and the actor's lr is the bottleneck.</span>
+<span id="cb2-316"><a href="#cb2-316" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-317"><a href="#cb2-317" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Hyperparameter advice in RL is highly problem-dependent. The "default" lr_actor = lr_critic ratio in PPO implementations is often 1:1 or 1:3, but for SAC it can be 1:1 or even reversed (actor much faster than the Q-network in some cases). When in doubt, sweep — the cost is small and the gains can be large.</span>
+<span id="cb2-318"><a href="#cb2-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-319"><a href="#cb2-319" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 Entropy regularization — `experiments/02b_sol4_entropy_regularization.py`</span></span>
+<span id="cb2-320"><a href="#cb2-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-321"><a href="#cb2-321" aria-hidden="true" tabindex="-1"></a><span class="al">![Entropy regularization: returns (left) and policy entropy (right) for β ∈ {0, 0.01, 0.05, 0.1, 0.3, 1.0}. All β ≤ 0.3 reach near-optimal returns (~9.85); β = 1.0 plateaus at 9.6. Entropy stays much higher with larger β (e.g., β = 0.3 settles at 0.65 vs β = 0 collapsing to 0.2).](../figures/02b_sol4_entropy_regularization.png)</span></span>
+<span id="cb2-322"><a href="#cb2-322" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-323"><a href="#cb2-323" aria-hidden="true" tabindex="-1"></a>**What you should see.** Two clear stories:</span>
+<span id="cb2-324"><a href="#cb2-324" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-325"><a href="#cb2-325" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Returns**: $\beta \in <span class="sc">\{</span>0, 0.01, 0.05, 0.1, 0.3<span class="sc">\}</span>$ are all indistinguishable around return 9.85 — essentially optimal. $\beta = 1.0$ pays a noticeable cost, settling at 9.6.</span>
+<span id="cb2-326"><a href="#cb2-326" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Entropy**: A monotonic ordering. $\beta = 0$ collapses to entropy 0.2 (the policy almost deterministic). $\beta = 0.3$ stays at 0.65 (some genuine stochasticity preserved). $\beta = 1.0$ stays near 1.1 (close to the uniform-policy entropy of 1.39).</span>
+<span id="cb2-327"><a href="#cb2-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-328"><a href="#cb2-328" aria-hidden="true" tabindex="-1"></a>**Why small β is "free."** Adding $\beta H<span class="co">[</span><span class="ot">\pi(\cdot \mid s)</span><span class="co">]</span>$ to the objective biases the policy toward uniformity at every state. But the policy gradient term also pushes toward exploitation. With small $\beta$, the gradient term dominates whenever the advantage signal is informative, and the entropy term is a soft regularizer that mostly keeps the long tail of unlikely actions from going to literally zero probability.</span>
+<span id="cb2-329"><a href="#cb2-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-330"><a href="#cb2-330" aria-hidden="true" tabindex="-1"></a>When the policy converges to a good action, the entropy of $\pi(\cdot \mid s)$ doesn't have to be zero — there can be one main action plus a 1% chance of each alternative, with entropy maybe 0.1 or 0.2. That's enough exploration to keep the critic updated and to recover from environment changes, while still achieving near-greedy returns.</span>
+<span id="cb2-331"><a href="#cb2-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-332"><a href="#cb2-332" aria-hidden="true" tabindex="-1"></a>**Why large β hurts.** When $\beta$ is large, the entropy bonus actively prevents the policy from concentrating on the best action. At $\beta = 1.0$ on this 4-action gridworld, the policy stays close to $(0.4, 0.2, 0.2, 0.2)$ instead of $(0.97, 0.01, 0.01, 0.01)$. The expected return per episode drops slightly.</span>
+<span id="cb2-333"><a href="#cb2-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-334"><a href="#cb2-334" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — exploration is free, but only in small doses.** This is a recurring theme. ε-greedy with $\varepsilon = 0.01$ is essentially free; with $\varepsilon = 0.3$ it's costly. UCB1's bonus is "free" exploration. Entropy regularization at small $\beta$ is "free" exploration. The general principle: **maintain enough stochasticity to keep the system responsive, but no more.**</span>
+<span id="cb2-335"><a href="#cb2-335" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-336"><a href="#cb2-336" aria-hidden="true" tabindex="-1"></a>For LLM training, this is the role of the KL penalty against a reference model. The KL constraint prevents the policy from drifting too far from the pre-trained distribution, which (a) preserves diversity, (b) prevents reward hacking, and (c) keeps generated text fluent. It's an entropy-like regularizer with a learned reference point.</span>
+<span id="cb2-337"><a href="#cb2-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-338"><a href="#cb2-338" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-339"><a href="#cb2-339" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-340"><a href="#cb2-340" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Further reading</span></span>
+<span id="cb2-341"><a href="#cb2-341" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-342"><a href="#cb2-342" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sutton &amp; Barto, *Reinforcement Learning: An Introduction* (2018), Chapter 13.** Coverage of actor-critic methods.</span>
+<span id="cb2-343"><a href="#cb2-343" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Mnih, Badia, Mirza, Graves, Lillicrap, Harley, Silver &amp; Kavukcuoglu, "Asynchronous Methods for Deep Reinforcement Learning" (ICML 2016).** Introduced A3C.</span>
+<span id="cb2-344"><a href="#cb2-344" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schulman, Moritz, Levine, Jordan &amp; Abbeel, "High-Dimensional Continuous Control Using Generalized Advantage Estimation" (ICLR 2016).** The GAE paper.</span>
+<span id="cb2-345"><a href="#cb2-345" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Haarnoja, Zhou, Abbeel &amp; Levine, "Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor" (ICML 2018).** SAC.</span>
+<span id="cb2-346"><a href="#cb2-346" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Mnih et al., "Playing Atari with Deep Reinforcement Learning" (NIPS Workshop 2013).** Origin of deep value-based RL; informs the actor-critic combination.</span>
+<span id="cb2-347"><a href="#cb2-347" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Ziegler et al., "Fine-Tuning Language Models from Human Preferences" (2019).** The first paper combining PPO and language models — the precursor of modern RLHF.</span>
+<span id="cb2-348"><a href="#cb2-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-349"><a href="#cb2-349" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-350"><a href="#cb2-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-351"><a href="#cb2-351" aria-hidden="true" tabindex="-1"></a>**Next up — Part 2c: TRPO and PPO.** We add the missing piece: a constraint on how much the policy can change per update. The result is PPO, the workhorse of modern policy-gradient methods. We'll derive the clipped surrogate objective, build it on top of the A2C+GAE machinery from this post, and demonstrate how it makes RL training stable enough to work on LLMs at scale.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/02b-actor-critic.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
