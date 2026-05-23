@@ -472,15 +472,10 @@ window.Quarto = {
 </header>
 
 
+<p><img src="../assets/01a-multi-armed-bandits.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Decision-making under uncertainty, from scratch — 1 of 4.</em></p>
 </blockquote>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="../figures/01a_regret_curves.png" class="img-fluid figure-img"></p>
-<figcaption>Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.</figcaption>
-</figure>
-</div>
 <p>Before LLM agents, before MDPs, before policy gradients, there is the <strong>bandit</strong>. It is the smallest possible problem that contains the central tension of all sequential decision-making: <strong>exploration vs.&nbsp;exploitation.</strong> Every agentic AI algorithm I’ll cover in this series — Q-learning, PPO, RLHF, tool use, planning over thoughts — is in some sense a bandit with more structure layered on top.</p>
 <p>This post derives three classical algorithms — ε-greedy, UCB1, and Thompson Sampling — from first principles. By the end you’ll have written all three in under 100 lines of NumPy and reproduced the figure above. More importantly, you’ll have the <em>intuitions</em> that make the rest of the series make sense.</p>
 <hr>
@@ -843,7 +838,12 @@ P(a_t = k \mid \mathcal{D}_t) \;=\; P\!\left(\mu_k = \max_{j} \mu_j \;\Big|\; \m
 <li><strong>Thompson</strong> concentrates fastest. By <span class="math inline">t = 5000</span>, ~90% of pulls go to the best arm. Suboptimal arms are sampled only as much as the posterior uncertainty warrants.</li>
 </ul>
 <p>And here’s the regret figure again, in case you forgot what we were optimizing:</p>
-<p><img src="../figures/01a_regret_curves.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/01a_regret_curves.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.</figcaption>
+</figure>
+</div>
 <p><strong>A small puzzle.</strong> UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?</p>
 <p>This is the classic <strong>finite-time vs asymptotic</strong> divergence. UCB1’s exploration bonus is calibrated to guarantee log-T regret <em>in the long run</em>. With <span class="math inline">T = 5000</span> and small gaps between the top arms (0.7, 0.75, 0.8), the bonus is overzealous: it forces the algorithm to keep checking close-but-suboptimal arms long after a smarter algorithm would have given up. The theoretical guarantees kick in at much larger <span class="math inline">T</span> or with larger gaps.</p>
 <p>ε-greedy, by contrast, has a <em>fixed</em> exploration cost — large but bounded. Over moderate horizons it can look better, but its regret grows linearly forever while UCB1’s grows logarithmically. The asymptotics catch up.</p>
@@ -1520,13 +1520,13 @@ Decision-Making.”</span> May 19. <a href="https://tranbahien.github.io/nano-ag
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Decision-making under uncertainty, from scratch — 1 of 4. ε-greedy, UCB1, and Thompson Sampling derived from first principles, with intuition, worked examples, and all three implemented in ~80 lines of NumPy."</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-19"</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [bandits, bayesian, decision-making]</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/01a_regret_curves.png</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../assets/01a-multi-armed-bandits.png</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Decision-making under uncertainty, from scratch — 1 of 4.*</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="al">![](../assets/01a-multi-armed-bandits.png)</span></span>
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="al">![Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.](../figures/01a_regret_curves.png)</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Decision-making under uncertainty, from scratch — 1 of 4.*</span></span>
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>Before LLM agents, before MDPs, before policy gradients, there is the **bandit**. It is the smallest possible problem that contains the central tension of all sequential decision-making: **exploration vs. exploitation.** Every agentic AI algorithm I'll cover in this series — Q-learning, PPO, RLHF, tool use, planning over thoughts — is in some sense a bandit with more structure layered on top.</span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
@@ -1850,7 +1850,7 @@ Decision-Making.”</span> May 19. <a href="https://tranbahien.github.io/nano-ag
 <span id="cb2-333"><a href="#cb2-333" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-334"><a href="#cb2-334" aria-hidden="true" tabindex="-1"></a>And here's the regret figure again, in case you forgot what we were optimizing:</span>
 <span id="cb2-335"><a href="#cb2-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-336"><a href="#cb2-336" aria-hidden="true" tabindex="-1"></a><span class="al">![](../figures/01a_regret_curves.png)</span></span>
+<span id="cb2-336"><a href="#cb2-336" aria-hidden="true" tabindex="-1"></a><span class="al">![Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.](../figures/01a_regret_curves.png)</span></span>
 <span id="cb2-337"><a href="#cb2-337" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-338"><a href="#cb2-338" aria-hidden="true" tabindex="-1"></a>**A small puzzle.** UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?</span>
 <span id="cb2-339"><a href="#cb2-339" aria-hidden="true" tabindex="-1"></a></span>

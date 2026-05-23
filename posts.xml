@@ -21,6 +21,7 @@
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/04c-calibration.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Topic 4, post 3 of 3 — and the close of the topic.</em></p>
 </blockquote>
@@ -274,7 +275,7 @@ Doesn’t Know?”</span> June 10. <a href="https://tranbahien.github.io/nano-ag
   <category>agents</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/04c-calibration.html</guid>
   <pubDate>Wed, 10 Jun 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/04c_reliability_diagram.png" medium="image" type="image/png" height="148" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/04c-calibration.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Self-Reflection as Monte Carlo: When Thinking Twice Helps</title>
@@ -286,6 +287,7 @@ Doesn’t Know?”</span> June 10. <a href="https://tranbahien.github.io/nano-ag
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/04b-self-reflection.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Topic 4, post 2 of 3.</em></p>
 </blockquote>
@@ -546,7 +548,7 @@ Thinking Twice Helps.”</span> June 3. <a href="https://tranbahien.github.io/na
   <category>calibration</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html</guid>
   <pubDate>Wed, 03 Jun 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/04b_when_reflection_helps.png" medium="image" type="image/png" height="83" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/04b-self-reflection.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Retrieval as Bayesian Conditioning: When and How to Augment</title>
@@ -558,6 +560,7 @@ Thinking Twice Helps.”</span> June 3. <a href="https://tranbahien.github.io/na
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/04a-rag-as-bayesian-conditioning.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Topic 4, post 1 of 3.</em></p>
 </blockquote>
@@ -799,7 +802,7 @@ How to Augment.”</span> May 30. <a href="https://tranbahien.github.io/nano-age
   <category>embeddings</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html</guid>
   <pubDate>Sat, 30 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/04a_bayesian_update.png" medium="image" type="image/png" height="48" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/04a-rag-as-bayesian-conditioning.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Tree of Thoughts and MCTS: Search Over Reasoning</title>
@@ -811,12 +814,13 @@ How to Augment.”</span> May 30. <a href="https://tranbahien.github.io/nano-age
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/03c-tree-of-thoughts.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Topic 3, post 3 of 3.</em></p>
 </blockquote>
 <p><a href="../posts/03b-tool-use.html">Post 3b</a> ended on a sobering note. A ReAct agent reasons and acts along a single trajectory, and its success decays as <img src="https://latex.codecogs.com/png.latex?(1-p)%5EL"> with the number of steps <img src="https://latex.codecogs.com/png.latex?L">. Even a small per-step error rate compounds into near-certain failure on a long horizon. We called this the central challenge of long-horizon agents.</p>
 <p>This post is the antidote. The idea is simple to state and powerful in practice: <strong>instead of committing to one reasoning path, search over a tree of them.</strong> When a step goes wrong, don’t carry the mistake to the end — backtrack and try a different branch. When several continuations look plausible, explore the promising ones in parallel and let evidence decide.</p>
-<p>This is <strong>Tree of Thoughts</strong> (Yao et al.&nbsp;2023) and, in its most powerful form, <strong>Monte Carlo Tree Search (MCTS)</strong> — the search procedure at the heart of AlphaGo and AlphaZero, here applied to LLM reasoning. It is the natural culmination of Topic 3: we combine the action-space view from Post 3b with the classical tree search that descends from the value iteration of <a href="../posts/01c-mdps-and-bellman.html">Post 1c</a> and the bandit exploration of <a href="../posts/01a-multi-armed-bandits.html">Post 1a</a>, and we attack error-compounding head-on. By the end we will have built, from scratch, every component of the search half of the AlphaZero template — and we will be honest about where search helps, where it doesn’t, and what it costs.</p>
+<p>This is <strong>Tree of Thoughts</strong> (Yao et al.&nbsp;2023) and, in its most powerful form, <strong>Monte Carlo Tree Search (MCTS)</strong> — the search procedure at the heart of AlphaGo and AlphaZero, here applied to LLM reasoning. It is the natural culmination of Topic 3: we combine the action-space view from Post 3b with the classical tree search that descends from the value iteration of <a href="../posts/01c-mdps-and-bellman.html">Post 1c</a> and the bandit exploration of <a href="../posts/03c-tree-of-thoughts.html">Post 1a</a>, and we attack error-compounding head-on. By the end we will have built, from scratch, every component of the search half of the AlphaZero template — and we will be honest about where search helps, where it doesn’t, and what it costs.</p>
 <hr>
 <section id="from-path-to-tree" class="level2">
 <h2 class="anchored" data-anchor-id="from-path-to-tree">0. From path to tree</h2>
@@ -879,7 +883,7 @@ How to Augment.”</span> May 30. <a href="https://tranbahien.github.io/nano-age
 </section>
 <section id="mcts-search-guided-by-exploration" class="level2">
 <h2 class="anchored" data-anchor-id="mcts-search-guided-by-exploration">4. MCTS: search guided by exploration</h2>
-<p>For large trees, exhaustive DFS is infeasible and a fixed beam is too rigid — you would either set <img src="https://latex.codecogs.com/png.latex?b"> too small and miss the solution, or too large and blow the budget on unpromising branches. <strong>Monte Carlo Tree Search</strong> allocates expansions <em>adaptively</em>, pouring compute into whichever part of the tree currently looks most worth investigating, using the exact exploration–exploitation logic of the bandit algorithms from <a href="../posts/01a-multi-armed-bandits.html">Post 1a</a>.</p>
+<p>For large trees, exhaustive DFS is infeasible and a fixed beam is too rigid — you would either set <img src="https://latex.codecogs.com/png.latex?b"> too small and miss the solution, or too large and blow the budget on unpromising branches. <strong>Monte Carlo Tree Search</strong> allocates expansions <em>adaptively</em>, pouring compute into whichever part of the tree currently looks most worth investigating, using the exact exploration–exploitation logic of the bandit algorithms from <a href="../posts/03c-tree-of-thoughts.html">Post 1a</a>.</p>
 <section id="two-values-per-node-keep-them-straight" class="level3">
 <h3 class="anchored" data-anchor-id="two-values-per-node-keep-them-straight">4.1 Two values per node — keep them straight</h3>
 <p>This is the point an earlier draft got wrong, and it is worth stating carefully because it is the crux of why MCTS works. Every node <img src="https://latex.codecogs.com/png.latex?c"> in the search tree carries two statistics, accumulated as the search runs:</p>
@@ -893,7 +897,7 @@ How to Augment.”</span> May 30. <a href="https://tranbahien.github.io/nano-age
 <h3 class="anchored" data-anchor-id="the-four-phases">4.2 The four phases</h3>
 <p>Each MCTS iteration runs four phases:</p>
 <ol type="1">
-<li><strong>Selection.</strong> From the root, descend by the <strong>UCT</strong> rule, at each step picking the child that maximizes <img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7BUCT%7D(c)%20%5C;=%5C;%20%5Cunderbrace%7BQ(c)%7D_%7B%5Ctext%7Bexploit%7D%7D%20%5C;+%5C;%20c_%7B%5Ctext%7BUCT%7D%7D%20%5Cunderbrace%7B%5Csqrt%7B%5Cfrac%7B%5Cln%20N(%5Ctext%7Bparent%7D)%7D%7BN(c)%7D%7D%7D_%7B%5Ctext%7Bexplore%7D%7D.%0A"> The first term — the <em>backed-up empirical value</em> — favours children that have looked good on average so far. The second favours children that have been visited little (small <img src="https://latex.codecogs.com/png.latex?N(c)">), so their value is still uncertain. Unvisited children (<img src="https://latex.codecogs.com/png.latex?N(c)=0">) are taken first. This is precisely <strong>UCB1</strong> from <a href="../posts/01a-multi-armed-bandits.html">Post 1a §4</a>, now applied at every node of the tree.</li>
+<li><strong>Selection.</strong> From the root, descend by the <strong>UCT</strong> rule, at each step picking the child that maximizes <img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7BUCT%7D(c)%20%5C;=%5C;%20%5Cunderbrace%7BQ(c)%7D_%7B%5Ctext%7Bexploit%7D%7D%20%5C;+%5C;%20c_%7B%5Ctext%7BUCT%7D%7D%20%5Cunderbrace%7B%5Csqrt%7B%5Cfrac%7B%5Cln%20N(%5Ctext%7Bparent%7D)%7D%7BN(c)%7D%7D%7D_%7B%5Ctext%7Bexplore%7D%7D.%0A"> The first term — the <em>backed-up empirical value</em> — favours children that have looked good on average so far. The second favours children that have been visited little (small <img src="https://latex.codecogs.com/png.latex?N(c)">), so their value is still uncertain. Unvisited children (<img src="https://latex.codecogs.com/png.latex?N(c)=0">) are taken first. This is precisely <strong>UCB1</strong> from <a href="../posts/03c-tree-of-thoughts.html">Post 1a §4</a>, now applied at every node of the tree.</li>
 <li><strong>Expansion.</strong> On reaching a node whose children have not yet been generated, expand it: generate its children (one round of “propose” calls to the LLM).</li>
 <li><strong>Evaluation.</strong> Estimate the value of the newly reached node with the <em>heuristic</em> <img src="https://latex.codecogs.com/png.latex?%5Chat%20v"> — a learned-value query or a rollout (§1). If the node is a leaf, use its true reward instead. This single number is the iteration’s fresh evidence.</li>
 <li><strong>Backpropagation.</strong> Walk back from the evaluated node to the root; for every node on the path, increment <img src="https://latex.codecogs.com/png.latex?N"> by one and add the evaluation result to <img src="https://latex.codecogs.com/png.latex?W">. This is what turns a one-shot <img src="https://latex.codecogs.com/png.latex?%5Chat%20v"> into the backed-up <img src="https://latex.codecogs.com/png.latex?Q"> along the whole path.</li>
@@ -1083,7 +1087,7 @@ Reasoning.”</span> May 28. <a href="https://tranbahien.github.io/nano-agents/p
   <category>alphazero</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html</guid>
   <pubDate>Thu, 28 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/03c_path_vs_tree.png" medium="image" type="image/png" height="62" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/03c-tree-of-thoughts.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Tool Use as Actions: ReAct and the Agent Loop</title>
@@ -1095,6 +1099,7 @@ Reasoning.”</span> May 28. <a href="https://tranbahien.github.io/nano-agents/p
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/03b-tool-use.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Topic 3, post 2 of 3.</em></p>
 </blockquote>
@@ -1356,7 +1361,7 @@ Loop.”</span> May 27. <a href="https://tranbahien.github.io/nano-agents/posts/
   <category>multi-hop reasoning</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html</guid>
   <pubDate>Wed, 27 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/03b_react_loop.png" medium="image" type="image/png" height="74" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/03b-tool-use.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Decoding as Inference: Sampling, Search, and Test-Time Compute</title>
@@ -1368,6 +1373,7 @@ Loop.”</span> May 27. <a href="https://tranbahien.github.io/nano-agents/posts/
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/03a-decoding-as-inference.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Topic 3, post 1 of 3.</em></p>
 </blockquote>
@@ -1723,7 +1729,7 @@ Test-Time Compute.”</span> May 26. <a href="https://tranbahien.github.io/nano-
   <category>test-time compute</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html</guid>
   <pubDate>Tue, 26 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/03a_self_consistency.png" medium="image" type="image/png" height="55" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/03a-decoding-as-inference.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>RLHF, DPO, and GRPO: From Classical RL to LLM Post-Training</title>
@@ -1735,6 +1741,7 @@ Test-Time Compute.”</span> May 26. <a href="https://tranbahien.github.io/nano-
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/02d-rlhf-dpo-grpo.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Policy gradient methods, from scratch — 4 of 4.</em></p>
 </blockquote>
@@ -2161,7 +2168,7 @@ LLM Post-Training.”</span> May 25. <a href="https://tranbahien.github.io/nano-
   <category>kl penalty</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html</guid>
   <pubDate>Mon, 25 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/02d_rlhf_pipeline.png" medium="image" type="image/png" height="70" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/02d-rlhf-dpo-grpo.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>TRPO and PPO: Trust Regions for Stable Policy Gradient</title>
@@ -2173,6 +2180,7 @@ LLM Post-Training.”</span> May 25. <a href="https://tranbahien.github.io/nano-
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/02c-trpo-and-ppo.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Policy gradient methods, from scratch — 3 of 4.</em></p>
 </blockquote>
@@ -2577,7 +2585,7 @@ Policy Gradient.”</span> May 24. <a href="https://tranbahien.github.io/nano-ag
   <category>clipped surrogate</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html</guid>
   <pubDate>Sun, 24 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/02c_clipped_surrogate.png" medium="image" type="image/png" height="57" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/02c-trpo-and-ppo.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Actor-Critic and Variance Reduction</title>
@@ -2589,6 +2597,7 @@ Policy Gradient.”</span> May 24. <a href="https://tranbahien.github.io/nano-ag
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/02b-actor-critic.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Policy gradient methods, from scratch — 2 of 4.</em></p>
 </blockquote>
@@ -2988,7 +2997,7 @@ May 23. <a href="https://tranbahien.github.io/nano-agents/posts/02b-actor-critic
   <category>a2c</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html</guid>
   <pubDate>Sat, 23 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/02b_actor_critic_schematic.png" medium="image" type="image/png" height="72" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/02b-actor-critic.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>REINFORCE and the Policy Gradient Theorem</title>
@@ -3000,6 +3009,7 @@ May 23. <a href="https://tranbahien.github.io/nano-agents/posts/02b-actor-critic
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/02a-reinforce-and-policy-gradient.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Policy gradient methods, from scratch — 1 of 4.</em></p>
 </blockquote>
@@ -3362,7 +3372,7 @@ Theorem.”</span> May 22. <a href="https://tranbahien.github.io/nano-agents/pos
   <category>variance reduction</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</guid>
   <pubDate>Fri, 22 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/02a_pg_schematic.png" medium="image" type="image/png" height="86" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/02a-reinforce-and-policy-gradient.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>POMDPs and Q-learning: Acting When You Can’t See and Can’t Plan</title>
@@ -3374,6 +3384,7 @@ Theorem.”</span> May 22. <a href="https://tranbahien.github.io/nano-agents/pos
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/01d-pomdps-and-q-learning.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Decision-making under uncertainty, from scratch — 4 of 4.</em></p>
 </blockquote>
@@ -3766,7 +3777,7 @@ See and Can’t Plan.”</span> May 21. <a href="https://tranbahien.github.io/na
   <category>belief states</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html</guid>
   <pubDate>Thu, 21 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/01d_pomdp_value_function.png" medium="image" type="image/png" height="98" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/01d-pomdps-and-q-learning.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Contextual Bandits: When the Best Action Depends on Who You’re Talking To</title>
@@ -3778,6 +3789,7 @@ See and Can’t Plan.”</span> May 21. <a href="https://tranbahien.github.io/na
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/01b-contextual-bandits.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Decision-making under uncertainty, from scratch — 2 of 4.</em></p>
 </blockquote>
@@ -4170,7 +4182,7 @@ Depends on Who You’re Talking To.”</span> May 20. <a href="https://tranbahie
   <category>RLHF</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</guid>
   <pubDate>Wed, 20 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/01b_contextual_regret_curves.png" medium="image" type="image/png" height="84" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/01b-contextual-bandits.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>MDPs and the Bellman Equations: When Actions Have Consequences</title>
@@ -4182,6 +4194,7 @@ Depends on Who You’re Talking To.”</span> May 20. <a href="https://tranbahie
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/01c-mdps-and-bellman.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Decision-making under uncertainty, from scratch — 3 of 4.</em></p>
 </blockquote>
@@ -4637,7 +4650,7 @@ Have Consequences.”</span> May 20. <a href="https://tranbahien.github.io/nano-
   <category>value iteration</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html</guid>
   <pubDate>Wed, 20 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/01c_optimal_value_policy.png" medium="image" type="image/png" height="71" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/01c-mdps-and-bellman.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Multi-Armed Bandits: The Atom of Decision-Making</title>
@@ -4649,15 +4662,10 @@ Have Consequences.”</span> May 20. <a href="https://tranbahien.github.io/nano-
 
 
 
+<p><img src="https://tranbahien.github.io/nano-agents/assets/01a-multi-armed-bandits.png" class="img-fluid"></p>
 <blockquote class="blockquote">
 <p><em>Decision-making under uncertainty, from scratch — 1 of 4.</em></p>
 </blockquote>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01a_regret_curves.png" class="img-fluid figure-img"></p>
-<figcaption>Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.</figcaption>
-</figure>
-</div>
 <p>Before LLM agents, before MDPs, before policy gradients, there is the <strong>bandit</strong>. It is the smallest possible problem that contains the central tension of all sequential decision-making: <strong>exploration vs.&nbsp;exploitation.</strong> Every agentic AI algorithm I’ll cover in this series — Q-learning, PPO, RLHF, tool use, planning over thoughts — is in some sense a bandit with more structure layered on top.</p>
 <p>This post derives three classical algorithms — ε-greedy, UCB1, and Thompson Sampling — from first principles. By the end you’ll have written all three in under 100 lines of NumPy and reproduced the figure above. More importantly, you’ll have the <em>intuitions</em> that make the rest of the series make sense.</p>
 <hr>
@@ -5043,7 +5051,12 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <li><strong>Thompson</strong> concentrates fastest. By <img src="https://latex.codecogs.com/png.latex?t%20=%205000">, ~90% of pulls go to the best arm. Suboptimal arms are sampled only as much as the posterior uncertainty warrants.</li>
 </ul>
 <p>And here’s the regret figure again, in case you forgot what we were optimizing:</p>
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01a_regret_curves.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01a_regret_curves.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.</figcaption>
+</figure>
+</div>
 <p><strong>A small puzzle.</strong> UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?</p>
 <p>This is the classic <strong>finite-time vs asymptotic</strong> divergence. UCB1’s exploration bonus is calibrated to guarantee log-T regret <em>in the long run</em>. With <img src="https://latex.codecogs.com/png.latex?T%20=%205000"> and small gaps between the top arms (0.7, 0.75, 0.8), the bonus is overzealous: it forces the algorithm to keep checking close-but-suboptimal arms long after a smarter algorithm would have given up. The theoretical guarantees kick in at much larger <img src="https://latex.codecogs.com/png.latex?T"> or with larger gaps.</p>
 <p>ε-greedy, by contrast, has a <em>fixed</em> exploration cost — large but bounded. Over moderate horizons it can look better, but its regret grows linearly forever while UCB1’s grows logarithmically. The asymptotics catch up.</p>
@@ -5252,7 +5265,7 @@ Decision-Making.”</span> May 19. <a href="https://tranbahien.github.io/nano-ag
   <category>decision-making</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html</guid>
   <pubDate>Tue, 19 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/figures/01a_regret_curves.png" medium="image" type="image/png" height="90" width="144"/>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/01a-multi-armed-bandits.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 </channel>
 </rss>
