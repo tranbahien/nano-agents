@@ -4,6 +4,7 @@ description: "Decision-making under uncertainty, from scratch — 2 of 4. We der
 date: "2026-05-20"
 categories: [bandits, bayesian, contextual, blr, RLHF]
 image: ../figures/01b_contextual_regret_curves.png
+citation: true
 ---
 
 > *Decision-making under uncertainty, from scratch — 2 of 4.*
@@ -12,7 +13,9 @@ In [Part 1a](01a-multi-armed-bandits.qmd) we built three algorithms for a world 
 
 The missing piece is **context** — features describing the situation we're in. The reward of pulling arm $k$ now depends on a context vector $x_t$, and the optimal arm changes with it. This post derives the linear contextual bandit from first principles, builds **LinUCB** and **Linear Thompson Sampling** on top, and lands at the place where reward models for RLHF actually live.
 
-The mathematical engine for both algorithms is **Bayesian linear regression**. We'll spend serious time on it — not because the math is hard, but because every Bayesian deep learning method, every uncertainty-aware LLM, every probabilistic agent comes back to it. Treating BLR rigorously here pays off for the rest of the series.
+The mathematical engine for both algorithms is **Bayesian linear regression**. We'll spend serious time on it — not because the math is hard, but because many Bayesian deep learning methods, many uncertainty-aware LLM techniques, and many probabilistic agents come back to it. Treating BLR rigorously here pays off for the rest of the series.
+
+**Roadmap for the core of this post.** The logic runs in three moves, and it's worth holding them in mind: (1) we *first derive Bayesian linear regression* (§2) — the posterior over the reward parameters given the data; (2) we then build **LinUCB** (§3), which turns the posterior's *uncertainty* into an optimism bonus and acts on the upper confidence bound; and (3) we build **Linear Thompson Sampling** (§4), which instead *samples* a parameter vector from the posterior and acts greedily under it. Same posterior, two different ways to let uncertainty drive exploration — optimism versus sampling. Everything else is detail around those three moves.
 
 ---
 
@@ -73,7 +76,7 @@ Note: realized rewards add noise, $r_t = x_t^\top \theta_k + \varepsilon_t$ with
 
 Both LinUCB and Linear Thompson Sampling are wrappers around Bayesian linear regression. The algorithm essentially reduces to "fit a Bayesian linear regression to each arm, then do something thoughtful with the resulting posterior." So we need the posterior.
 
-This section is the deepest math in the post. The payoff is that *every* later technique in the curriculum — neural bandits, reward models in RLHF, Bayesian neural networks, calibration of LLMs — reduces in some part to this calculation. Internalize it once, reuse it forever.
+This section is the deepest math in the post. The payoff is that *many* later techniques in the curriculum — neural bandits, reward models in RLHF, Bayesian neural networks, calibration of LLMs — reduce in some part to this calculation. Internalize it once, reuse it often.
 
 ### 2.1 The model
 
@@ -176,7 +179,7 @@ Two takeaways:
 
 2. **This is the gateway to variational neural networks.** Replace $\theta$ with neural network weights, replace $p(y \mid x, \theta)$ with a deep model, restrict $q$ to a tractable family (e.g., factorized Gaussian over weights), and you get variational BNNs. The objective is identical. Bayesian linear regression is the simplest non-trivial instance of an idea that scales all the way up.
 
-This isn't a digression — it's the through-line from contextual bandits to your PhD topic and to modern Bayesian deep learning. Every uncertainty-aware LLM technique in the literature is some descendant of the variational view applied here.
+This isn't a digression — it's the through-line from contextual bandits to modern Bayesian deep learning. Every uncertainty-aware LLM technique in the literature is some descendant of the variational view applied here.
 
 ### 2.6 Predictive distribution
 
@@ -223,7 +226,7 @@ $$
 
 The first term is the predicted reward — pure exploitation. The second is $\alpha$ times the predictive standard deviation — exploration. Just like UCB1, but the bonus is now context-dependent. **Contexts in poorly-explored directions get higher bonuses; well-explored contexts get smaller bonuses.**
 
-The hyperparameter $\alpha$ controls exploration aggressiveness. The theory gives $\alpha = O(\sqrt{\log T})$, but in practice $\alpha = 1$ is a strong default.
+The hyperparameter $\alpha$ controls exploration aggressiveness. It plays the role of a confidence radius, and the theory does *not* reduce it to a clean $O(\sqrt{\log T})$: the honest confidence width from Abbasi-Yadkori et al. (2011) depends on the feature dimension $d$, the regularization $\lambda$, the noise scale $\sigma$, a bound on $\lVert\theta_k\rVert$, and the failure probability $\delta$ — it grows roughly like $\sigma\sqrt{d \log((1 + T/\lambda)/\delta)} + \sqrt{\lambda}\,\lVert\theta_k\rVert$. The $\sqrt{\log T}$ is just the leading time-dependence; the constants matter in practice. In implementations, $\alpha = 1$ is a strong, simple default.
 
 ### 3.2 What the algorithm looks like in practice
 
@@ -247,7 +250,7 @@ $$
 
 where $\tilde O$ hides logarithmic factors. The matching lower bound for linear contextual bandits is $\Omega(d \sqrt{T})$, so LinUCB is near-optimal.
 
-Note: this is **$\sqrt{T}$**, not $\log T$. Why the difference from unstructured bandits? Because we're learning a $d$-dimensional function instead of $K$ scalar means. Statistical learning of a function fundamentally has $\sqrt{T}$ rate, and structured bandits inherit it.
+Note the $\sqrt{T}$ here. It is worth being careful about what it is being contrasted *with*, because finite-arm bandits actually have two regret regimes. The gap-dependent bound for $K$-armed stochastic bandits is logarithmic, $O(\log T)$, when there is a fixed positive gap between the best and second-best arm (this is the bound we cited in 1a). But the same finite-arm problem also has a *gap-free* (worst-case, minimax) bound of order $\sqrt{KT}$, achieved when gaps can be arbitrarily small. So the meaningful contrast is not "linear contextual is $\sqrt T$ while finite-arm is $\log T$" — it is between the *gap-dependent finite-arm* bound ($\log T$) and the *worst-case linear contextual* bound ($d\sqrt T$). Learning a $d$-dimensional reward function, rather than $K$ independent scalar means, puts us in the function-estimation regime, where the $\sqrt T$ minimax rate is fundamental and there is no gap-dependent escape to $\log T$ in general.
 
 ---
 
@@ -279,7 +282,7 @@ Compare to plain Thompson Sampling from 1a, where each "hypothesis" was a single
 
 ### 4.3 Probability matching, generalized
 
-In 1a we showed that Thompson Sampling picks arm $k$ with probability equal to the posterior probability that $k$ is optimal. The same property holds here, with a contextual twist:
+In 1a we showed that Thompson Sampling picks arm $k$ with probability equal to the posterior probability that $k$ is optimal. The same property holds here — but *only when we sample from the true posterior*, i.e. at $v = 1$. With the contextual twist:
 
 $$
 P(a_t = k \mid x_t, \mathcal{D}_t) \;=\; P\!\left(\, k = \arg\max_{j} x_t^\top \theta_j \;\Big|\; x_t, \mathcal{D}_t \,\right).
@@ -300,7 +303,7 @@ Agrawal & Goyal (2013) prove $R(T) = \tilde O(d^{3/2} \sqrt{T})$ for Linear Thom
 Four algorithms on the same problem:
 
 - **Context-free UCB1** ignores $x_t$ entirely, treating rewards from each arm as i.i.d. samples from some marginal distribution. Its regret grows linearly — about 4 per step on this problem — because there *is* no single best arm. The marginal "best" arm is bad on a substantial fraction of contexts.
-- **Contextual ε-greedy** uses ridge regression to estimate $\hat\theta_k$ and acts greedily 90% of the time. It achieves sublinear regret but pays a small fixed exploration tax.
+- **Contextual ε-greedy** uses ridge regression to estimate $\hat\theta_k$ and acts greedily with probability $1 - \varepsilon$. A subtlety the curve hides: with a *fixed* $\varepsilon = 0.1$ it never stops taking random actions, so it pays a constant exploration tax every step and its *asymptotic* regret is actually linear — it only looks competitive over a finite horizon because the tax is small. To get genuinely sublinear regret you must *decay* $\varepsilon$ over time (under suitable conditions on the decay schedule). The fixed-$\varepsilon$ version here is the simple, practical default; it is not asymptotically optimal.
 - **LinUCB** wins decisively here. Its principled exploration (Hoeffding-style bounds in feature space) is very efficient.
 - **Linear Thompson Sampling** is also sublinear but slightly behind LinUCB on this particular instance. This is the opposite of what we saw in 1a, and it's instance-dependent — try different feature dimensions and noise levels and you'll see the ranking shift.
 
@@ -314,9 +317,9 @@ This is the empirical case for why every modern personalization system, recommen
 
 We're now at a junction with two important downstream applications. Let me make both explicit because they're central to the rest of the agentic AI curriculum.
 
-### 6.1 RLHF reward models are contextual bandits (sort of)
+### 6.1 RLHF reward models and the contextual-bandit analogy
 
-Reinforcement learning from human feedback trains a **reward model** $r_\phi(x, y)$ that scores how good a response $y$ is to a prompt $x$. The reward model is fit from preference data: humans see pairs $(y_1, y_2)$ for the same prompt $x$ and pick which they prefer. The standard model is **Bradley-Terry**:
+Reinforcement learning from human feedback trains a **reward model** $r_\phi(x, y)$ that scores how good a response $y$ is to a prompt $x$. At heart a reward model is a *contextual scoring function* trained from preference data — and that is exactly the object at the centre of this post, a function of a context (the prompt) and an action (the response). The bandit framing is an analogy rather than an identity: a reward model is fit offline from a fixed preference dataset, not by a bandit actively pulling arms. The analogy becomes *most* direct when you actively choose which prompts and responses to label next — at that point you really are running an exploration policy over a reward-model posterior. The reward model is fit from preference data: humans see pairs $(y_1, y_2)$ for the same prompt $x$ and pick which they prefer. The standard model is **Bradley-Terry**:
 
 $$
 P(y_1 \succ y_2 \mid x) \;=\; \frac{\exp r_\phi(x, y_1)}{\exp r_\phi(x, y_1) + \exp r_\phi(x, y_2)} \;=\; \sigma\!\big(r_\phi(x, y_1) - r_\phi(x, y_2)\big).
@@ -388,7 +391,7 @@ As with the previous post, try first. Once you've struggled with each, here are 
 2. **Finite-T effects.** The theoretical $\tilde O(d \sqrt T)$ has hidden constants and $\log T$ factors. At $T = 600$ we're in the regime where lower-order terms still matter.
 3. **The constants depend on $\sigma$, $\lambda$, and the diameter of the parameter space.** Different choices give different constants in front of the same exponent.
 
-**The deeper lesson.** Empirical scaling is often *better* than worst-case theory predicts, but the **shape** of the scaling — that it grows polynomially, with $d^{1+}$ for TS faster than $d^{1-}$ for UCB — is what matters for engineering. A 10× increase in feature dimension is not a 10× increase in problem difficulty; for these algorithms it's only $10^{0.4}$–$10^{0.5} \approx 2.5$–$3\times$. That's the right intuition for "how much harder does it get if I add features?"
+**The deeper lesson.** In this synthetic setup, empirical scaling came out *better* than worst-case theory predicts — but the headline to take away is the **shape**, not the specific exponents, which are properties of this particular instance (isotropic Gaussian contexts, well-specified linear rewards, this noise level). What generalizes is that regret grows polynomially in $d$ rather than catastrophically: a 10× increase in feature dimension was, here, only a $10^{0.4}$–$10^{0.5} \approx 2.5$–$3\times$ increase in regret. Treat that as the right *intuition* for "how much harder does it get if I add features?" — not as a law to quote. On real problems the exponent depends on the geometry of your contexts and the degree of model misspecification.
 
 For practical work: if your features explode in dimension (sparse one-hot encodings, embedding dimensions), this scaling is your friend. If you can keep the *effective* dimension low (sparsity, low-rank structure), you can do dramatically better than this. Both LinUCB and LinTS have variants that exploit sparsity (LASSO-based; see Bastani & Bayati 2020).
 
@@ -406,7 +409,7 @@ For practical work: if your features explode in dimension (sparse one-hot encodi
 - **Under-coverage / over-confidence**: stated intervals are too narrow. You're being reckless and will be wrong more often than you think.
 - **Calibration drift**: coverage starts good but degrades as the problem changes (non-stationarity, distribution shift).
 
-Modern LLMs have all three failure modes, depending on the question type. Calibrating LLM uncertainty — making "the model says 90%" match empirical 90% accuracy — is an active research area. The mathematical machinery is identical to what we just did here. **You have built, in this experiment, the simplest non-trivial calibration test that exists.** Every paper on LLM calibration is doing some version of this.
+Modern LLMs have all three failure modes, depending on the question type. Calibrating LLM uncertainty — making "the model says 90%" match empirical 90% accuracy — is an active research area. The mathematical *pattern* is analogous to what we just did here: maintain a posterior, ask whether its stated confidence matches observed frequencies. **You have built, in this experiment, the simplest non-trivial calibration test that exists.** Every paper on LLM calibration is doing some version of this, with a more complex model class standing in for the linear one.
 
 **What you should build next.** Conformal prediction is a technique that takes any predictive model — including a miscalibrated one — and produces intervals with finite-sample coverage guarantees. It's a beautifully simple idea worth your time. Once you've internalized this experiment, conformal prediction is a 30-minute read away.
 
@@ -464,4 +467,4 @@ The optimum is where these two costs balance.
 
 ---
 
-**Next up — Part 1c: MDPs and the Bellman equations.** We add state transitions. Now the action you take changes the world, not just the reward you receive. Value functions, the Bellman optimality equation, value iteration. Bandits, contextual or not, are MDPs with $|S| = 1$; in 1c we lift that restriction.
+**Next up — Part 1c: MDPs and the Bellman equations.** We add state transitions. Now the action you take changes the world, not just the reward you receive. Value functions, the Bellman optimality equation, value iteration. The bandit-to-MDP relationship is worth stating precisely: an *ordinary* (context-free) bandit is a one-state MDP; a *contextual* bandit is an MDP with an exogenous state — the context arrives from outside and your action does *not* influence the next context. What 1c adds is exactly that missing ingredient: action-dependent state transitions, where what you do now shapes the situations you face later.

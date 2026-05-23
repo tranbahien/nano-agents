@@ -1,8 +1,14 @@
 # nano-agents
 
+<p align="center">
+  <img src="assets/banner.png" alt="nano-agents: Agentic AI from scratch" width="100%">
+</p>
+
 > Agentic AI from scratch, with a Bayesian lens. Every algorithm derived from first principles and implemented in <500 lines.
 
-This is a self-study series and reference codebase building up the foundations of agentic AI — bandits, MDPs, RLHF, tool use, planning, retrieval, calibration — from the ground up. The unifying angle is **probabilistic**: I treat decision-making, exploration, retrieval, and reflection as approximate inference problems and look for the cleanest math underneath each one.
+This is a personal learning series and reference codebase, written in my free time, building up the foundations of agentic AI — bandits, MDPs, RLHF, tool use, planning, retrieval, calibration — from the ground up. The unifying angle is **probabilistic**: I treat decision-making, exploration, retrieval, and reflection as approximate inference problems and look for the cleanest math underneath each one.
+
+*Disclaimer: These are my personal study notes. All views, opinions, code, and errors are strictly my own*.
 
 The companion blog is at **[tranbahien.github.io/nano-agents](https://tranbahien.github.io/nano-agents)**.
 
@@ -21,12 +27,12 @@ The companion blog is at **[tranbahien.github.io/nano-agents](https://tranbahien
 - [2d — RLHF, DPO, and GRPO](posts/02d-rlhf-dpo-grpo.qmd) ✅
 
 ### Topic 3 — Sampling, tool use, planning
-- 3a — Decoding as approximate inference
-- 3b — Tool use as augmented generation
-- 3c — Tree of Thoughts and MCTS for LLMs
+- [3a — Decoding as approximate inference](posts/03a-decoding-as-inference.qmd) ✅
+- [3b — Tool use as actions (ReAct)](posts/03b-tool-use.qmd) ✅
+- [3c — Tree of Thoughts and MCTS for LLMs](posts/03c-tree-of-thoughts.qmd) ✅
 
 ### Topic 4 — Memory, reflection, calibration
-- 4a — RAG as Bayesian conditioning
+- [4a — Retrieval as Bayesian conditioning](posts/04a-rag-as-bayesian-conditioning.qmd) ✅
 - 4b — Self-reflection as Monte Carlo
 - 4c — Calibration and uncertainty in LLMs
 
@@ -76,10 +82,39 @@ This series is written for people who already have machine learning fundamentals
 
 Each post derives the math, implements the algorithm from scratch, and points to experiments that build intuition. No frameworks, no LangChain — just NumPy, PyTorch, and a clear head.
 
+## Citation
+
+If you find this series useful for your work or teaching, please cite:
+
+```bibtex
+@misc{tran2026nanoagents,
+  author       = {Tran, Ba-Hien},
+  title        = {nano-agents: Agentic {AI} from scratch, with a {B}ayesian lens},
+  year         = {2026},
+  howpublished = {\url{https://tranbahien.github.io/nano-agents}},
+  note         = {Blog series with companion code at
+                  \url{https://github.com/tranbahien/nano-agents}}
+}
+```
+
+To cite a specific post, use a sub-entry following the same pattern. For example, Post 2d:
+
+```bibtex
+@misc{tran2026nanoagents_2d,
+  author       = {Tran, Ba-Hien},
+  title        = {{RLHF, DPO, and GRPO}: From Classical {RL} to {LLM} Post-Training},
+  year         = {2026},
+  howpublished = {\url{https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html}},
+  note         = {nano-agents, Topic 2, Post 2d}
+}
+```
+
+A [`CITATION.cff`](CITATION.cff) is included in the repo root, so GitHub will render a "Cite this repository" button automatically.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
 
 ## About
 
-Ba-Hien Tran. Senior ML research scientist at Huawei Paris. PhD in Bayesian deep learning, Sorbonne University. [Website](https://tranbahien.github.io) · [Google Scholar](https://scholar.google.com/citations?user=tranbahien) · [GitHub](https://github.com/tranbahien)
+Ba-Hien Tran. [Website](https://tranbahien.github.io) · [GitHub](https://github.com/tranbahien) · [Google Scholar](https://scholar.google.com/citations?user=tranbahien)

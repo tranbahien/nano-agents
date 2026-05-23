@@ -4,6 +4,7 @@ description: "Policy gradient methods, from scratch — 4 of 4. We connect every
 date: "2026-05-25"
 categories: [rlhf, dpo, grpo, bradley-terry, reward model, kl penalty]
 image: ../figures/02d_rlhf_pipeline.png
+citation: true
 ---
 
 > *Policy gradient methods, from scratch — 4 of 4.*
@@ -79,17 +80,29 @@ Reward minus a KL penalty against the reference policy. The hyperparameter $\bet
 
 ### 2.1 Closed-form optimal policy
 
-Critically, this objective has a closed-form solution. Setting the gradient to zero, the optimal policy is
+Critically, this objective has a closed-form solution, and the derivation is short and illuminating — it is worth seeing rather than asserting. Rewrite the objective for a single prompt $x$ as a minimization by flipping signs and dividing by $\beta$:
+
+$$
+\min_{\pi}\; \mathbb{E}_{y \sim \pi}\!\left[ -\frac{r(y,x)}{\beta} + \log \frac{\pi(y\mid x)}{\pi_{\text{ref}}(y\mid x)} \right].
+$$
+
+Pull the reward into the log by writing $-\frac{r}{\beta} = \log \exp(-r/\beta)$, and define the normalized distribution $\pi^\star(y\mid x) = \frac{1}{Z(x)}\pi_{\text{ref}}(y\mid x)\exp(r(y,x)/\beta)$ with $Z(x)=\sum_y \pi_{\text{ref}}(y\mid x)\exp(r(y,x)/\beta)$. A few lines of algebra collapse the whole bracket into a single KL plus a constant:
+
+$$
+\min_{\pi}\; D_{\mathrm{KL}}\!\big(\pi(\cdot\mid x)\,\|\,\pi^\star(\cdot\mid x)\big) - \log Z(x).
+$$
+
+Since $\log Z(x)$ doesn't depend on $\pi$, and a KL divergence is minimized (to zero) exactly when its two arguments are equal, the optimum is simply $\pi = \pi^\star$:
 
 $$
 \boxed{\;
-\pi^\star(y \mid x) \;=\; \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\!\left(\frac{r(y, x)}{\beta}\right)
+\pi^\star(y \mid x) \;=\; \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\!\left(\frac{r(y, x)}{\beta}\right).
 \;}
 $$
 
-where $Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp(r(y, x) / \beta)$ is the per-prompt partition function. The policy *tilts* the reference distribution toward high-reward outputs, with strength controlled by $1/\beta$.
+The KL-regularized RL objective is, secretly, just "find the distribution closest to this Gibbs tilt of the reference." The policy *tilts* the reference toward high-reward outputs, with strength controlled by $1/\beta$.
 
-This is a familiar object — it's the **Gibbs posterior** with the reference as prior and reward as log-likelihood. It's also why RLHF can be viewed as a kind of approximate Bayesian inference over policies.
+This is a familiar object — it's the **Gibbs/Boltzmann posterior** with the reference as prior and reward as log-likelihood. It's also why RLHF can be viewed as a kind of approximate Bayesian inference over policies, and it is the exact same exponential-tilt-of-a-reference form as the inference-time temperature connection in Post 3a §1.
 
 In practice, we never compute $\pi^\star$ directly — $Z(x)$ would require enumerating all completions. PPO approximates it via stochastic gradient ascent on the (clipped) surrogate. But the closed form is exactly what DPO exploits.
 
@@ -229,6 +242,8 @@ The honest finding is that **the KL penalty doesn't cleanly solve reward hacking
 There's no $\beta_{\rm KL}$ that "fixes" the corruption while still achieving good true reward. The KL penalty is a sliding scale between learning and not-drifting; it can't selectively prevent only the *bad* drift.
 
 The real fix for reward hacking has to come from elsewhere: ensembles of reward models, calibration of reward model uncertainty, or constitutional / rule-based filters. The KL penalty is necessary but not sufficient.
+
+This is **Goodhart's law** in mathematical dress: "when a measure becomes a target, it ceases to be a good measure." The reward model is a *proxy* for human preference, learned from finite data, so it is accurate near the distribution it was trained on (responses resembling $\pi_{\text{ref}}$'s outputs) and increasingly unreliable as the policy drifts into regions where it has no training signal. Optimizing the proxy hard enough always finds its blind spots — the policy discovers high-reward-model-score outputs that humans would actually dislike. There is a well-documented **reward-over-optimization** curve: as you optimize against a fixed reward model, true preference rises, peaks, and then *declines* even as the proxy reward keeps climbing (Gao et al. 2023 fit clean scaling laws to exactly this). The KL penalty's real job is to keep the policy inside the region where the proxy is still trustworthy — it bounds the drift, buying you the rising part of the curve before the proxy turns adversarial. It cannot tell good drift from bad because it doesn't know *where* the reward model is wrong; it only knows *how far* the policy has moved. That is why the durable fixes target the proxy's reliability itself (better, ensembled, uncertainty-aware reward models) rather than just constraining motion — a theme that returns in Topic 4's treatment of calibration.
 
 ---
 

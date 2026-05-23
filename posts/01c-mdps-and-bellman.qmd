@@ -4,6 +4,7 @@ description: "Decision-making under uncertainty, from scratch — 3 of 4. We der
 date: "2026-05-20"
 categories: [mdp, dynamic programming, bellman, value iteration]
 image: ../figures/01c_optimal_value_policy.png
+citation: true
 ---
 
 > *Decision-making under uncertainty, from scratch — 3 of 4.*
@@ -179,7 +180,21 @@ The inequality $|\max f - \max g| \leq \max |f - g|$ is the only delicate step.
 
 ### 3.4 Why contraction matters: Banach's fixed-point theorem
 
-The **contraction mapping theorem** (Banach, 1922) says: a $\gamma$-contraction on a complete metric space (with $\gamma < 1$) has a unique fixed point, and iterating the operator from *any* starting point converges to it at rate $\gamma$.
+First, why is $T^\star$ a contraction at all? The proof is short and worth seeing once, because the whole edifice rests on it. Take any two value functions $U, V$ and any state $s$. Writing $Q_U(s,a) = R(s,a) + \gamma \sum_{s'} P(s'\mid s,a) U(s')$ and likewise for $V$,
+
+$$
+|T^\star U(s) - T^\star V(s)| = \Big|\max_a Q_U(s,a) - \max_a Q_V(s,a)\Big| \le \max_a |Q_U(s,a) - Q_V(s,a)|,
+$$
+
+using the elementary fact that $|\max_a f(a) - \max_a g(a)| \le \max_a |f(a) - g(a)|$. The reward terms cancel inside the difference, leaving
+
+$$
+\max_a \Big| \gamma \sum_{s'} P(s'\mid s,a)\,(U(s') - V(s')) \Big| \le \gamma \max_a \sum_{s'} P(s'\mid s,a)\, \|U - V\|_\infty = \gamma\,\|U - V\|_\infty,
+$$
+
+because $\sum_{s'} P(s'\mid s,a) = 1$ (a probability distribution averages, it cannot amplify). Taking the max over $s$ on the left gives $\|T^\star U - T^\star V\|_\infty \le \gamma \|U - V\|_\infty$. That is the contraction, and the discount $\gamma < 1$ is exactly what makes it strict. The same one-line argument works for $T^\pi$.
+
+The **contraction mapping theorem** (Banach, 1922) then says: a $\gamma$-contraction on a complete metric space (with $\gamma < 1$) has a unique fixed point, and iterating the operator from *any* starting point converges to it at rate $\gamma$.
 
 Apply this to $T^\star$. The space of bounded value functions $V : \mathcal{S} \to \mathbb{R}$ under the max-norm is complete. $T^\star$ is a $\gamma$-contraction. Therefore:
 

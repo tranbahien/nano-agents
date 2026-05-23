@@ -4,6 +4,7 @@ description: "Decision-making under uncertainty, from scratch — 4 of 4. We add
 date: "2026-05-21"
 categories: [pomdp, q-learning, td-learning, belief states]
 image: ../figures/01d_pomdp_value_function.png
+citation: true
 ---
 
 > *Decision-making under uncertainty, from scratch — 4 of 4.*
@@ -14,7 +15,7 @@ This is the last post of Topic 1, and it closes the loop. We've built up algorit
 
 **Assumption 2 — known model.** What if you don't have $P$ and $R$? You just have an environment you can interact with, observing transitions one at a time. This is the **model-free** setting, and its workhorse is **Q-learning** — a beautiful, simple algorithm that learns the optimal Q-function directly from experience, using only the Bellman equation as its skeleton.
 
-These are two different relaxations of the MDP setting, but they share a theme: **you have less information than you'd like**, and you have to do something sensible anyway. This post derives both from first principles, demonstrates them on small concrete problems, and explicitly connects them to LLM agents — which sit at the intersection of "partial observability" and "no model."
+These are two different relaxations of the MDP setting, and it is worth being clear that they are **independent complications** that this post happens to treat together. Partial observability (the POMDP) removes *full observability* — you can no longer see the true state. Model-free learning (Q-learning) removes the *known model* — you no longer have $P$ and $R$ to plan with. Either can occur without the other: you can have a hidden state with a known model (a classic POMDP), or full observability with an unknown model (tabular Q-learning on a gridworld). Put as a slogan: **POMDPs answer "what if the state is hidden?"; Q-learning answers "what if the model is unknown?"; combining them gives model-free RL under partial observability** — which is the regime an LLM agent actually lives in. This post derives both from first principles, demonstrates them on small concrete problems, and connects them to LLM agents, which sit at that intersection.
 
 ---
 
@@ -95,13 +96,13 @@ $$
 
 where $b'$ is the belief after observing $o$ given $(b, a)$.
 
-So in principle we can apply value iteration. But the state space is continuous. We're not solving a finite-state MDP anymore. POMDP solving is in general **PSPACE-hard** (Papadimitriou & Tsitsiklis 1987), and even approximate solutions to large POMDPs are challenging.
+So in principle we can apply value iteration. But the state space is continuous. We're not solving a finite-state MDP anymore. The complexity is genuinely worse: **finite-horizon POMDP planning is PSPACE-hard — in fact PSPACE-complete — in the standard decision-problem formulation** (Papadimitriou & Tsitsiklis 1987), and even approximate solutions to large POMDPs are challenging.
 
 ### 2.3 The α-vector representation
 
-There is a redeeming structure. Sondik (1971) proved that **$V^\star(b)$ is piecewise linear and convex in $b$**. Specifically, $V^\star(b) = \max_\alpha \alpha \cdot b$ for some finite set of vectors $\{\alpha\}$, each $\alpha \in \mathbb{R}^{|\mathcal{S}|}$. Each α-vector corresponds to a particular sequence of future decisions.
+There is a redeeming structure, and it is cleanest at a finite horizon. For a **finite-horizon** POMDP, Sondik (1971) proved that the optimal value function is **piecewise linear and convex in $b$**: $V^\star(b) = \max_\alpha \alpha \cdot b$ for a *finite* set of vectors $\{\alpha\}$, each $\alpha \in \mathbb{R}^{|\mathcal{S}|}$, where each α-vector corresponds to a particular conditional plan of future decisions. For the **infinite-horizon discounted** case the picture is more delicate: the optimal value function is the fixed point of the dynamic-programming backup and is the limit of a sequence of piecewise-linear convex functions, but it need not have an exact finite α-vector representation — it is convex and can be approximated to any accuracy by finitely many α-vectors, which is what practical solvers exploit.
 
-This is the basis of exact POMDP solving — we just have to find the right set of α-vectors. Algorithms like *exact value iteration with pruning* and *incremental pruning* do this for small POMDPs. They are clean but technical, and become impractical for $|\mathcal{S}| > 30$ or so.
+This is the basis of exact POMDP solving — we just have to find (or, in the infinite-horizon case, approximate) the right set of α-vectors. Algorithms like *exact value iteration with pruning* and *incremental pruning* do this for small POMDPs. They are clean but technical, and become impractical for $|\mathcal{S}| > 30$ or so.
 
 For pedagogy, we'll use a simpler approximation: **discretize the belief simplex**. For a 2-state POMDP, the belief is just $b(s_0) \in [0, 1]$, a 1D quantity. Snap it to a grid of 401 points, treat the result as a finite MDP, and run value iteration. The discretization error converges to zero as the grid is refined, and the implementation is 30 lines.
 
@@ -194,7 +195,9 @@ and provided every $(s, a)$ pair is visited infinitely often, tabular Q-learning
 
 The intuition behind the proof: each update is a *stochastic* application of the Bellman optimality operator. The operator is a $\gamma$-contraction in the deterministic case (§3.4 of [Part 1c](01c-mdps-and-bellman.qmd)). The stochastic version has a similar contraction property in expectation; with diminishing step sizes, the noise averages out and the limit point is the fixed point — namely $Q^\star$.
 
-The "visit every $(s, a)$ infinitely often" condition is where **exploration** comes in. ε-greedy with $\varepsilon > 0$ trivially satisfies it: every action has nonzero probability in every state, so over an infinite trajectory every $(s, a)$ is visited infinitely many times. This is why ε-greedy with $\varepsilon > 0$ is the standard tabular Q-learning exploration scheme.
+The "visit every $(s, a)$ infinitely often" condition is where **exploration** comes in. The common shorthand is that ε-greedy with $\varepsilon > 0$ "trivially" satisfies it, but that is too quick: it needs the environment to actually let you reach every relevant state. The careful statement is that in a *finite communicating MDP* (one where every state is reachable from every other under some policy), fixed-$\varepsilon$ exploration keeps every action probable in every state you visit, ensuring continued exploration of the reachable state-action pairs — and convergence then requires that every *relevant* $(s,a)$ pair is in fact visited infinitely often. In a non-communicating MDP, no amount of local randomization reaches a state you can never get to. With that caveat, ε-greedy with $\varepsilon > 0$ is the standard tabular Q-learning exploration scheme.
+
+There is a second subtlety worth stating explicitly, because it trips people up. Q-learning's convergence guarantee is about the *learned greedy policy* — $\arg\max_a Q(s,a)$ converges to optimal. It is **not** a claim that the *behavior policy* you act under becomes optimal. If you keep exploring with a constant $\varepsilon$, your behavior policy is forever $\varepsilon$-random and therefore forever sub-optimal by a fixed margin, *even though* the greedy policy extracted from the same $Q$ has converged. To make the behavior policy itself approach optimal you must decay $\varepsilon$ toward zero. Learning the optimal values and acting optimally are different things; constant-$\varepsilon$ Q-learning does the first, not the second.
 
 In practice we use a constant $\alpha$ rather than the diminishing sequence required for theoretical convergence. The price is that $Q$ doesn't converge to $Q^\star$ exactly — it bounces around it with a noise floor proportional to $\alpha$. We'll see this in §6.
 
@@ -230,7 +233,7 @@ Side by side with VI's answer, Q-learning's policy is essentially identical. The
 
 ## 6. Forward connections
 
-### 6.1 POMDPs are the formal model of LLM agents
+### 6.1 LLM agents can be modeled as POMDP-like systems
 
 This is the single most important conceptual point of this entire post.
 
@@ -242,16 +245,14 @@ An LLM agent has a hidden "true state of the world" that it cannot observe direc
 
 These observations are noisy and incomplete signals of the actual world state. Some of them are very informative (a search result that directly answers the question); some are barely informative (a vague answer from a user). The agent's job is to act sensibly without ever knowing what the world is "really like."
 
-This is precisely a POMDP. And the agent's *internal representation* — the hidden state of the transformer running the conversation — is a **belief state**. It's an approximation, learned by training, of "everything I know about the world right now given everything I've seen."
-
-This view explains several phenomena that are otherwise mysterious:
+This can be usefully modeled as a POMDP-like system. The agent's *internal representation* — the hidden state of the transformer running the conversation — plays the role of a **belief state**: an approximation, learned by training, of "everything I know about the world right now given everything I've seen." The mapping is a productive lens rather than a literal claim that a transformer implements exact Bayesian belief updates, but it explains several phenomena that are otherwise mysterious:
 
 1. **Why long contexts help.** More observations means a sharper belief. A POMDP with the same dynamics but better observations has lower regret.
 2. **Why prompting works.** Prompts provide informative observations that immediately update the belief away from the prior.
 3. **Why hallucinations happen.** When the belief is broad (the model doesn't really know), but it's forced to commit to an action (output a token), it has to pick *some* answer. With uncalibrated belief, the picked answer can be wildly wrong while sounding confident.
 4. **Why model self-evaluation fails sometimes.** Asking an LLM "are you sure?" is asking it to report its belief, which it didn't necessarily encode in any callable way. The belief is implicit in the activations, not in the output text.
 
-The mathematical machinery you built here — belief states, Bayes updates, the piecewise linear value function — is the same machinery that exact POMDP solving uses. For huge POMDPs we need approximations (deep belief networks, recurrent policies, transformer-based agents), but the *structure* is what you just learned.
+The conceptual structure you built here — belief states, Bayes updates, the piecewise linear value function — is the same *structure* that exact POMDP solving uses. For huge POMDPs we need approximations (deep belief networks, recurrent policies, transformer-based agents), and these are not literal α-vector solvers; but the structure — maintain a belief, update it on evidence, act on it — is what you just learned.
 
 ### 6.2 Q-learning scales up to DQN, then to LLMs
 
@@ -265,9 +266,9 @@ $$
 
 where $\bar\theta$ is a frozen target network (a stabilization trick). The Bellman equation is the loss; the neural network parameterizes Q; gradient descent learns the parameters. Watkins' tabular Q-learning is the special case where $Q_\theta$ is a one-hot lookup table.
 
-This recipe scaled all the way to **Atari from pixels** (Mnih 2013, 2015), then to **AlphaGo's value network** (Silver 2016 — though AlphaGo uses Q-learning at the MCTS level only), and now to **reasoning RL for LLMs**. GRPO, the algorithm behind DeepSeek-R1, is a policy-gradient variant of the same theme: use experience trajectories to update an LLM's policy, using a learned value baseline (or in GRPO's case, a group-relative baseline that avoids needing a value model).
+This recipe scaled all the way to **Atari from pixels** (Mnih 2013, 2015), where **DQN** — Deep Q-Network — is the direct neural extension of tabular Q-learning: replace the Q-table with a convolutional network and keep the same Bellman-error objective. From there the lineage branches. **AlphaGo** (Silver 2016) belongs to the broader value/search/RL family — it learns a value network and uses it inside MCTS — but it is not usually framed as Q-learning. And reasoning RL for LLMs branches further still: **GRPO**, the algorithm behind DeepSeek-R1, is a *policy-gradient* method, not a value-based one.
 
-The thread from "Q-learning on a 5×5 gridworld" to "GRPO on a frontier LLM" goes exactly through this lens. The math is the same; the function approximator changes.
+It is tempting to say "it's all the same algorithm," but that overstates it. What genuinely unifies tabular Q-learning, DQN, and GRPO is the *theme* — **learn from sampled trajectories of experience** rather than from a known model. The mechanisms differ in kind: Q-learning (and DQN) is value-based temporal-difference control, bootstrapping a value estimate from the Bellman equation; GRPO is policy-gradient-style optimization, pushing up the probability of trajectories that scored well relative to a group baseline (the subject of Topic 2). Same raw material — sampled experience — processed two different ways.
 
 ### 6.3 Recurrent belief, attention as Bayes
 
@@ -275,7 +276,7 @@ For POMDPs in deep RL, a recurrent neural network (LSTM, GRU) is the standard to
 
 Transformers do something subtly different: rather than carrying a recurrent state, they attend to the entire history at each step. The attention mechanism is — when squinted at hard enough — performing approximate Bayesian inference over which past observations are relevant to the current decision.
 
-This is an active area of research. There are formal results connecting in-context learning to Bayesian model averaging (Xie et al. 2021, Wang et al. 2024) and to performing online learning in a meta-learning framework. The conceptual picture: **transformers implement approximate belief updates implicitly**, with the attention pattern functioning analogously to the Bayes-rule reweighting we did explicitly for the Tiger problem.
+This is an active area of research. There are formal results connecting in-context learning to Bayesian model averaging (Xie et al. 2021, Wang et al. 2024) and to performing online learning in a meta-learning framework. The conceptual picture, stated carefully: **one useful lens is that transformers can learn to perform approximate belief updates over histories**, with the attention pattern functioning analogously to the Bayes-rule reweighting we did explicitly for the Tiger problem. This is a lens, not a theorem about what attention "is" — but it is a productive one for thinking about why history-conditioned models behave like belief-state agents.
 
 ---
 

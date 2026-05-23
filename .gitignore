@@ -42,3 +42,8 @@ uv.lock
 # Generated figures (keep small, tracked ones in figures/; ignore stray plots)
 *.pdf
 !**/figures/*.pdf
+
+**/*.quarto_ipynb
+
+
+.virtual_documents

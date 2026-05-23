@@ -4,11 +4,12 @@ description: "Policy gradient methods, from scratch — 1 of 4. We derive the po
 date: "2026-05-22"
 categories: [policy gradient, reinforce, log-derivative trick, variance reduction]
 image: ../figures/02a_pg_schematic.png
+citation: true
 ---
 
 > *Policy gradient methods, from scratch — 1 of 4.*
 
-Topic 1 built the value-based foundation: learn $Q^\star$, then act greedily. That worked beautifully on small finite MDPs. It also has a fatal limitation for everything modern: **it doesn't scale to neural-network policies on continuous actions.** Argmax over a continuous action space is hard; argmax over a neural network's output is intractable; the policy is *implicit* in $Q$ rather than directly expressed.
+Topic 1 built the value-based foundation: learn $Q^\star$, then act greedily. That worked beautifully on small finite MDPs. It runs into trouble, though, on the continuous, high-dimensional action spaces of everything modern: a *naive* tabular or argmax-over-$Q$ approach doesn't scale, because argmax over a continuous action space is hard, argmax over a neural network's output is intractable, and the policy is only *implicit* in $Q$ rather than directly expressed. (Value-based ideas *can* be adapted to continuous actions — deterministic policy gradients, SAC, and actor-critic methods all do exactly that — but they get there by borrowing the policy-parameterization trick we are about to introduce, not by brute-force argmax.)
 
 Policy gradient methods take a different approach. **Parameterize the policy directly** — $\pi_\theta(a \mid s)$ — and optimize $\theta$ by gradient ascent on expected return. The result is an algorithm that scales to anything you can differentiate: neural nets, continuous actions, structured outputs, language models.
 
@@ -31,7 +32,7 @@ Two differences:
 1. **Sign**: supervised wants $\nabla J$ (minimize loss); RL wants $\nabla J$ (maximize return). Just a flip.
 2. **Weight**: supervised treats every example equally ($w = 1$); RL weights each by the return $G_t$. Good trajectories get amplified; bad ones get attenuated.
 
-That's all RL is, at the gradient level: **weighted maximum likelihood**, where the weights are whatever signal you can extract from interaction. This framing makes RLHF (Reinforcement Learning from Human Feedback) immediate: replace $G_t$ with a learned reward model. It makes DPO (Direct Preference Optimization) feel like a natural reformulation: maximize the likelihood ratio of preferred over dispreferred responses. Once you see the gradient structure, the modern RL-for-LLMs literature becomes a sequence of careful weight designs.
+That's the core of **likelihood-ratio policy gradients**, at the gradient level: **weighted maximum likelihood**, where the weights are whatever signal you can extract from interaction. (To be precise, this characterizes the policy-gradient *family* — REINFORCE, actor-critic, PPO, RLHF, DPO — not literally all of reinforcement learning; value-based methods like Q-learning from Topic 1 have a different gradient.) This framing makes RLHF (Reinforcement Learning from Human Feedback) immediate: replace $G_t$ with a learned reward model. It makes DPO (Direct Preference Optimization) feel like a natural reformulation: maximize the likelihood ratio of preferred over dispreferred responses. Once you see the gradient structure, the modern RL-for-LLMs literature becomes a sequence of careful weight designs.
 
 ---
 
@@ -91,6 +92,8 @@ $$
 
 This converts an intractable gradient (of an expectation over $\theta$-dependent distribution) into an expectation of a gradient (which can be estimated by sampling).
 
+The single algebraic move that makes this work is the **log-derivative trick**, $\nabla_\theta P_\theta = P_\theta \nabla_\theta \log P_\theta$ (just the chain rule, since $\nabla \log P = \nabla P / P$). It is worth pausing on *why* it is the right move, because the same identity reappears in every method in Topic 2. The problem with $\nabla_\theta \int P_\theta(\tau) R(\tau)\,d\tau$ is that the thing we are differentiating is also the thing we sample from — the distribution itself depends on $\theta$, so we cannot just average a fixed function over fixed samples. The trick relocates the $\theta$-dependence: it turns "the gradient of a probability" into "a probability times the gradient of a log-probability," and the leading $P_\theta$ is exactly what lets us rewrite the integral as an expectation $\mathbb{E}_{\tau \sim P_\theta}[\cdot]$ that we estimate by rolling out the policy. Intuitively, $\nabla_\theta \log \pi_\theta(a \mid s)$ is the direction in parameter space that makes action $a$ *more likely* in state $s$; multiplying it by the return $R(\tau)$ says "move in the make-this-more-likely direction, scaled by how good the outcome was." Good trajectories pull the parameters toward repeating their actions; bad ones push away. The whole policy-gradient family is variations on weighting that one direction.
+
 ### 2.2 Simplifying $\nabla \log P_\theta(\tau)$
 
 Take the log of $P_\theta(\tau)$:
@@ -130,6 +133,12 @@ $$
 $$
 
 This is the form usually called the "policy gradient theorem" (Sutton, McAllester, Singh & Mansour 2000). It's what REINFORCE implements.
+
+**A note on the discounting convention.** With the discounted objective $R(\tau) = \sum_t \gamma^t r_{t+1}$, the strictly-correct causal estimator carries an outer $\gamma^t$ on each term:
+$$
+\nabla_\theta J(\theta) \;=\; \mathbb{E}\!\left[ \sum_{t=0}^{T-1} \gamma^t\, G_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right],
+$$
+because a log-probability at time $t$ contributes to the objective only through the discounted rewards from $t$ onward. Many implementations (including the one here, and most practical codebases) **drop the outer $\gamma^t$**, which corresponds to optimizing the *undiscounted* sum of per-step objectives — a different but standard convention that tends to work better in practice because it doesn't down-weight late-trajectory updates. We use the dropped-$\gamma^t$ form throughout; just know the convention is a deliberate choice, not an oversight.
 
 ### 2.4 Visualizing the gradient in 1D
 
@@ -179,6 +188,15 @@ That's it. Six lines, including the closed-form softmax gradient. Compare to val
 
 The big practical issue with REINFORCE: **the gradient estimator has high variance**. Different trajectories can yield wildly different returns; the gradient direction jitters from update to update; convergence is slow and unreliable.
 
+It is worth collecting REINFORCE's limitations in one place, because the rest of Topic 2 is essentially a campaign against them:
+
+- **High variance.** A single trajectory's return is a noisy estimate of the expected return; the gradient inherits that noise. (Baselines, §4, and learned critics, Post 2b, attack this.)
+- **On-policy only.** The expectation is over trajectories from the *current* $\pi_\theta$, so every gradient step needs fresh samples from the latest policy — you cannot reuse old data. (Importance sampling and trust regions, Post 2c, relax this.)
+- **Weak credit assignment.** The whole return-from-$t$ multiplies every action equally; REINFORCE has no fine-grained sense of *which* action in a long trajectory deserves the credit. (Advantage estimation and GAE, Post 2b, sharpen this.)
+- **Unstable under large updates.** A big step can collapse the policy to something degenerate from which it never recovers, because the data distribution shifts with the policy. (Clipped surrogates in PPO, Post 2c, guard against this.)
+
+Keep this list in mind; each later method in Topic 2 is best understood as fixing one or more of these four.
+
 The key variance-reduction trick: **subtract a baseline** from the return.
 
 ### 4.1 The unbiased baseline trick
@@ -199,15 +217,23 @@ $$
 
 The quantity $A_t \equiv G_t - b(s_t)$ is called the **advantage**.
 
+Why does this reduce variance when the expectation is unchanged? A small worked case makes it vivid. Suppose in some state both available actions are good, returning $G = 100$ and $G = 102$. Without a baseline, every update pushes *up* on whichever action was sampled, with a huge weight (~100) — the gradient is dominated by the large common offset, and the tiny difference that actually distinguishes the actions (2 out of 102) is buried in noise. Subtract a baseline of $b = 101$ (roughly $V^\pi$), and the weights become $-1$ and $+1$: now the update *pushes down* on the slightly-worse action and *up* on the slightly-better one. Same expected gradient (the offset was constant and integrates to zero), but the variance is slashed because the weights are now centered near zero and reflect only the *relative* merit of each action. The baseline turns "everything was great, do more of all of it" into "this was better than average, do more of *this*" — which is both lower-variance and a sharper learning signal. That centering is the entire point, and it is why the best baseline is the expected return $V^\pi(s)$: it makes the advantage measure deviation from the state's own average.
+
 ### 4.2 The variance-minimizing baseline
 
-What's the best $b(s)$? The choice that minimizes the variance of the gradient estimator is
+What's the best $b(s)$? Here we should be careful, because there are two different "best" baselines and they are often conflated. The *exact* variance-minimizing scalar baseline for the gradient estimator is **score-norm weighted**:
 
 $$
-b^\star(s) \;=\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(s).
+b^\star(s) \;=\; \frac{\mathbb{E}_{\pi_\theta}\!\big[\,G_t\,\lVert\nabla_\theta \log \pi_\theta(a_t\mid s_t)\rVert^2 \mid s_t = s\,\big]}{\mathbb{E}_{\pi_\theta}\!\big[\,\lVert\nabla_\theta \log \pi_\theta(a_t\mid s_t)\rVert^2 \mid s_t = s\,\big]},
 $$
 
-The optimal baseline is the **current policy's value function**. This is intuitive: $A_t = G_t - V^{\pi_\theta}(s_t)$ measures how much *better* the actual return was than what the agent expects on average from state $s_t$. Subtracting the expected return centers the advantage around zero.
+a ratio that weights returns by the squared norm of the score function. Under the simplifying assumption that the score norm is uncorrelated with the return (or constant across actions), this collapses to the much more familiar
+
+$$
+b^\star(s) \;\approx\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(s).
+$$
+
+So the **current policy's value function** $V^{\pi_\theta}$ is the *practical* optimal baseline — it is what actor-critic methods learn and target, and it is correct under the simplifying assumption — but the truly variance-minimizing choice is the score-norm-weighted ratio above. We use $V^{\pi_\theta}$ throughout because it is the right engineering target; just know it is an approximation to the exact optimum. Intuitively, $A_t = G_t - V^{\pi_\theta}(s_t)$ measures how much *better* the actual return was than what the agent expects on average from state $s_t$, centering the advantage around zero.
 
 In practice we don't know $V^{\pi_\theta}$ either; it's the same chicken-and-egg as $Q^\star$. There are several practical approximations:
 
@@ -251,13 +277,13 @@ The conceptual jump from Q-learning to REINFORCE is small in algorithm but large
 
 ### 6.1 REINFORCE is the gradient of RLHF
 
-In modern RLHF, the policy is an LLM, and the "reward" comes from a learned reward model trained on human preferences. The gradient is
+In modern RLHF, the policy is an LLM, and the "reward" comes from a learned reward model trained on human preferences. The *simplest* policy-gradient form of the objective is
 
 $$
 \nabla_\theta J(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta(\cdot \mid x)}\!\left[ r_\phi(x, y) \, \nabla_\theta \log \pi_\theta(y \mid x) \right]
 $$
 
-— exactly the REINFORCE estimator, with prompts $x$ as states and responses $y$ as actions. The only addition in practice is a KL penalty against a reference policy to prevent collapse to degenerate distributions.
+— exactly the REINFORCE estimator, with prompts $x$ as states and responses $y$ as actions. Production RLHF is more than this bare estimator: it adds a KL penalty against a reference policy to prevent collapse to degenerate distributions, and it almost always uses a PPO-style clipped update (Post 2c) rather than vanilla REINFORCE for stability. The point here is just that the *core* gradient signal — reward times score function — is the one we derived.
 
 If you understand the REINFORCE gradient, you understand the gradient of RLHF. Everything else is engineering: PPO clips the update size, GRPO uses group-relative advantages, RLOO uses leave-one-out, but the underlying gradient structure is what we just derived.
 

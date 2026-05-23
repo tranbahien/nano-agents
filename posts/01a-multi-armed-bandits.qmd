@@ -4,6 +4,7 @@ description: "Decision-making under uncertainty, from scratch — 1 of 4. ε-gre
 date: "2026-05-19"
 categories: [bandits, bayesian, decision-making]
 image: ../figures/01a_regret_curves.png
+citation: true
 ---
 
 > *Decision-making under uncertainty, from scratch — 1 of 4.*

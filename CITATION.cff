@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+title: "nano-agents: Agentic AI from scratch, with a Bayesian lens"
+message: "If you use this series in your work or teaching, please cite it as below."
+type: software
+authors:
+  - family-names: "Tran"
+    given-names: "Ba-Hien"
+abstract: >
+  A self-study series and reference codebase building up the foundations of
+  agentic AI — bandits, MDPs, RLHF/DPO/GRPO, decoding, tool use, planning,
+  retrieval, calibration — from first principles. Every algorithm is derived
+  with the math, implemented in <500 lines of NumPy/PyTorch, and accompanied
+  by experiments and interactive Jupyter notebooks. The unifying angle is
+  probabilistic: decision-making, exploration, retrieval, and reflection
+  treated as approximate inference problems.
+keywords:
+  - reinforcement-learning
+  - reinforcement-learning-from-human-feedback
+  - bayesian-inference
+  - agentic-ai
+  - large-language-models
+  - rlhf
+  - dpo
+  - grpo
+  - ppo
+license: MIT
+repository-code: "https://github.com/tranbahien/nano-agents"
+url: "https://tranbahien.github.io/nano-agents"
+date-released: 2026-05-19

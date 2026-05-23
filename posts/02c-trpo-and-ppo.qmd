@@ -4,6 +4,7 @@ description: "Policy gradient methods, from scratch — 3 of 4. We add a trust-r
 date: "2026-05-24"
 categories: [ppo, trpo, trust region, clipped surrogate]
 image: ../figures/02c_clipped_surrogate.png
+citation: true
 ---
 
 > *Policy gradient methods, from scratch — 3 of 4.*
@@ -26,6 +27,8 @@ The mechanism is straightforward. The policy gradient at iteration $k$ is an unb
 
 So the question is: **how do we take large effective steps without leaving the trust region where our current data is informative?**
 
+Two features make this failure especially dangerous, and they are why the fix matters so much. First, it is **largely irreversible**: a too-large step can drive the policy into a region where it produces only low-reward trajectories, and from there the gradient signal is weak and uninformative (every action looks equally bad), so the policy has no clear way back. Collapse is a one-way door. Second, the stakes scale with the cost of data. On a gridworld a collapsed run is a wasted afternoon; in **RLHF on a large language model**, each iteration's "batch" is expensive human-relevant generation and the policy *is* a multi-billion-parameter model whose collapse means a degenerate, repetitive, or reward-hacking chatbot. The whole reason PPO became the default RLHF optimizer (§5) is that you cannot afford a single catastrophic step when the policy is that valuable and the data that costly. Stability is not a nicety here; it is the entire requirement.
+
 ---
 
 ## 1. Importance sampling: the bridge
@@ -38,6 +41,8 @@ $$
 
 We can compute an expectation under distribution $p$ by sampling from $q$ and reweighting. The factor $p(x)/q(x)$ is the **importance ratio**.
 
+A two-line concrete example fixes the intuition. Suppose an action is good ($A = +1$) and under the old policy it had probability $\pi_{\text{old}} = 0.2$. If a candidate new policy would assign it $\pi_{\text{new}} = 0.4$, the importance ratio is $r = 0.4/0.2 = 2$: the surrogate counts this sample's advantage *twice*, correctly reflecting that the new policy would take this good action twice as often. That is exactly the signal we want — push probability toward good actions. The danger is the same mechanism unchecked: if the new policy lurched to $\pi_{\text{new}} = 0.99$, then $r \approx 5$, and a few such samples would dominate the whole gradient. The reweighting is faithful only while the policies are close; that is what we must enforce.
+
 For policy optimization, set $p = \pi_{\theta_{\text{new}}}$, $q = \pi_{\theta_{\text{old}}}$, and let $f(a) = A(s, a)$ (advantage). Then
 
 $$
@@ -46,7 +51,7 @@ $$
 
 This is the key. We collect data once under $\pi_{\text{old}}$ and can then evaluate (and optimize) the new policy by reweighting. The expression on the right is differentiable in $\theta_{\text{new}}$, so we can **take multiple gradient steps using the same data** — as long as $\pi_{\text{new}}$ doesn't drift too far from $\pi_{\text{old}}$.
 
-The "drift too far" is the central concern. If $\pi_{\text{new}}$ ever assigns probability ratio of, say, 100 to some action, the variance of the importance-sampled estimator explodes. The trust region is precisely about preventing this.
+The "drift too far" is the central concern, and it is worth seeing *why* precisely, because it explains every design choice that follows. Importance sampling is unbiased for any $q$ with the right support, but its **variance** depends brutally on the mismatch between $p$ and $q$. The variance of the single-sample estimator $\frac{p(x)}{q(x)} f(x)$ scales with $\mathbb{E}_q[(p/q)^2 f^2]$, which contains the ratio *squared*. If $\pi_{\text{new}}$ puts ten times the mass of $\pi_{\text{old}}$ on some action, that sample's contribution is amplified hundredfold in the variance. A handful of large-ratio samples then dominate the estimate, and the gradient becomes both noisy and biased-in-practice (because we truncate or the rare events simply don't appear in a finite batch). In the extreme, the effective sample size — roughly $n / (1 + \mathrm{Var}[p/q])$ — collapses toward one: you have a batch of thousands but are effectively learning from a single transition. The whole game of TRPO and PPO is to keep $\pi_{\text{new}}$ close enough to $\pi_{\text{old}}$ that the ratios stay near 1, the variance stays controlled, and the reused data stays informative.
 
 Define the **importance ratio** (a function of $\theta$ for fixed $\theta_{\text{old}}$):
 
@@ -78,6 +83,22 @@ The KL constraint enforces that the new policy stays within a "trust region" of 
 This is principled but technically demanding to solve. TRPO uses a second-order method: solve the quadratic approximation $\max_\theta g^\top (\theta - \theta_{\text{old}})$ subject to $(\theta - \theta_{\text{old}})^\top F (\theta - \theta_{\text{old}}) \leq \delta$ where $F$ is the Fisher information matrix. Solution via conjugate gradients + a line search to enforce the constraint approximately.
 
 Effective, but a lot of moving parts. Worth understanding conceptually — but PPO, two years later, made the algorithm dramatically simpler while preserving most of the benefit.
+
+### 2.1 Why the trust region is principled, not just a hack
+
+It is tempting to read the KL constraint as a heuristic "don't move too far." It is more than that — it comes from a genuine performance-improvement guarantee, and the guarantee is worth seeing because it explains why *any* of this works. The key identity (Kakade & Langford 2002) expresses the new policy's return exactly in terms of the old policy's advantages:
+
+$$
+J(\pi_{\text{new}}) - J(\pi_{\text{old}}) \;=\; \mathbb{E}_{\tau \sim \pi_{\text{new}}}\!\left[ \sum_t \gamma^t A^{\pi_{\text{old}}}(s_t, a_t) \right].
+$$
+
+If we could evaluate the right-hand side under $\pi_{\text{new}}$ we'd be done — but that requires rolling out $\pi_{\text{new}}$, which is exactly what we're trying to avoid. The surrogate $L(\theta) = \mathbb{E}_{\pi_{\text{old}}}[r_t(\theta) \hat A_t]$ replaces the $\pi_{\text{new}}$-distribution over *states* with the $\pi_{\text{old}}$-distribution (it correctly reweights the *actions* via $r_t$, but not the state-visitation frequencies). TRPO's theorem bounds the error of that approximation: the true improvement is at least the surrogate minus a penalty proportional to the KL between the policies,
+
+$$
+J(\pi_{\text{new}}) - J(\pi_{\text{old}}) \;\ge\; L(\theta) - C \cdot \mathrm{KL}^{\max}(\pi_{\text{old}}, \pi_{\text{new}}),
+$$
+
+for a constant $C$ depending on the advantage magnitude and $\gamma$. So if you improve the surrogate by more than the KL penalty costs, you are *guaranteed* to improve the true return — **monotonic improvement**. Optimizing the surrogate inside a KL ball is therefore not a vibe; it is maximizing a provable lower bound on policy performance. The practical constant $C$ is far too conservative to use directly (it would force microscopic steps), so TRPO replaces the penalty with a hard KL constraint of size $\delta$, and PPO replaces *that* with the clip — each step trading a little theory for a lot of practicality, but all three descend from this lower bound.
 
 ---
 
@@ -150,6 +171,17 @@ Three diagnostics worth watching in any PPO implementation:
 
 The figure shows all three values stay tame across $\epsilon \in \{0.1, 0.2, 0.5\}$. Smaller $\epsilon$ engages clipping more (right panel) but keeps KL tighter (middle). Returns converge to roughly the same value (left), just at slightly different rates.
 
+### 3.4 Where PPO is finicky in practice
+
+PPO's reputation is "robust," and relative to vanilla policy gradient it is. But it has well-known sharp edges worth naming, because they recur in every large-scale use including RLHF:
+
+- **The clip doesn't bound a single step's KL — it bounds it in expectation, eventually.** A single minibatch update can still push some ratios far past $1\pm\epsilon$ before the next recomputation of $r_t$; the clip only removes the *gradient* there, it doesn't undo a move already made. This is why practitioners add an explicit KL early-stopping rule on top of the clip: stop the epoch loop once mean KL exceeds a target. The clip and an explicit KL guard are complementary, not redundant.
+- **Too many epochs per batch overfits the batch.** Reusing data is the point, but each extra epoch pushes $\pi_\theta$ further from $\pi_{\text{old}}$, raising the clip fraction and the chance of a destructive step. There is a sweet spot (often 3–10 epochs); §7.2 sweeps it.
+- **Advantage normalization is nearly mandatory.** PPO is sensitive to advantage scale because the clip threshold $\epsilon$ is fixed while $\hat A_t$ can be any magnitude. Normalizing advantages (subtract mean, divide by std) per batch keeps the effective step size stable across tasks and across training.
+- **The value function can dominate.** When actor and critic share a network, a large critic loss can swamp the policy gradient; the value-loss coefficient becomes a tuning knob, and many implementations also clip the value update.
+
+None of these break the core idea — they are the difference between "PPO the equation" and "PPO that trains a 70B model without diverging." We will meet them again in §5, where PPO is the engine of RLHF.
+
 ---
 
 ## 4. PPO recovers sample efficiency
@@ -206,11 +238,13 @@ $$
 The clipped surrogate is unchanged. So GRPO = PPO with a free baseline.
 
 Why this works for LLMs:
-- Critics in LLM space are expensive to maintain.
-- The within-prompt variance of rewards is what we want to reduce; the group baseline captures it well.
-- Removing the critic eliminates a source of training instability (mis-calibrated critics).
+- Critics in LLM space are expensive to maintain — a value head over a multi-billion-parameter model is itself a large model, and training it well is its own hard problem.
+- The within-prompt variance of rewards is what we want to reduce; the group baseline captures it well, because all $G$ completions share the same prompt and so the mean reward is a tight, prompt-specific baseline.
+- Removing the critic eliminates a source of training instability (a mis-calibrated critic injects biased advantages that the clip cannot protect against — bad advantages clipped are still bad advantages).
 
-GRPO is a striking example of how **knowing the structure of the algorithm lets you modify it**. The clipped surrogate is the load-bearing piece; the critic is a convenience.
+But the trade is real, not free, and worth stating honestly. The group baseline is a *Monte Carlo* estimate of the prompt's value from only $G$ samples, so it is noisier than a well-trained critic that has generalized across many prompts; GRPO buys simplicity and stability at the cost of needing several completions per prompt (more inference per update) and a higher-variance baseline. It is the same bias–variance dial from Post 2b, set toward "unbiased but sample-hungry." That this trade comes out favorably for LLM reasoning — where sampling several completions is cheap relative to maintaining a good critic, and where reward signals are sparse and a critic struggles to calibrate — is *why* GRPO works there and would not necessarily be the right call in classic continuous control.
+
+GRPO is a striking example of how **knowing the structure of the algorithm lets you modify it**. The clipped surrogate is the load-bearing piece; the critic is a convenience you can swap for a group baseline when the problem makes that cheaper.
 
 ### 5.4 DPO bypasses PPO entirely
 
