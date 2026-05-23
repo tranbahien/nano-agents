@@ -33,7 +33,7 @@ The companion blog is at **[tranbahien.github.io/nano-agents](https://tranbahien
 
 ### Topic 4 — Memory, reflection, calibration
 - [4a — Retrieval as Bayesian conditioning](posts/04a-rag-as-bayesian-conditioning.qmd) ✅
-- 4b — Self-reflection as Monte Carlo
+- [4b — Self-reflection as Monte Carlo](posts/04b-self-reflection.qmd) ✅
 - 4c — Calibration and uncertainty in LLMs
 
 ### Topic 5 — Putting it together
