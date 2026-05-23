@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-28">
+<meta name="description" content="Topic 3, post 3 of 3. A ReAct path is a single trajectory; one bad step derails it. We turn reasoning into search over a tree — Tree of Thoughts (BFS/DFS) and MCTS with UCT — and use backtracking and exploration to recover from the errors that compound for a single path. Built from first principles, in the AlphaZero mould.">
+
+<title>Tree of Thoughts and MCTS: Search Over Reasoning – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-df4e96bc8c3facb458d6222fd420fecc.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#from-path-to-tree" id="toc-from-path-to-tree" class="nav-link active" data-scroll-target="#from-path-to-tree">0. From path to tree</a>
+  <ul class="collapse">
+  <li><a href="#a-concrete-tree-the-game-of-24" id="toc-a-concrete-tree-the-game-of-24" class="nav-link" data-scroll-target="#a-concrete-tree-the-game-of-24">0.1 A concrete tree: the Game of 24</a></li>
+  <li><a href="#what-the-tree-physically-is" id="toc-what-the-tree-physically-is" class="nav-link" data-scroll-target="#what-the-tree-physically-is">0.2 What the tree physically is</a></li>
+  </ul></li>
+  <li><a href="#the-value-heuristic-where-does-it-come-from" id="toc-the-value-heuristic-where-does-it-come-from" class="nav-link" data-scroll-target="#the-value-heuristic-where-does-it-come-from">1. The value heuristic: where does it come from?</a></li>
+  <li><a href="#what-budget-counts-the-cost-model" id="toc-what-budget-counts-the-cost-model" class="nav-link" data-scroll-target="#what-budget-counts-the-cost-model">2. What “budget” counts: the cost model</a></li>
+  <li><a href="#tree-of-thoughts-bfs-and-dfs" id="toc-tree-of-thoughts-bfs-and-dfs" class="nav-link" data-scroll-target="#tree-of-thoughts-bfs-and-dfs">3. Tree of Thoughts: BFS and DFS</a></li>
+  <li><a href="#mcts-search-guided-by-exploration" id="toc-mcts-search-guided-by-exploration" class="nav-link" data-scroll-target="#mcts-search-guided-by-exploration">4. MCTS: search guided by exploration</a>
+  <ul class="collapse">
+  <li><a href="#two-values-per-node-keep-them-straight" id="toc-two-values-per-node-keep-them-straight" class="nav-link" data-scroll-target="#two-values-per-node-keep-them-straight">4.1 Two values per node — keep them straight</a></li>
+  <li><a href="#the-four-phases" id="toc-the-four-phases" class="nav-link" data-scroll-target="#the-four-phases">4.2 The four phases</a></li>
+  <li><a href="#why-this-is-bandits-stacked" id="toc-why-this-is-bandits-stacked" class="nav-link" data-scroll-target="#why-this-is-bandits-stacked">4.3 Why this is bandits, stacked</a></li>
+  <li><a href="#the-alphazero-variant-adding-a-policy-prior" id="toc-the-alphazero-variant-adding-a-policy-prior" class="nav-link" data-scroll-target="#the-alphazero-variant-adding-a-policy-prior">4.4 The AlphaZero variant: adding a policy prior</a></li>
+  </ul></li>
+  <li><a href="#how-the-strategies-compare" id="toc-how-the-strategies-compare" class="nav-link" data-scroll-target="#how-the-strategies-compare">5. How the strategies compare</a></li>
+  <li><a href="#why-search-helps-noise-robustness-and-error-recovery" id="toc-why-search-helps-noise-robustness-and-error-recovery" class="nav-link" data-scroll-target="#why-search-helps-noise-robustness-and-error-recovery">6. Why search helps: noise robustness and error recovery</a>
+  <ul class="collapse">
+  <li><a href="#robustness-to-a-noisy-heuristic" id="toc-robustness-to-a-noisy-heuristic" class="nav-link" data-scroll-target="#robustness-to-a-noisy-heuristic">6.1 Robustness to a noisy heuristic</a></li>
+  <li><a href="#the-payoff-defeating-error-compounding" id="toc-the-payoff-defeating-error-compounding" class="nav-link" data-scroll-target="#the-payoff-defeating-error-compounding">6.2 The payoff: defeating error compounding</a></li>
+  </ul></li>
+  <li><a href="#search-vs-sampling-when-is-the-tree-worth-it" id="toc-search-vs-sampling-when-is-the-tree-worth-it" class="nav-link" data-scroll-target="#search-vs-sampling-when-is-the-tree-worth-it">7. Search vs sampling: when is the tree worth it?</a></li>
+  <li><a href="#the-alphazero-connection" id="toc-the-alphazero-connection" class="nav-link" data-scroll-target="#the-alphazero-connection">8. The AlphaZero connection</a></li>
+  <li><a href="#when-should-you-actually-use-this" id="toc-when-should-you-actually-use-this" class="nav-link" data-scroll-target="#when-should-you-actually-use-this">9. When should you actually use this?</a></li>
+  <li><a href="#experiments-and-solutions" id="toc-experiments-and-solutions" class="nav-link" data-scroll-target="#experiments-and-solutions">10. Experiments and solutions</a>
+  <ul class="collapse">
+  <li><a href="#the-mcts-exploration-constant-experiments03c_sol1_cuct_sweep.py" id="toc-the-mcts-exploration-constant-experiments03c_sol1_cuct_sweep.py" class="nav-link" data-scroll-target="#the-mcts-exploration-constant-experiments03c_sol1_cuct_sweep.py">10.1 The MCTS exploration constant — <code>experiments/03c_sol1_cuct_sweep.py</code></a></li>
+  <li><a href="#tot-beam-width-experiments03c_sol2_beam_width.py" id="toc-tot-beam-width-experiments03c_sol2_beam_width.py" class="nav-link" data-scroll-target="#tot-beam-width-experiments03c_sol2_beam_width.py">10.2 ToT beam width — <code>experiments/03c_sol2_beam_width.py</code></a></li>
+  <li><a href="#where-the-value-comes-from-experiments03c_sol3_value_source.py" id="toc-where-the-value-comes-from-experiments03c_sol3_value_source.py" class="nav-link" data-scroll-target="#where-the-value-comes-from-experiments03c_sol3_value_source.py">10.3 Where the value comes from — <code>experiments/03c_sol3_value_source.py</code></a></li>
+  <li><a href="#branching-factor-experiments03c_sol4_branching.py" id="toc-branching-factor-experiments03c_sol4_branching.py" class="nav-link" data-scroll-target="#branching-factor-experiments03c_sol4_branching.py">10.4 Branching factor — <code>experiments/03c_sol4_branching.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">11. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/03c-tree-of-thoughts.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Tree of Thoughts and MCTS: Search Over Reasoning</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">tree of thoughts</div>
+    <div class="quarto-category">mcts</div>
+    <div class="quarto-category">uct</div>
+    <div class="quarto-category">search</div>
+    <div class="quarto-category">planning</div>
+    <div class="quarto-category">alphazero</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Topic 3, post 3 of 3. A ReAct path is a single trajectory; one bad step derails it. We turn reasoning into search over a tree — Tree of Thoughts (BFS/DFS) and MCTS with UCT — and use backtracking and exploration to recover from the errors that compound for a single path. Built from first principles, in the AlphaZero mould.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 28, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Topic 3, post 3 of 3.</em></p>
+</blockquote>
+<p><a href="../posts/03b-tool-use.html">Post 3b</a> ended on a sobering note. A ReAct agent reasons and acts along a single trajectory, and its success decays as <span class="math inline">(1-p)^L</span> with the number of steps <span class="math inline">L</span>. Even a small per-step error rate compounds into near-certain failure on a long horizon. We called this the central challenge of long-horizon agents.</p>
+<p>This post is the antidote. The idea is simple to state and powerful in practice: <strong>instead of committing to one reasoning path, search over a tree of them.</strong> When a step goes wrong, don’t carry the mistake to the end — backtrack and try a different branch. When several continuations look plausible, explore the promising ones in parallel and let evidence decide.</p>
+<p>This is <strong>Tree of Thoughts</strong> (Yao et al.&nbsp;2023) and, in its most powerful form, <strong>Monte Carlo Tree Search (MCTS)</strong> — the search procedure at the heart of AlphaGo and AlphaZero, here applied to LLM reasoning. It is the natural culmination of Topic 3: we combine the action-space view from Post 3b with the classical tree search that descends from the value iteration of <a href="../posts/01c-mdps-and-bellman.html">Post 1c</a> and the bandit exploration of <a href="../posts/01a-multi-armed-bandits.html">Post 1a</a>, and we attack error-compounding head-on. By the end we will have built, from scratch, every component of the search half of the AlphaZero template — and we will be honest about where search helps, where it doesn’t, and what it costs.</p>
+<hr>
+<section id="from-path-to-tree" class="level2">
+<h2 class="anchored" data-anchor-id="from-path-to-tree">0. From path to tree</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_path_vs_tree.png" class="img-fluid figure-img"></p>
+<figcaption>From path to tree. Left: a ReAct trace is one committed trajectory — a single bad step derails the whole chain. Right: tree search explores multiple branches, expands the promising ones, and recovers from dead ends by trying alternatives.</figcaption>
+</figure>
+</div>
+<p>Model reasoning as a tree:</p>
+<ul>
+<li>The <strong>root</strong> is the problem statement.</li>
+<li>Each <strong>edge</strong> is one reasoning step — a “thought.” From any node there are up to <span class="math inline">K</span> possible next thoughts (the <strong>branching factor</strong>).</li>
+<li>A <strong>path</strong> of length <span class="math inline">D</span> (the <strong>depth</strong>) reaches a <strong>leaf</strong>: a complete chain of reasoning ending in an answer.</li>
+<li>Some leaves are <strong>correct</strong> (reward 1); most are wrong (reward 0).</li>
+</ul>
+<p>A ReAct trace is a single root-to-leaf path. Greedy decoding picks the highest-probability next thought at each step and never reconsiders. That is the left panel: efficient, but one wrong turn is fatal — and the deeper the reasoning, the likelier that at least one turn goes wrong.</p>
+<p>Tree search is the right panel: maintain multiple candidate nodes, expand the promising ones, and — crucially — <em>backtrack</em> when a branch turns out to be a dead end. The cost is compute (more nodes expanded); the benefit is robustness against any single mistake.</p>
+<section id="a-concrete-tree-the-game-of-24" class="level3">
+<h3 class="anchored" data-anchor-id="a-concrete-tree-the-game-of-24">0.1 A concrete tree: the Game of 24</h3>
+<p>The abstraction is easier to hold onto with the canonical example from the Tree-of-Thoughts paper: the <strong>Game of 24</strong>. You are given four numbers — say <code>4, 9, 10, 13</code> — and must combine them with <span class="math inline">+, -, \times, \div</span> to make 24. It is a genuine search problem: most combinations fail, and a wrong early move quietly forecloses every solution downstream.</p>
+<p>Here a <em>thought</em> is one arithmetic step that consumes two numbers and produces one. From the root <code>{4, 9, 10, 13}</code>, candidate thoughts include <code>13 - 9 = 4</code> (leaving <code>{4, 4, 10}</code>), <code>10 - 4 = 6</code> (leaving <code>{6, 9, 13}</code>), <code>4 × 9 = 36</code> (leaving <code>{36, 10, 13}</code>), and so on — that branching is the <span class="math inline">K</span> above. Three thoughts in, you have collapsed four numbers to one; if it equals 24 the leaf is correct. A solution path is <code>13 - 9 = 4</code>, then <code>10 - 4 = 6</code>, then <code>4 × 6 = 24</code>. Greedy chain-of-thought commits to whichever first step <em>looks</em> best and is stuck if it was wrong. Tree search tries <code>13 - 9</code> first, and if the subtree beneath it dead-ends, backtracks and tries <code>10 - 4</code> instead.</p>
+</section>
+<section id="what-the-tree-physically-is" class="level3">
+<h3 class="anchored" data-anchor-id="what-the-tree-physically-is">0.2 What the tree physically is</h3>
+<p>The tree is not a data structure handed to us — it is generated on the fly by the LLM. To produce the (up to) <span class="math inline">K</span> children of a node, you prompt the LLM <span class="math inline">K</span> times — with temperature, so the samples differ — asking for the next reasoning step given the partial solution so far; the distinct continuations <em>are</em> the children. To evaluate a node, you either ask the LLM to rate the partial solution (“is this on track to reach 24? sure / maybe / impossible”) or roll out random completions from it and check how many reach a correct answer. So tree-of-thoughts search is a loop of three LLM-driven operations — <strong>propose</strong> candidate next steps (sampling), <strong>evaluate</strong> how promising each is (self-rating or rollout), and <strong>decide</strong> which to expand next (the search algorithm) — with the LLM serving as both the branch generator and, usually, the evaluator.</p>
+<p>This is also why the branching factor is a <em>design choice</em>, not a given: it is however many candidate continuations you ask the model to generate. We will see in §10.4 that this choice has real consequences — wider is not automatically better.</p>
+<p>Throughout, we replace the real LLM with a synthetic <code>ReasoningTree</code> small enough to enumerate, where each node has a known <strong>true value</strong> — the fraction of correct leaves in its subtree, equivalently <span class="math inline">P(\text{a random completion from here succeeds})</span>. Knowing the ground-truth value of every node lets us measure each search algorithm against an oracle and ask precise questions (“how much does heuristic noise cost?”) that would be impossible to answer with a real, opaque LLM. A search algorithm tries to find a correct leaf by climbing this value gradient, guided only by a <strong>noisy value heuristic</strong> — the stand-in for an LLM’s imperfect self-evaluation, defined next.</p>
+<hr>
+</section>
+</section>
+<section id="the-value-heuristic-where-does-it-come-from" class="level2">
+<h2 class="anchored" data-anchor-id="the-value-heuristic-where-does-it-come-from">1. The value heuristic: where does it come from?</h2>
+<p>Search needs to estimate how promising a node is <em>without</em> expanding its whole subtree. That estimate is the <strong>value heuristic</strong> <span class="math inline">\hat v(\text{node}) \approx P(\text{a correct leaf lies below this node})</span>, and everything downstream depends on its quality. A perfect heuristic turns search trivial — just follow the gradient to a correct leaf. A useless one reduces every algorithm to blind enumeration. Real heuristics live in between, and the entire art of search-augmented reasoning is coping with their noise. Two sources are used in practice, and they trade off bias against compute in opposite ways.</p>
+<p><strong>A learned value model (low variance, fixed bias).</strong> Train a model to predict <span class="math inline">P(\text{success})</span> from a partial reasoning state — or, with an LLM, simply ask it: “rate how promising this partial solution is.” This is one cheap query per node, but its quality is fixed at whatever the model learned; it cannot be improved at inference time by spending more compute. In the LLM-reasoning literature this learned scorer comes in two flavours worth distinguishing. An <strong>outcome reward model (ORM)</strong> judges only complete solutions — did the final answer check out? A <strong>process reward model (PRM)</strong> scores each intermediate step — is this line of the derivation valid? PRMs are exactly value heuristics for partial states, which is what tree search wants: they let you prune a bad branch <em>before</em> paying to expand it to a leaf. We model the learned heuristic as the true value plus Gaussian noise, with <span class="math inline">\sigma</span> the knob for how good the scorer is: <span class="math display">
+\hat v(\text{node}) = \mathrm{clip}\big(v_{\text{true}}(\text{node}) + \mathcal{N}(0, \sigma), \; 0, \; 1\big).
+</span></p>
+<p><strong>Monte Carlo rollouts (unbiased, high variance, compute-hungry).</strong> From a node, sample <span class="math inline">k</span> random completions to leaves and average their rewards. This is an unbiased estimate of the true value, with no training required, and its accuracy improves with <span class="math inline">k</span> — but each rollout is itself a sequence of LLM calls, so a <span class="math inline">k</span>-rollout estimate costs <span class="math inline">k</span> times as much per node. This is the “simulation” step of classic MCTS, and it is essentially the self-consistency idea from <a href="../posts/03a-decoding-as-inference.html">Post 3a</a> repurposed as a value estimate: sample several completions, let their average vote on how good the starting node was.</p>
+<p>Notice the verifier from Post 3a reappearing here in a new role. There, a verifier <em>re-ranked</em> finished candidates (best-of-N). Here, a value model <em>guides</em> the search before candidates are finished. Same object — a function that scores a (partial) solution — used at two different points in the pipeline. We compare the two value sources head-to-head in §10.3; the headline is that rollouts trade compute for accuracy and, with enough of them, match or beat a fixed learned model.</p>
+<hr>
+</section>
+<section id="what-budget-counts-the-cost-model" class="level2">
+<h2 class="anchored" data-anchor-id="what-budget-counts-the-cost-model">2. What “budget” counts: the cost model</h2>
+<p>Every figure in this post plots success against a <strong>budget</strong>, so it is worth being precise about what that budget buys — especially because, as the reader of an earlier draft rightly noted, BFS, DFS, rollouts, and MCTS have genuinely different cost profiles.</p>
+<p>Our unit of budget is the <strong>node expansion</strong>: generating and evaluating the children of one node. We pick this unit because, with a real LLM, expanding a node means prompting the model to propose its next thoughts and to score them — and that LLM call dominates the cost of everything else (the bookkeeping of the search algorithm is free by comparison). One expansion <span class="math inline">\approx</span> one round of LLM calls per thought. Budgeting expansions is therefore budgeting LLM calls, which is what actually costs money and latency.</p>
+<p>Three caveats keep the comparison honest:</p>
+<ul>
+<li><strong>MCTS counts iterations, not raw expansions.</strong> Each MCTS iteration runs one selection–expansion–evaluation–backpropagation cycle and expands (at most) one node, so an iteration is close to one expansion. We budget iterations for MCTS; the per-iteration cost is comparable to one expansion elsewhere, but not identical, and you should read MCTS-vs-DFS comparisons as “same order of magnitude of LLM calls,” not “exactly equal.”</li>
+<li><strong>Rollout-based value multiplies the per-node cost.</strong> If you evaluate each node with <span class="math inline">k</span> rollouts (§1), then a method run at “budget <span class="math inline">B</span>” actually issues roughly <span class="math inline">B \times k</span> LLM calls. When §10.3 compares rollout value to a learned value head, the learned head is one call per node and the rollouts are <span class="math inline">k</span>; a fair accounting must include that multiplier.</li>
+<li><strong>The spending <em>pattern</em> differs even when the total matches.</strong> BFS spends its budget breadth-first (expand all <span class="math inline">b</span> frontier nodes per level); DFS spends it depth-first along one path, then backtracks; MCTS spreads it adaptively, pouring expansions into whichever region currently looks best. Same currency, very different distributions over the tree — which is exactly why they behave so differently below.</li>
+</ul>
+<p>With the cost model fixed, the comparisons that follow are fair.</p>
+<hr>
+</section>
+<section id="tree-of-thoughts-bfs-and-dfs" class="level2">
+<h2 class="anchored" data-anchor-id="tree-of-thoughts-bfs-and-dfs">3. Tree of Thoughts: BFS and DFS</h2>
+<p>Tree of Thoughts (Yao et al.&nbsp;2023) is the simplest family: systematically explore the tree, using the value heuristic to decide which nodes to keep and which to expand. The original paper instantiates it two ways.</p>
+<p><strong>ToT-BFS (beam search over thoughts).</strong> Keep the top <span class="math inline">b</span> nodes at each depth, ranked by heuristic value. Expand all of them, score their children, keep the best <span class="math inline">b</span>, descend to the next level. This is exactly the beam search from <a href="../posts/03a-decoding-as-inference.html">Post 3a</a> — but over reasoning <em>steps</em> rather than tokens, and ranked by a <em>value heuristic</em> rather than log-probability. The beam width <span class="math inline">b</span> is the breadth of the search: a wider beam keeps more candidates alive and so is more robust to a heuristic that occasionally mis-ranks the true-best node (we quantify this in §10.2). BFS suits problems with a fixed, shallow number of steps where you want to compare several partial solutions side by side at each stage — the Game of 24, where every solution is exactly three thoughts deep, is a natural fit.</p>
+<p><strong>ToT-DFS (depth-first with backtracking and pruning).</strong> Visit the most promising child first (value-ordered), descend until you reach a leaf or a node the heuristic deems hopeless (value below a <strong>pruning threshold</strong>), then backtrack and try the next-best sibling. The pruning threshold is what makes DFS efficient: a branch the value model is confident about being a dead end is abandoned without expanding it fully. With enough budget DFS will exhaustively explore the reachable tree, so on small trees it is remarkably strong — backtracking guarantees it can never get <em>permanently</em> stuck, only slowed. DFS suits problems where solutions may sit at varying depths and you want to commit to a line of reasoning, follow it, and abandon it cleanly if it fails — mini-crosswords, in the original paper.</p>
+<p>The key difference from greedy chain-of-thought is the same for both: they keep alternatives alive. <strong>Greedy commits; ToT recovers.</strong> Greedy throws away every path but one at each step; ToT retains enough of the frontier that a single bad evaluation costs a detour, not the whole solution.</p>
+<hr>
+</section>
+<section id="mcts-search-guided-by-exploration" class="level2">
+<h2 class="anchored" data-anchor-id="mcts-search-guided-by-exploration">4. MCTS: search guided by exploration</h2>
+<p>For large trees, exhaustive DFS is infeasible and a fixed beam is too rigid — you would either set <span class="math inline">b</span> too small and miss the solution, or too large and blow the budget on unpromising branches. <strong>Monte Carlo Tree Search</strong> allocates expansions <em>adaptively</em>, pouring compute into whichever part of the tree currently looks most worth investigating, using the exact exploration–exploitation logic of the bandit algorithms from <a href="../posts/01a-multi-armed-bandits.html">Post 1a</a>.</p>
+<section id="two-values-per-node-keep-them-straight" class="level3">
+<h3 class="anchored" data-anchor-id="two-values-per-node-keep-them-straight">4.1 Two values per node — keep them straight</h3>
+<p>This is the point an earlier draft got wrong, and it is worth stating carefully because it is the crux of why MCTS works. Every node <span class="math inline">c</span> in the search tree carries two statistics, accumulated as the search runs:</p>
+<ul>
+<li>a <strong>visit count</strong> <span class="math inline">N(c)</span> — how many iterations have passed through <span class="math inline">c</span>, and</li>
+<li>a <strong>cumulative value</strong> <span class="math inline">W(c)</span> — the sum of all evaluation results that have flowed back through <span class="math inline">c</span>.</li>
+</ul>
+<p>From these we form the <strong>backed-up empirical value</strong> <span class="math display">
+Q(c) \;=\; \frac{W(c)}{N(c)},
+</span> the running <em>mean</em> of every evaluation that has ever passed through <span class="math inline">c</span>. This is distinct from the one-shot <strong>heuristic value</strong> <span class="math inline">\hat v(c)</span> of §1, which is the estimate produced when a node is first evaluated. The relationship is: <span class="math inline">\hat v</span> is the raw signal computed at a leaf or newly-expanded node; <span class="math inline">Q</span> is the accumulated average of many such signals, backed up the tree. As a node is visited more, <span class="math inline">Q(c)</span> averages over more evidence and becomes more reliable than any single <span class="math inline">\hat v</span>. <strong>MCTS makes decisions using <span class="math inline">Q</span>, not <span class="math inline">\hat v</span>.</strong></p>
+</section>
+<section id="the-four-phases" class="level3">
+<h3 class="anchored" data-anchor-id="the-four-phases">4.2 The four phases</h3>
+<p>Each MCTS iteration runs four phases:</p>
+<ol type="1">
+<li><strong>Selection.</strong> From the root, descend by the <strong>UCT</strong> rule, at each step picking the child that maximizes <span class="math display">
+\text{UCT}(c) \;=\; \underbrace{Q(c)}_{\text{exploit}} \;+\; c_{\text{UCT}} \underbrace{\sqrt{\frac{\ln N(\text{parent})}{N(c)}}}_{\text{explore}}.
+</span> The first term — the <em>backed-up empirical value</em> — favours children that have looked good on average so far. The second favours children that have been visited little (small <span class="math inline">N(c)</span>), so their value is still uncertain. Unvisited children (<span class="math inline">N(c)=0</span>) are taken first. This is precisely <strong>UCB1</strong> from <a href="../posts/01a-multi-armed-bandits.html">Post 1a §4</a>, now applied at every node of the tree.</li>
+<li><strong>Expansion.</strong> On reaching a node whose children have not yet been generated, expand it: generate its children (one round of “propose” calls to the LLM).</li>
+<li><strong>Evaluation.</strong> Estimate the value of the newly reached node with the <em>heuristic</em> <span class="math inline">\hat v</span> — a learned-value query or a rollout (§1). If the node is a leaf, use its true reward instead. This single number is the iteration’s fresh evidence.</li>
+<li><strong>Backpropagation.</strong> Walk back from the evaluated node to the root; for every node on the path, increment <span class="math inline">N</span> by one and add the evaluation result to <span class="math inline">W</span>. This is what turns a one-shot <span class="math inline">\hat v</span> into the backed-up <span class="math inline">Q</span> along the whole path.</li>
+</ol>
+<p>After the budget is spent, <strong>commit to the most-visited child at each step from the root</strong> — not the highest-<span class="math inline">Q</span> child. The visit count is the more robust signal: a child accrues visits only by repeatedly winning the UCT comparison across many iterations, so a high <span class="math inline">N</span> means the node looked good <em>under sustained scrutiny</em>, whereas a high <span class="math inline">Q</span> from few visits could be a lucky single evaluation. This “robust child” commit rule is the standard one in AlphaGo-style systems, and it is why §10.1’s good runs hinge on accumulating visits, not chasing the momentary best score.</p>
+</section>
+<section id="why-this-is-bandits-stacked" class="level3">
+<h3 class="anchored" data-anchor-id="why-this-is-bandits-stacked">4.3 Why this is bandits, stacked</h3>
+<p>The UCT rule is the bridge from Topic 1. Selecting among a node’s children is a multi-armed bandit problem: each child is an arm, <span class="math inline">Q(c)</span> is its running mean reward, <span class="math inline">N(c)</span> is the number of pulls, and UCB1 governs the explore/exploit tradeoff. MCTS is bandit algorithms nested into a tree, one bandit per internal node, all sharing a budget. The exploration constant <span class="math inline">c_{\text{UCT}}</span> is the same dial as the bandit’s confidence width — and, as §10.1 shows, its best setting depends on the budget, exactly as the bandit’s optimal exploration depended on the horizon.</p>
+</section>
+<section id="the-alphazero-variant-adding-a-policy-prior" class="level3">
+<h3 class="anchored" data-anchor-id="the-alphazero-variant-adding-a-policy-prior">4.4 The AlphaZero variant: adding a policy prior</h3>
+<p>One extension is worth flagging because it is what AlphaZero actually uses. Plain UCT explores purely by visit count. AlphaZero’s <strong>PUCT</strong> rule adds a <em>policy prior</em> <span class="math inline">P(c)</span> — a probability the policy network assigns to each child — biasing exploration toward moves the policy already thinks are good: <span class="math display">
+\text{PUCT}(c) \;=\; Q(c) \;+\; c_{\text{puct}}\, P(c)\, \frac{\sqrt{N(\text{parent})}}{1 + N(c)}.
+</span> For LLM reasoning the prior is natural: it is the model’s own probability for each candidate next thought (the log-probabilities from Post 3a). We don’t implement PUCT in the toy — our branches are unlabelled by a prior — but it is a one-line change to the selection rule, and it is the mechanism by which a strong policy focuses the search.</p>
+<hr>
+</section>
+</section>
+<section id="how-the-strategies-compare" class="level2">
+<h2 class="anchored" data-anchor-id="how-the-strategies-compare">5. How the strategies compare</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_success_vs_budget.png" class="img-fluid figure-img"></p>
+<figcaption>Success rate vs compute budget for the four strategies (200 random trees, depth 5, branching 3, heuristic noise 0.25). Greedy plateaus at 0.17 — no budget helps without backtracking. ToT-beam (b=3) plateaus at 0.43. ToT-DFS reaches 1.0; MCTS reaches 0.89.</figcaption>
+</figure>
+</div>
+<p>With the cost model of §2 fixing the x-axis, two groups emerge:</p>
+<ul>
+<li><strong>Greedy and fixed-beam plateau.</strong> Greedy makes one descent and stops — extra budget is wasted because it has no mechanism to reconsider. Beam with <span class="math inline">b=3</span> explores a fixed slice of the tree and saturates once that slice is exhausted; a wider slice needs a wider <span class="math inline">b</span>, set in advance.</li>
+<li><strong>DFS and MCTS keep improving with budget.</strong> Both can revisit and explore more of the tree, so additional compute translates into additional success.</li>
+</ul>
+<p>On these small trees, <strong>DFS actually beats MCTS</strong>. Exhaustive backtracking is hard to beat when the tree is small enough to mostly cover, and DFS has no exploration overhead — it never “wastes” a visit re-checking a branch it has already characterized. This is an honest and important caveat: MCTS is not magic. Its advantage appears at <em>scale</em>, where the tree is far too large to enumerate and the value of pouring compute adaptively into the best region — rather than methodically sweeping — finally dominates. On a problem you can nearly cover by brute force, a good DFS is the simpler and stronger choice.</p>
+<hr>
+</section>
+<section id="why-search-helps-noise-robustness-and-error-recovery" class="level2">
+<h2 class="anchored" data-anchor-id="why-search-helps-noise-robustness-and-error-recovery">6. Why search helps: noise robustness and error recovery</h2>
+<section id="robustness-to-a-noisy-heuristic" class="level3">
+<h3 class="anchored" data-anchor-id="robustness-to-a-noisy-heuristic">6.1 Robustness to a noisy heuristic</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_noise_robustness.png" class="img-fluid figure-img"></p>
+<figcaption>Robustness to heuristic noise at a fixed budget of 128. ToT-DFS stays flat at 1.0 across all noise levels; MCTS stays near 0.9. Beam collapses from 1.0 to 0.12; greedy collapses fastest, from 1.0 to 0.04.</figcaption>
+</figure>
+</div>
+<p>The value heuristic is never perfect — and for an LLM rating its own half-finished reasoning, it can be quite poor. So the right question is not “how does each method do with a perfect guide?” but “how gracefully does each degrade as the guide gets noisier?” As <span class="math inline">\sigma</span> grows:</p>
+<ul>
+<li><strong>Greedy collapses fastest.</strong> One noisy evaluation sends it down a dead branch with no recovery; its success tracks the probability that <em>every</em> step’s noisiest moment didn’t mislead it, which falls off a cliff.</li>
+<li><strong>Beam degrades</strong> — a fixed width can absorb a little mis-ranking but not a lot; past some noise the true-best node routinely falls outside the top <span class="math inline">b</span>.</li>
+<li><strong>DFS and MCTS stay robust.</strong> Backtracking (DFS) and exploration (MCTS) are both <em>recovery mechanisms</em>: a misleading value estimate costs some wasted expansions, not the whole run, because the algorithm retains the ability to come back and try what it skipped.</li>
+</ul>
+<p>The lesson generalizes well beyond the toy: the algorithms with a way to <em>undo</em> a bad decision are the ones that tolerate unreliable guidance. Since LLM self-evaluations are exactly that — unreliable guidance — this robustness is the property that matters most in practice.</p>
+</section>
+<section id="the-payoff-defeating-error-compounding" class="level3">
+<h3 class="anchored" data-anchor-id="the-payoff-defeating-error-compounding">6.2 The payoff: defeating error compounding</h3>
+<p>This is the figure the whole topic has been building toward.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_error_recovery.png" class="img-fluid figure-img"></p>
+<figcaption>Search mitigates error compounding (heuristic noise 0.3, budget 256). A single greedy path decays steeply with reasoning depth — from 0.99 at depth 2 to 0.03 at depth 7. DFS holds high through depth 5, declining only as the tree outgrows the fixed budget (0.39 at depth 7, ~13x greedy). MCTS is strong until budget-starved at depth 7.</figcaption>
+</figure>
+</div>
+<p>Recall Post 3b: a single path’s success decays as <span class="math inline">(1-p)^L</span>. The greedy curve here <em>is</em> that compounding — useless past depth 4. This was the wall Topic 3 kept running into.</p>
+<p>Search <strong>mitigates</strong> the decay. DFS holds near-perfect success through depth 5 and stays an order of magnitude above greedy at depth 7. The recovery mechanism directly counteracts compounding: a wrong step is no longer fatal, because the search backs up and tries again, so the failure probability is no longer a product of per-step success rates but the much gentler “did <em>any</em> explored path succeed.”</p>
+<p>But note the honesty in the figure’s title: search <em>mitigates</em>, it does not <em>defeat</em>. With a fixed budget and a tree that grows as <span class="math inline">K^D</span>, even DFS eventually runs out of room — at depth 7 the tree has <span class="math inline">3^7 = 2187</span> leaves and a budget of 256 cannot cover enough of them. The deeper the reasoning, the more compute search needs, and the requirement grows with the tree. There is no free lunch: search converts compute into reliability, and exponentially large trees demand exponentially much compute to fully tame. What search buys is a far better <em>exchange rate</em> than a single path — not exemption from the exponential.</p>
+<hr>
+</section>
+</section>
+<section id="search-vs-sampling-when-is-the-tree-worth-it" class="level2">
+<h2 class="anchored" data-anchor-id="search-vs-sampling-when-is-the-tree-worth-it">7. Search vs sampling: when is the tree worth it?</h2>
+<p>A fair question after <a href="../posts/03a-decoding-as-inference.html">Post 3a</a>, where self-consistency (sample <span class="math inline">N</span>, take the mode) was a strong and very simple baseline: does structured tree search actually beat just sampling more?</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_search_vs_sampling.png" class="img-fluid figure-img"></p>
+<figcaption>Search vs sampling at equal budget (noise 0.25). Guided sampling — biasing each step toward high-value children — dominates at low-to-moderate budgets, reaching 0.81 at budget 32 while DFS is at 0.55. DFS overtakes only at high budget (1.0 at 128). Flat uniform sampling and MCTS trail.</figcaption>
+</figure>
+</div>
+<p>The honest and slightly humbling result: <strong>guided sampling — the simplest method that uses the heuristic at all — wins at low-to-moderate budgets.</strong> Just biasing each random rollout toward higher-value children (a softmax over the heuristic at each step) is remarkably effective and far cheaper to implement than any tree search, with no backtracking machinery, no node bookkeeping, and trivial parallelism (the samples are independent).</p>
+<p>Structured search (DFS, MCTS) pulls ahead only at high budgets, where exhaustive or near-exhaustive exploration becomes possible and systematic coverage finally pays off. This mirrors a robust real-world finding: self-consistency with a good model is a strong baseline that fancier search struggles to beat at modest compute. It echoes Post 3a’s lesson that test-time compute and method sophistication are partial substitutes — you can often buy with raw samples what you would otherwise buy with algorithmic cleverness.</p>
+<hr>
+</section>
+<section id="the-alphazero-connection" class="level2">
+<h2 class="anchored" data-anchor-id="the-alphazero-connection">8. The AlphaZero connection</h2>
+<p>Everything in this post is a piece of the <strong>AlphaZero</strong> template, the most successful marriage of learning and search to date. AlphaZero has three components:</p>
+<ol type="1">
+<li>A <strong>policy network</strong> <span class="math inline">\pi(a \mid s)</span> — proposes promising actions (here: which thoughts to consider, i.e.&nbsp;the branching, and the prior <span class="math inline">P(c)</span> in PUCT).</li>
+<li>A <strong>value network</strong> <span class="math inline">v(s)</span> — estimates how good a state is (here: our value heuristic of §1).</li>
+<li><strong>MCTS</strong> — uses both to search, producing improved action choices that then become training targets for the policy and value networks.</li>
+</ol>
+<p>The loop closes: search improves on the raw policy (a few hundred simulations choose better moves than the policy alone), and the improved choices are distilled back into the networks — policy improvement, exactly the operator from <a href="../posts/02c-trpo-and-ppo.html">Post 2c</a>, with MCTS playing the role of the improvement step. Iterate, and policy and value co-evolve toward expert play with no human data.</p>
+<p>How far does this carry over to LLM reasoning? It is worth being careful, because the honest answer is “partially, and unevenly.” The template has been realized end-to-end in <em>some</em> systems we can point to. <strong>AlphaProof</strong> (DeepMind, 2024) couples a language model with tree search over formal proof steps in Lean, in the explicit AlphaZero mould, and reached medal-level performance on competition mathematics. <strong>TS-LLM / “AlphaZero-like Tree-Search”</strong> (Feng et al.&nbsp;2023) demonstrates the full loop — an LLM policy, a learned value, and MCTS — guiding both decoding and training on reasoning benchmarks. <strong>LATS</strong> (Zhou et al.&nbsp;2024) combines ReAct-style acting with tree search and value-based pruning. In these systems, the pieces we built — a policy that proposes steps, a value model that scores partial solutions, and search that stitches them into reliable chains — are demonstrably composed exactly as described.</p>
+<p>What we should <em>not</em> claim is that every headline “reasoning model” works this way. The internals of commercial systems like OpenAI’s o-series or DeepSeek-R1 are not public, and the available evidence suggests much of their gain comes from reinforcement learning over long chains of thought rather than from explicit tree search at inference time. Search over reasoning and RL over reasoning are related — both spend compute to improve a chain — but they are not the same mechanism, and conflating them is a common error. The safe statement is the one this post actually supports: explicit tree search <em>is</em> a proven way to compose a policy and a value model into reliable long-horizon reasoning, demonstrated in systems like AlphaProof and TS-LLM, and we have now built its search half from scratch.</p>
+<hr>
+</section>
+<section id="when-should-you-actually-use-this" class="level2">
+<h2 class="anchored" data-anchor-id="when-should-you-actually-use-this">9. When should you actually use this?</h2>
+<p>It is easy to read a post about MCTS and reach for MCTS. Resist that. Here is the decision order the experiments above support, cheapest first:</p>
+<ul>
+<li><strong>Start with guided sampling.</strong> Sample several reasoning chains, bias each step toward the value heuristic, and take the best or most common answer. It is trivial to implement, embarrassingly parallel, and — per §7 — the strongest option at low-to-moderate budgets. For most applications this is where you should stop.</li>
+<li><strong>Use DFS (with pruning) for small or discrete trees.</strong> When the reasoning has a bounded, modest number of steps and a clear notion of a dead end — the Game of 24, constraint puzzles, short proof search — depth-first search with a pruning threshold is simple, exhaustive in the limit, and per §5 often <em>beats</em> MCTS on trees you can nearly cover.</li>
+<li><strong>Reserve MCTS for large spaces where exploration pays.</strong> MCTS earns its complexity only when the tree is far too large to enumerate <em>and</em> your value estimates genuinely improve as you explore (so the adaptive allocation has something to allocate toward). This is the AlphaGo regime — enormous branching, a value network that sharpens with search. If your tree is small or your heuristic is fixed and decent, a simpler method will match it for less code.</li>
+<li><strong>Across all of them, widen breadth when the heuristic is noisy and budget when reasoning is deep</strong> (§10.2, §6.2), and tune exploration to your budget (§10.1).</li>
+</ul>
+<p>The meta-lesson: the sophistication of your search should match the size of your space and the quality of your guide — not the sophistication you wish to display.</p>
+<hr>
+</section>
+<section id="experiments-and-solutions" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-and-solutions">10. Experiments and solutions</h2>
+<section id="the-mcts-exploration-constant-experiments03c_sol1_cuct_sweep.py" class="level3">
+<h3 class="anchored" data-anchor-id="the-mcts-exploration-constant-experiments03c_sol1_cuct_sweep.py">10.1 The MCTS exploration constant — <code>experiments/03c_sol1_cuct_sweep.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_sol1_cuct_sweep.png" class="img-fluid figure-img"></p>
+<figcaption>MCTS success vs the UCT exploration constant, at budgets 32 and 128. At budget 32, c=0 (pure exploitation) is best (0.30) and more exploration hurts. At budget 128, the best is c≈0.25 (0.95), and pure exploitation (c=0) drops to 0.44.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> A budget-dependent sweet spot. At low budget (32), pure exploitation (<span class="math inline">c_{\text{UCT}}=0</span>) wins — you cannot afford to explore, so follow <span class="math inline">Q</span> greedily. At high budget (128), some exploration (<span class="math inline">c_{\text{UCT}} \approx 0.25</span>) is clearly best, and pure exploitation leaves a lot on the table (0.44 vs 0.95) because it locks onto the first branch that looks good and never checks alternatives.</p>
+<p><strong>The deeper lesson.</strong> This is the exploration–exploitation tradeoff from the bandit posts, now modulated by budget. Exploration is an <em>investment</em>: it spends immediate expansions in exchange for information that pays off later. When the budget is tiny the investment cannot mature, so exploit; when it is large the information compounds, so explore. The optimal <span class="math inline">c_{\text{UCT}}</span> rises with available compute — the same logic by which the optimal bandit exploration rate depends on the horizon.</p>
+</section>
+<section id="tot-beam-width-experiments03c_sol2_beam_width.py" class="level3">
+<h3 class="anchored" data-anchor-id="tot-beam-width-experiments03c_sol2_beam_width.py">10.2 ToT beam width — <code>experiments/03c_sol2_beam_width.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_sol2_beam_width.png" class="img-fluid figure-img"></p>
+<figcaption>ToT beam width vs heuristic noise (budget 256). At noise 0.1, beam width 8 saturates at 1.0. At noise 0.3, you need width ~12. At noise 0.6, even width 20 only reaches 0.90. The noisier the heuristic, the wider the beam must be.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Wider beams always help, and they help <em>more</em> when the heuristic is noisier. With a clean heuristic (noise 0.1) a narrow beam suffices, because the top-ranked node is usually genuinely best. With a noisy heuristic (noise 0.6) the true-best node is often ranked low, so you must keep many candidates to avoid discarding it.</p>
+<p><strong>The deeper lesson.</strong> Beam width is the breadth analog of the bandit confidence interval. When your value estimates are unreliable, hedge by keeping more options alive — the same instinct as widening a confidence interval under uncertainty, committing to fewer eliminations until the evidence is stronger. Breadth (<span class="math inline">b</span>) buys robustness to noise; budget buys depth. Section 6.2’s depth problem and this section’s noise problem are addressed by the two different dials.</p>
+</section>
+<section id="where-the-value-comes-from-experiments03c_sol3_value_source.py" class="level3">
+<h3 class="anchored" data-anchor-id="where-the-value-comes-from-experiments03c_sol3_value_source.py">10.3 Where the value comes from — <code>experiments/03c_sol3_value_source.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_sol3_value_source.png" class="img-fluid figure-img"></p>
+<figcaption>Rollout-based value vs noisy-oracle value (beam width 3, budget 256). Rollout value improves with rollouts per node: 1 rollout matches a noise-0.4 oracle, 4 rollouts match the noise-0.1 oracle, 32 rollouts reach ~1.0. More rollouts buy a better value estimate.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Rollout-based value improves monotonically with the number of rollouts per node, crossing the noise-0.3 oracle at ~2 rollouts and the noise-0.1 oracle at ~4. With 32 rollouts it nearly saturates. Remember the cost model of §2: “32 rollouts per node” means each expansion costs 32 extra LLM calls, so the right-hand end of this curve is far more expensive per node than the learned-value baselines it is being compared against.</p>
+<p><strong>The deeper lesson — the AlphaGo-to-AlphaZero story in miniature.</strong> Early AlphaGo used Monte Carlo rollouts for its value estimates (the simulation step here). AlphaZero replaced them with a learned value network — one cheap forward pass instead of many rollouts. The tradeoff is exactly what this figure shows, once you fold in §2’s accounting: rollouts need no training but cost compute that scales with the accuracy you want; a learned value model is cheap per query but capped by its training quality. For LLM reasoning both appear — self-consistency-style rollouts when no value model exists, and a learned or critic-based value when one does.</p>
+</section>
+<section id="branching-factor-experiments03c_sol4_branching.py" class="level3">
+<h3 class="anchored" data-anchor-id="branching-factor-experiments03c_sol4_branching.py">10.4 Branching factor — <code>experiments/03c_sol4_branching.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03c_sol4_branching.png" class="img-fluid figure-img"></p>
+<figcaption>Branching factor vs search success (depth 4, budget 128, noise 0.3). All methods start near 1.0 at K=2 (16 leaves) and decline as K grows to 6 (1296 leaves). DFS is most robust to wide branching (0.78 at K=6); MCTS second (0.29); beam and greedy collapse fastest.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> As the branching factor <span class="math inline">K</span> grows, the tree widens exponentially (<span class="math inline">K^4</span> leaves) and a fixed budget covers proportionally less of it, so every method declines. The ordering at wide branching is DFS &gt; MCTS &gt; beam &gt; greedy — the methods with stronger recovery degrade most gracefully.</p>
+<p><strong>The deeper lesson.</strong> The branching factor is the size of the effective action space — the number of distinct next-thoughts the model considers at each step — and from §0.2 it is a <em>choice</em>. There is a real tension: a <em>wider</em> thought-generator gives search more options (more chance a good one exists) but makes the space harder to cover with fixed compute. This is why prompting an LLM to generate a <em>focused</em> set of candidate next steps (say 3–5, not 50) often works better than maximal diversity — it keeps the branching factor in the regime where search can actually cover the tree. Generation and search must be co-designed: the policy that proposes branches and the search that explores them are two halves of one system.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">11. Further reading</h2>
+<ul>
+<li><strong>Yao, Yu, Zhao, Shafran, Griffiths, Cao &amp; Narasimhan, “Tree of Thoughts: Deliberate Problem Solving with Large Language Models” (NeurIPS 2023).</strong> The ToT paper; introduces BFS/DFS over thoughts and the Game-of-24, creative-writing, and crossword tasks.</li>
+<li><strong>Kocsis &amp; Szepesvári, “Bandit based Monte-Carlo Planning” (ECML 2006).</strong> The UCT algorithm — UCB1 applied to tree search.</li>
+<li><strong>Silver et al., “Mastering the game of Go without human knowledge” (Nature 2017).</strong> AlphaZero: policy + value + MCTS with PUCT, trained by self-play.</li>
+<li><strong>Feng et al., “AlphaZero-like Tree-Search can Guide Large Language Model Decoding and Training” (2023).</strong> TS-LLM: the full policy/value/MCTS loop for LLM reasoning.</li>
+<li><strong>Zhou, Yan, Shlapentokh-Rothman, Wang &amp; Wang, “Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models” (LATS, ICML 2024).</strong> Combines ReAct-style acting with tree search and value-based pruning.</li>
+<li><strong>Browne et al., “A Survey of Monte Carlo Tree Search Methods” (IEEE TCIAIG 2012).</strong> The comprehensive MCTS reference, including the robust-child commit rule and UCT variants.</li>
+</ul>
+<hr>
+<p><strong>That completes Topic 3.</strong> We went from decoding a fixed policy (<a href="../posts/03a-decoding-as-inference.html">3a</a>) to acting with tools (<a href="../posts/03b-tool-use.html">3b</a>) to searching over reasoning (this post) — the full arc of <em>inference-time computation</em>. The recurring theme: a trained policy is just the starting point, and how cleverly we spend compute at inference time can matter as much as the training itself. Search is the most powerful — and most expensive — lever in that toolkit, and §9 is the reminder to pull it only when the space and the guide justify it.</p>
+<p><strong>Next up — Topic 4: Memory, retrieval, and reflection.</strong> Agents that act over long horizons need to remember, retrieve relevant context, and evaluate their own outputs. We treat retrieval-augmented generation as Bayesian conditioning, self-reflection as a Monte Carlo estimate of answer quality, and confront the calibration problem that §8.1 of <a href="../posts/03b-tool-use.html">Post 3b</a> flagged as foundational: an agent that doesn’t know what it doesn’t know cannot decide when to retrieve, reflect, or act.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Tree of {Thoughts} and {MCTS:} {Search} {Over} {Reasoning}},
+  date = {2026-05-28},
+  url = {https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html},
+  langid = {en}
+}
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
+Tran, Ba-Hien. 2026. <span>“Tree of Thoughts and MCTS: Search Over
+Reasoning.”</span> May 28. <a href="https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html">https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html</a>.
+</div></div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Tree of Thoughts and MCTS: Search Over Reasoning"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Topic 3, post 3 of 3. A ReAct path is a single trajectory; one bad step derails it. We turn reasoning into search over a tree — Tree of Thoughts (BFS/DFS) and MCTS with UCT — and use backtracking and exploration to recover from the errors that compound for a single path. Built from first principles, in the AlphaZero mould."</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-28"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [tree of thoughts, mcts, uct, search, planning, alphazero]</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/03c_path_vs_tree.png</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Topic 3, post 3 of 3.*</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">[</span><span class="ot">Post 3b</span><span class="co">](03b-tool-use.qmd)</span> ended on a sobering note. A ReAct agent reasons and acts along a single trajectory, and its success decays as $(1-p)^L$ with the number of steps $L$. Even a small per-step error rate compounds into near-certain failure on a long horizon. We called this the central challenge of long-horizon agents.</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>This post is the antidote. The idea is simple to state and powerful in practice: **instead of committing to one reasoning path, search over a tree of them.** When a step goes wrong, don't carry the mistake to the end — backtrack and try a different branch. When several continuations look plausible, explore the promising ones in parallel and let evidence decide.</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>This is **Tree of Thoughts** (Yao et al. 2023) and, in its most powerful form, **Monte Carlo Tree Search (MCTS)** — the search procedure at the heart of AlphaGo and AlphaZero, here applied to LLM reasoning. It is the natural culmination of Topic 3: we combine the action-space view from Post 3b with the classical tree search that descends from the value iteration of <span class="co">[</span><span class="ot">Post 1c</span><span class="co">](01c-mdps-and-bellman.qmd)</span> and the bandit exploration of <span class="co">[</span><span class="ot">Post 1a</span><span class="co">](01a-multi-armed-bandits.qmd)</span>, and we attack error-compounding head-on. By the end we will have built, from scratch, every component of the search half of the AlphaZero template — and we will be honest about where search helps, where it doesn't, and what it costs.</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. From path to tree</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="al">![From path to tree. Left: a ReAct trace is one committed trajectory — a single bad step derails the whole chain. Right: tree search explores multiple branches, expands the promising ones, and recovers from dead ends by trying alternatives.](../figures/03c_path_vs_tree.png)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>Model reasoning as a tree:</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The **root** is the problem statement.</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Each **edge** is one reasoning step — a "thought." From any node there are up to $K$ possible next thoughts (the **branching factor**).</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A **path** of length $D$ (the **depth**) reaches a **leaf**: a complete chain of reasoning ending in an answer.</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Some leaves are **correct** (reward 1); most are wrong (reward 0).</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>A ReAct trace is a single root-to-leaf path. Greedy decoding picks the highest-probability next thought at each step and never reconsiders. That is the left panel: efficient, but one wrong turn is fatal — and the deeper the reasoning, the likelier that at least one turn goes wrong.</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>Tree search is the right panel: maintain multiple candidate nodes, expand the promising ones, and — crucially — *backtrack* when a branch turns out to be a dead end. The cost is compute (more nodes expanded); the benefit is robustness against any single mistake.</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="fu">### 0.1 A concrete tree: the Game of 24</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>The abstraction is easier to hold onto with the canonical example from the Tree-of-Thoughts paper: the **Game of 24**. You are given four numbers — say <span class="in">`4, 9, 10, 13`</span> — and must combine them with $+, -, \times, \div$ to make 24. It is a genuine search problem: most combinations fail, and a wrong early move quietly forecloses every solution downstream.</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>Here a *thought* is one arithmetic step that consumes two numbers and produces one. From the root `{4, 9, 10, 13}`, candidate thoughts include `13 - 9 = 4` (leaving `{4, 4, 10}`), `10 - 4 = 6` (leaving `{6, 9, 13}`), `4 × 9 = 36` (leaving `{36, 10, 13}`), and so on — that branching is the $K$ above. Three thoughts in, you have collapsed four numbers to one; if it equals 24 the leaf is correct. A solution path is `13 - 9 = 4`, then `10 - 4 = 6`, then `4 × 6 = 24`. Greedy chain-of-thought commits to whichever first step *looks* best and is stuck if it was wrong. Tree search tries <span class="in">`13 - 9`</span> first, and if the subtree beneath it dead-ends, backtracks and tries <span class="in">`10 - 4`</span> instead.</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="fu">### 0.2 What the tree physically is</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>The tree is not a data structure handed to us — it is generated on the fly by the LLM. To produce the (up to) $K$ children of a node, you prompt the LLM $K$ times — with temperature, so the samples differ — asking for the next reasoning step given the partial solution so far; the distinct continuations *are* the children. To evaluate a node, you either ask the LLM to rate the partial solution ("is this on track to reach 24? sure / maybe / impossible") or roll out random completions from it and check how many reach a correct answer. So tree-of-thoughts search is a loop of three LLM-driven operations — **propose** candidate next steps (sampling), **evaluate** how promising each is (self-rating or rollout), and **decide** which to expand next (the search algorithm) — with the LLM serving as both the branch generator and, usually, the evaluator.</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>This is also why the branching factor is a *design choice*, not a given: it is however many candidate continuations you ask the model to generate. We will see in §10.4 that this choice has real consequences — wider is not automatically better.</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>Throughout, we replace the real LLM with a synthetic <span class="in">`ReasoningTree`</span> small enough to enumerate, where each node has a known **true value** — the fraction of correct leaves in its subtree, equivalently $P(\text{a random completion from here succeeds})$. Knowing the ground-truth value of every node lets us measure each search algorithm against an oracle and ask precise questions ("how much does heuristic noise cost?") that would be impossible to answer with a real, opaque LLM. A search algorithm tries to find a correct leaf by climbing this value gradient, guided only by a **noisy value heuristic** — the stand-in for an LLM's imperfect self-evaluation, defined next.</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. The value heuristic: where does it come from?</span></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>Search needs to estimate how promising a node is *without* expanding its whole subtree. That estimate is the **value heuristic** $\hat v(\text{node}) \approx P(\text{a correct leaf lies below this node})$, and everything downstream depends on its quality. A perfect heuristic turns search trivial — just follow the gradient to a correct leaf. A useless one reduces every algorithm to blind enumeration. Real heuristics live in between, and the entire art of search-augmented reasoning is coping with their noise. Two sources are used in practice, and they trade off bias against compute in opposite ways.</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>**A learned value model (low variance, fixed bias).** Train a model to predict $P(\text{success})$ from a partial reasoning state — or, with an LLM, simply ask it: "rate how promising this partial solution is." This is one cheap query per node, but its quality is fixed at whatever the model learned; it cannot be improved at inference time by spending more compute. In the LLM-reasoning literature this learned scorer comes in two flavours worth distinguishing. An **outcome reward model (ORM)** judges only complete solutions — did the final answer check out? A **process reward model (PRM)** scores each intermediate step — is this line of the derivation valid? PRMs are exactly value heuristics for partial states, which is what tree search wants: they let you prune a bad branch *before* paying to expand it to a leaf. We model the learned heuristic as the true value plus Gaussian noise, with $\sigma$ the knob for how good the scorer is:</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>\hat v(\text{node}) = \mathrm{clip}\big(v_{\text{true}}(\text{node}) + \mathcal{N}(0, \sigma), \; 0, \; 1\big).</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>**Monte Carlo rollouts (unbiased, high variance, compute-hungry).** From a node, sample $k$ random completions to leaves and average their rewards. This is an unbiased estimate of the true value, with no training required, and its accuracy improves with $k$ — but each rollout is itself a sequence of LLM calls, so a $k$-rollout estimate costs $k$ times as much per node. This is the "simulation" step of classic MCTS, and it is essentially the self-consistency idea from <span class="co">[</span><span class="ot">Post 3a</span><span class="co">](03a-decoding-as-inference.qmd)</span> repurposed as a value estimate: sample several completions, let their average vote on how good the starting node was.</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>Notice the verifier from Post 3a reappearing here in a new role. There, a verifier *re-ranked* finished candidates (best-of-N). Here, a value model *guides* the search before candidates are finished. Same object — a function that scores a (partial) solution — used at two different points in the pipeline. We compare the two value sources head-to-head in §10.3; the headline is that rollouts trade compute for accuracy and, with enough of them, match or beat a fixed learned model.</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. What "budget" counts: the cost model</span></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>Every figure in this post plots success against a **budget**, so it is worth being precise about what that budget buys — especially because, as the reader of an earlier draft rightly noted, BFS, DFS, rollouts, and MCTS have genuinely different cost profiles.</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>Our unit of budget is the **node expansion**: generating and evaluating the children of one node. We pick this unit because, with a real LLM, expanding a node means prompting the model to propose its next thoughts and to score them — and that LLM call dominates the cost of everything else (the bookkeeping of the search algorithm is free by comparison). One expansion $\approx$ one round of LLM calls per thought. Budgeting expansions is therefore budgeting LLM calls, which is what actually costs money and latency.</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>Three caveats keep the comparison honest:</span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**MCTS counts iterations, not raw expansions.** Each MCTS iteration runs one selection–expansion–evaluation–backpropagation cycle and expands (at most) one node, so an iteration is close to one expansion. We budget iterations for MCTS; the per-iteration cost is comparable to one expansion elsewhere, but not identical, and you should read MCTS-vs-DFS comparisons as "same order of magnitude of LLM calls," not "exactly equal."</span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Rollout-based value multiplies the per-node cost.** If you evaluate each node with $k$ rollouts (§1), then a method run at "budget $B$" actually issues roughly $B \times k$ LLM calls. When §10.3 compares rollout value to a learned value head, the learned head is one call per node and the rollouts are $k$; a fair accounting must include that multiplier.</span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The spending *pattern* differs even when the total matches.** BFS spends its budget breadth-first (expand all $b$ frontier nodes per level); DFS spends it depth-first along one path, then backtracks; MCTS spreads it adaptively, pouring expansions into whichever region currently looks best. Same currency, very different distributions over the tree — which is exactly why they behave so differently below.</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>With the cost model fixed, the comparisons that follow are fair.</span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. Tree of Thoughts: BFS and DFS</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>Tree of Thoughts (Yao et al. 2023) is the simplest family: systematically explore the tree, using the value heuristic to decide which nodes to keep and which to expand. The original paper instantiates it two ways.</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>**ToT-BFS (beam search over thoughts).** Keep the top $b$ nodes at each depth, ranked by heuristic value. Expand all of them, score their children, keep the best $b$, descend to the next level. This is exactly the beam search from <span class="co">[</span><span class="ot">Post 3a</span><span class="co">](03a-decoding-as-inference.qmd)</span> — but over reasoning *steps* rather than tokens, and ranked by a *value heuristic* rather than log-probability. The beam width $b$ is the breadth of the search: a wider beam keeps more candidates alive and so is more robust to a heuristic that occasionally mis-ranks the true-best node (we quantify this in §10.2). BFS suits problems with a fixed, shallow number of steps where you want to compare several partial solutions side by side at each stage — the Game of 24, where every solution is exactly three thoughts deep, is a natural fit.</span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>**ToT-DFS (depth-first with backtracking and pruning).** Visit the most promising child first (value-ordered), descend until you reach a leaf or a node the heuristic deems hopeless (value below a **pruning threshold**), then backtrack and try the next-best sibling. The pruning threshold is what makes DFS efficient: a branch the value model is confident about being a dead end is abandoned without expanding it fully. With enough budget DFS will exhaustively explore the reachable tree, so on small trees it is remarkably strong — backtracking guarantees it can never get *permanently* stuck, only slowed. DFS suits problems where solutions may sit at varying depths and you want to commit to a line of reasoning, follow it, and abandon it cleanly if it fails — mini-crosswords, in the original paper.</span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a>The key difference from greedy chain-of-thought is the same for both: they keep alternatives alive. **Greedy commits; ToT recovers.** Greedy throws away every path but one at each step; ToT retains enough of the frontier that a single bad evaluation costs a detour, not the whole solution.</span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. MCTS: search guided by exploration</span></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a>For large trees, exhaustive DFS is infeasible and a fixed beam is too rigid — you would either set $b$ too small and miss the solution, or too large and blow the budget on unpromising branches. **Monte Carlo Tree Search** allocates expansions *adaptively*, pouring compute into whichever part of the tree currently looks most worth investigating, using the exact exploration–exploitation logic of the bandit algorithms from <span class="co">[</span><span class="ot">Post 1a</span><span class="co">](01a-multi-armed-bandits.qmd)</span>.</span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 Two values per node — keep them straight</span></span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a>This is the point an earlier draft got wrong, and it is worth stating carefully because it is the crux of why MCTS works. Every node $c$ in the search tree carries two statistics, accumulated as the search runs:</span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>a **visit count** $N(c)$ — how many iterations have passed through $c$, and</span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>a **cumulative value** $W(c)$ — the sum of all evaluation results that have flowed back through $c$.</span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a>From these we form the **backed-up empirical value**</span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>Q(c) \;=\; \frac{W(c)}{N(c)},</span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a>the running *mean* of every evaluation that has ever passed through $c$. This is distinct from the one-shot **heuristic value** $\hat v(c)$ of §1, which is the estimate produced when a node is first evaluated. The relationship is: $\hat v$ is the raw signal computed at a leaf or newly-expanded node; $Q$ is the accumulated average of many such signals, backed up the tree. As a node is visited more, $Q(c)$ averages over more evidence and becomes more reliable than any single $\hat v$. **MCTS makes decisions using $Q$, not $\hat v$.**</span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 The four phases</span></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>Each MCTS iteration runs four phases:</span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Selection.** From the root, descend by the **UCT** rule, at each step picking the child that maximizes</span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>\text{UCT}(c) \;=\; \underbrace{Q(c)}_{\text{exploit}} \;+\; c_{\text{UCT}} \underbrace{\sqrt{\frac{\ln N(\text{parent})}{N(c)}}}_{\text{explore}}.</span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>The first term — the *backed-up empirical value* — favours children that have looked good on average so far. The second favours children that have been visited little (small $N(c)$), so their value is still uncertain. Unvisited children ($N(c)=0$) are taken first. This is precisely **UCB1** from <span class="co">[</span><span class="ot">Post 1a §4</span><span class="co">](01a-multi-armed-bandits.qmd)</span>, now applied at every node of the tree.</span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Expansion.** On reaching a node whose children have not yet been generated, expand it: generate its children (one round of "propose" calls to the LLM).</span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Evaluation.** Estimate the value of the newly reached node with the *heuristic* $\hat v$ — a learned-value query or a rollout (§1). If the node is a leaf, use its true reward instead. This single number is the iteration's fresh evidence.</span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>**Backpropagation.** Walk back from the evaluated node to the root; for every node on the path, increment $N$ by one and add the evaluation result to $W$. This is what turns a one-shot $\hat v$ into the backed-up $Q$ along the whole path.</span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>After the budget is spent, **commit to the most-visited child at each step from the root** — not the highest-$Q$ child. The visit count is the more robust signal: a child accrues visits only by repeatedly winning the UCT comparison across many iterations, so a high $N$ means the node looked good *under sustained scrutiny*, whereas a high $Q$ from few visits could be a lucky single evaluation. This "robust child" commit rule is the standard one in AlphaGo-style systems, and it is why §10.1's good runs hinge on accumulating visits, not chasing the momentary best score.</span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.3 Why this is bandits, stacked</span></span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>The UCT rule is the bridge from Topic 1. Selecting among a node's children is a multi-armed bandit problem: each child is an arm, $Q(c)$ is its running mean reward, $N(c)$ is the number of pulls, and UCB1 governs the explore/exploit tradeoff. MCTS is bandit algorithms nested into a tree, one bandit per internal node, all sharing a budget. The exploration constant $c_{\text{UCT}}$ is the same dial as the bandit's confidence width — and, as §10.1 shows, its best setting depends on the budget, exactly as the bandit's optimal exploration depended on the horizon.</span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.4 The AlphaZero variant: adding a policy prior</span></span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>One extension is worth flagging because it is what AlphaZero actually uses. Plain UCT explores purely by visit count. AlphaZero's **PUCT** rule adds a *policy prior* $P(c)$ — a probability the policy network assigns to each child — biasing exploration toward moves the policy already thinks are good:</span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>\text{PUCT}(c) \;=\; Q(c) \;+\; c_{\text{puct}}\, P(c)\, \frac{\sqrt{N(\text{parent})}}{1 + N(c)}.</span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>For LLM reasoning the prior is natural: it is the model's own probability for each candidate next thought (the log-probabilities from Post 3a). We don't implement PUCT in the toy — our branches are unlabelled by a prior — but it is a one-line change to the selection rule, and it is the mechanism by which a strong policy focuses the search.</span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. How the strategies compare</span></span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a><span class="al">![Success rate vs compute budget for the four strategies (200 random trees, depth 5, branching 3, heuristic noise 0.25). Greedy plateaus at 0.17 — no budget helps without backtracking. ToT-beam (b=3) plateaus at 0.43. ToT-DFS reaches 1.0; MCTS reaches 0.89.](../figures/03c_success_vs_budget.png)</span></span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a>With the cost model of §2 fixing the x-axis, two groups emerge:</span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Greedy and fixed-beam plateau.** Greedy makes one descent and stops — extra budget is wasted because it has no mechanism to reconsider. Beam with $b=3$ explores a fixed slice of the tree and saturates once that slice is exhausted; a wider slice needs a wider $b$, set in advance.</span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DFS and MCTS keep improving with budget.** Both can revisit and explore more of the tree, so additional compute translates into additional success.</span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>On these small trees, **DFS actually beats MCTS**. Exhaustive backtracking is hard to beat when the tree is small enough to mostly cover, and DFS has no exploration overhead — it never "wastes" a visit re-checking a branch it has already characterized. This is an honest and important caveat: MCTS is not magic. Its advantage appears at *scale*, where the tree is far too large to enumerate and the value of pouring compute adaptively into the best region — rather than methodically sweeping — finally dominates. On a problem you can nearly cover by brute force, a good DFS is the simpler and stronger choice.</span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Why search helps: noise robustness and error recovery</span></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 Robustness to a noisy heuristic</span></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a><span class="al">![Robustness to heuristic noise at a fixed budget of 128. ToT-DFS stays flat at 1.0 across all noise levels; MCTS stays near 0.9. Beam collapses from 1.0 to 0.12; greedy collapses fastest, from 1.0 to 0.04.](../figures/03c_noise_robustness.png)</span></span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>The value heuristic is never perfect — and for an LLM rating its own half-finished reasoning, it can be quite poor. So the right question is not "how does each method do with a perfect guide?" but "how gracefully does each degrade as the guide gets noisier?" As $\sigma$ grows:</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Greedy collapses fastest.** One noisy evaluation sends it down a dead branch with no recovery; its success tracks the probability that *every* step's noisiest moment didn't mislead it, which falls off a cliff.</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Beam degrades** — a fixed width can absorb a little mis-ranking but not a lot; past some noise the true-best node routinely falls outside the top $b$.</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**DFS and MCTS stay robust.** Backtracking (DFS) and exploration (MCTS) are both *recovery mechanisms*: a misleading value estimate costs some wasted expansions, not the whole run, because the algorithm retains the ability to come back and try what it skipped.</span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>The lesson generalizes well beyond the toy: the algorithms with a way to *undo* a bad decision are the ones that tolerate unreliable guidance. Since LLM self-evaluations are exactly that — unreliable guidance — this robustness is the property that matters most in practice.</span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 The payoff: defeating error compounding</span></span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>This is the figure the whole topic has been building toward.</span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a><span class="al">![Search mitigates error compounding (heuristic noise 0.3, budget 256). A single greedy path decays steeply with reasoning depth — from 0.99 at depth 2 to 0.03 at depth 7. DFS holds high through depth 5, declining only as the tree outgrows the fixed budget (0.39 at depth 7, ~13x greedy). MCTS is strong until budget-starved at depth 7.](../figures/03c_error_recovery.png)</span></span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a>Recall Post 3b: a single path's success decays as $(1-p)^L$. The greedy curve here *is* that compounding — useless past depth 4. This was the wall Topic 3 kept running into.</span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a>Search **mitigates** the decay. DFS holds near-perfect success through depth 5 and stays an order of magnitude above greedy at depth 7. The recovery mechanism directly counteracts compounding: a wrong step is no longer fatal, because the search backs up and tries again, so the failure probability is no longer a product of per-step success rates but the much gentler "did *any* explored path succeed."</span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a>But note the honesty in the figure's title: search *mitigates*, it does not *defeat*. With a fixed budget and a tree that grows as $K^D$, even DFS eventually runs out of room — at depth 7 the tree has $3^7 = 2187$ leaves and a budget of 256 cannot cover enough of them. The deeper the reasoning, the more compute search needs, and the requirement grows with the tree. There is no free lunch: search converts compute into reliability, and exponentially large trees demand exponentially much compute to fully tame. What search buys is a far better *exchange rate* than a single path — not exemption from the exponential.</span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Search vs sampling: when is the tree worth it?</span></span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a>A fair question after <span class="co">[</span><span class="ot">Post 3a</span><span class="co">](03a-decoding-as-inference.qmd)</span>, where self-consistency (sample $N$, take the mode) was a strong and very simple baseline: does structured tree search actually beat just sampling more?</span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a><span class="al">![Search vs sampling at equal budget (noise 0.25). Guided sampling — biasing each step toward high-value children — dominates at low-to-moderate budgets, reaching 0.81 at budget 32 while DFS is at 0.55. DFS overtakes only at high budget (1.0 at 128). Flat uniform sampling and MCTS trail.](../figures/03c_search_vs_sampling.png)</span></span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a>The honest and slightly humbling result: **guided sampling — the simplest method that uses the heuristic at all — wins at low-to-moderate budgets.** Just biasing each random rollout toward higher-value children (a softmax over the heuristic at each step) is remarkably effective and far cheaper to implement than any tree search, with no backtracking machinery, no node bookkeeping, and trivial parallelism (the samples are independent).</span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a>Structured search (DFS, MCTS) pulls ahead only at high budgets, where exhaustive or near-exhaustive exploration becomes possible and systematic coverage finally pays off. This mirrors a robust real-world finding: self-consistency with a good model is a strong baseline that fancier search struggles to beat at modest compute. It echoes Post 3a's lesson that test-time compute and method sophistication are partial substitutes — you can often buy with raw samples what you would otherwise buy with algorithmic cleverness.</span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. The AlphaZero connection</span></span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a>Everything in this post is a piece of the **AlphaZero** template, the most successful marriage of learning and search to date. AlphaZero has three components:</span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>A **policy network** $\pi(a \mid s)$ — proposes promising actions (here: which thoughts to consider, i.e. the branching, and the prior $P(c)$ in PUCT).</span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>A **value network** $v(s)$ — estimates how good a state is (here: our value heuristic of §1).</span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**MCTS** — uses both to search, producing improved action choices that then become training targets for the policy and value networks.</span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a>The loop closes: search improves on the raw policy (a few hundred simulations choose better moves than the policy alone), and the improved choices are distilled back into the networks — policy improvement, exactly the operator from <span class="co">[</span><span class="ot">Post 2c</span><span class="co">](02c-trpo-and-ppo.qmd)</span>, with MCTS playing the role of the improvement step. Iterate, and policy and value co-evolve toward expert play with no human data.</span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a>How far does this carry over to LLM reasoning? It is worth being careful, because the honest answer is "partially, and unevenly." The template has been realized end-to-end in *some* systems we can point to. **AlphaProof** (DeepMind, 2024) couples a language model with tree search over formal proof steps in Lean, in the explicit AlphaZero mould, and reached medal-level performance on competition mathematics. **TS-LLM / "AlphaZero-like Tree-Search"** (Feng et al. 2023) demonstrates the full loop — an LLM policy, a learned value, and MCTS — guiding both decoding and training on reasoning benchmarks. **LATS** (Zhou et al. 2024) combines ReAct-style acting with tree search and value-based pruning. In these systems, the pieces we built — a policy that proposes steps, a value model that scores partial solutions, and search that stitches them into reliable chains — are demonstrably composed exactly as described.</span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a>What we should *not* claim is that every headline "reasoning model" works this way. The internals of commercial systems like OpenAI's o-series or DeepSeek-R1 are not public, and the available evidence suggests much of their gain comes from reinforcement learning over long chains of thought rather than from explicit tree search at inference time. Search over reasoning and RL over reasoning are related — both spend compute to improve a chain — but they are not the same mechanism, and conflating them is a common error. The safe statement is the one this post actually supports: explicit tree search *is* a proven way to compose a policy and a value model into reliable long-horizon reasoning, demonstrated in systems like AlphaProof and TS-LLM, and we have now built its search half from scratch.</span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. When should you actually use this?</span></span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a>It is easy to read a post about MCTS and reach for MCTS. Resist that. Here is the decision order the experiments above support, cheapest first:</span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Start with guided sampling.** Sample several reasoning chains, bias each step toward the value heuristic, and take the best or most common answer. It is trivial to implement, embarrassingly parallel, and — per §7 — the strongest option at low-to-moderate budgets. For most applications this is where you should stop.</span>
+<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Use DFS (with pruning) for small or discrete trees.** When the reasoning has a bounded, modest number of steps and a clear notion of a dead end — the Game of 24, constraint puzzles, short proof search — depth-first search with a pruning threshold is simple, exhaustive in the limit, and per §5 often *beats* MCTS on trees you can nearly cover.</span>
+<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Reserve MCTS for large spaces where exploration pays.** MCTS earns its complexity only when the tree is far too large to enumerate *and* your value estimates genuinely improve as you explore (so the adaptive allocation has something to allocate toward). This is the AlphaGo regime — enormous branching, a value network that sharpens with search. If your tree is small or your heuristic is fixed and decent, a simpler method will match it for less code.</span>
+<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Across all of them, widen breadth when the heuristic is noisy and budget when reasoning is deep** (§10.2, §6.2), and tune exploration to your budget (§10.1).</span>
+<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a>The meta-lesson: the sophistication of your search should match the size of your space and the quality of your guide — not the sophistication you wish to display.</span>
+<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a><span class="fu">## 10. Experiments and solutions</span></span>
+<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-224"><a href="#cb1-224" aria-hidden="true" tabindex="-1"></a><span class="fu">### 10.1 The MCTS exploration constant — `experiments/03c_sol1_cuct_sweep.py`</span></span>
+<span id="cb1-225"><a href="#cb1-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-226"><a href="#cb1-226" aria-hidden="true" tabindex="-1"></a><span class="al">![MCTS success vs the UCT exploration constant, at budgets 32 and 128. At budget 32, c=0 (pure exploitation) is best (0.30) and more exploration hurts. At budget 128, the best is c≈0.25 (0.95), and pure exploitation (c=0) drops to 0.44.](../figures/03c_sol1_cuct_sweep.png)</span></span>
+<span id="cb1-227"><a href="#cb1-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-228"><a href="#cb1-228" aria-hidden="true" tabindex="-1"></a>**What you should see.** A budget-dependent sweet spot. At low budget (32), pure exploitation ($c_{\text{UCT}}=0$) wins — you cannot afford to explore, so follow $Q$ greedily. At high budget (128), some exploration ($c_{\text{UCT}} \approx 0.25$) is clearly best, and pure exploitation leaves a lot on the table (0.44 vs 0.95) because it locks onto the first branch that looks good and never checks alternatives.</span>
+<span id="cb1-229"><a href="#cb1-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-230"><a href="#cb1-230" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** This is the exploration–exploitation tradeoff from the bandit posts, now modulated by budget. Exploration is an *investment*: it spends immediate expansions in exchange for information that pays off later. When the budget is tiny the investment cannot mature, so exploit; when it is large the information compounds, so explore. The optimal $c_{\text{UCT}}$ rises with available compute — the same logic by which the optimal bandit exploration rate depends on the horizon.</span>
+<span id="cb1-231"><a href="#cb1-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-232"><a href="#cb1-232" aria-hidden="true" tabindex="-1"></a><span class="fu">### 10.2 ToT beam width — `experiments/03c_sol2_beam_width.py`</span></span>
+<span id="cb1-233"><a href="#cb1-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-234"><a href="#cb1-234" aria-hidden="true" tabindex="-1"></a><span class="al">![ToT beam width vs heuristic noise (budget 256). At noise 0.1, beam width 8 saturates at 1.0. At noise 0.3, you need width ~12. At noise 0.6, even width 20 only reaches 0.90. The noisier the heuristic, the wider the beam must be.](../figures/03c_sol2_beam_width.png)</span></span>
+<span id="cb1-235"><a href="#cb1-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-236"><a href="#cb1-236" aria-hidden="true" tabindex="-1"></a>**What you should see.** Wider beams always help, and they help *more* when the heuristic is noisier. With a clean heuristic (noise 0.1) a narrow beam suffices, because the top-ranked node is usually genuinely best. With a noisy heuristic (noise 0.6) the true-best node is often ranked low, so you must keep many candidates to avoid discarding it.</span>
+<span id="cb1-237"><a href="#cb1-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-238"><a href="#cb1-238" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Beam width is the breadth analog of the bandit confidence interval. When your value estimates are unreliable, hedge by keeping more options alive — the same instinct as widening a confidence interval under uncertainty, committing to fewer eliminations until the evidence is stronger. Breadth ($b$) buys robustness to noise; budget buys depth. Section 6.2's depth problem and this section's noise problem are addressed by the two different dials.</span>
+<span id="cb1-239"><a href="#cb1-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-240"><a href="#cb1-240" aria-hidden="true" tabindex="-1"></a><span class="fu">### 10.3 Where the value comes from — `experiments/03c_sol3_value_source.py`</span></span>
+<span id="cb1-241"><a href="#cb1-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-242"><a href="#cb1-242" aria-hidden="true" tabindex="-1"></a><span class="al">![Rollout-based value vs noisy-oracle value (beam width 3, budget 256). Rollout value improves with rollouts per node: 1 rollout matches a noise-0.4 oracle, 4 rollouts match the noise-0.1 oracle, 32 rollouts reach ~1.0. More rollouts buy a better value estimate.](../figures/03c_sol3_value_source.png)</span></span>
+<span id="cb1-243"><a href="#cb1-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-244"><a href="#cb1-244" aria-hidden="true" tabindex="-1"></a>**What you should see.** Rollout-based value improves monotonically with the number of rollouts per node, crossing the noise-0.3 oracle at ~2 rollouts and the noise-0.1 oracle at ~4. With 32 rollouts it nearly saturates. Remember the cost model of §2: "32 rollouts per node" means each expansion costs 32 extra LLM calls, so the right-hand end of this curve is far more expensive per node than the learned-value baselines it is being compared against.</span>
+<span id="cb1-245"><a href="#cb1-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-246"><a href="#cb1-246" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — the AlphaGo-to-AlphaZero story in miniature.** Early AlphaGo used Monte Carlo rollouts for its value estimates (the simulation step here). AlphaZero replaced them with a learned value network — one cheap forward pass instead of many rollouts. The tradeoff is exactly what this figure shows, once you fold in §2's accounting: rollouts need no training but cost compute that scales with the accuracy you want; a learned value model is cheap per query but capped by its training quality. For LLM reasoning both appear — self-consistency-style rollouts when no value model exists, and a learned or critic-based value when one does.</span>
+<span id="cb1-247"><a href="#cb1-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-248"><a href="#cb1-248" aria-hidden="true" tabindex="-1"></a><span class="fu">### 10.4 Branching factor — `experiments/03c_sol4_branching.py`</span></span>
+<span id="cb1-249"><a href="#cb1-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-250"><a href="#cb1-250" aria-hidden="true" tabindex="-1"></a><span class="al">![Branching factor vs search success (depth 4, budget 128, noise 0.3). All methods start near 1.0 at K=2 (16 leaves) and decline as K grows to 6 (1296 leaves). DFS is most robust to wide branching (0.78 at K=6); MCTS second (0.29); beam and greedy collapse fastest.](../figures/03c_sol4_branching.png)</span></span>
+<span id="cb1-251"><a href="#cb1-251" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-252"><a href="#cb1-252" aria-hidden="true" tabindex="-1"></a>**What you should see.** As the branching factor $K$ grows, the tree widens exponentially ($K^4$ leaves) and a fixed budget covers proportionally less of it, so every method declines. The ordering at wide branching is DFS &gt; MCTS &gt; beam &gt; greedy — the methods with stronger recovery degrade most gracefully.</span>
+<span id="cb1-253"><a href="#cb1-253" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-254"><a href="#cb1-254" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** The branching factor is the size of the effective action space — the number of distinct next-thoughts the model considers at each step — and from §0.2 it is a *choice*. There is a real tension: a *wider* thought-generator gives search more options (more chance a good one exists) but makes the space harder to cover with fixed compute. This is why prompting an LLM to generate a *focused* set of candidate next steps (say 3–5, not 50) often works better than maximal diversity — it keeps the branching factor in the regime where search can actually cover the tree. Generation and search must be co-designed: the policy that proposes branches and the search that explores them are two halves of one system.</span>
+<span id="cb1-255"><a href="#cb1-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-256"><a href="#cb1-256" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-257"><a href="#cb1-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-258"><a href="#cb1-258" aria-hidden="true" tabindex="-1"></a><span class="fu">## 11. Further reading</span></span>
+<span id="cb1-259"><a href="#cb1-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-260"><a href="#cb1-260" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Yao, Yu, Zhao, Shafran, Griffiths, Cao &amp; Narasimhan, "Tree of Thoughts: Deliberate Problem Solving with Large Language Models" (NeurIPS 2023).** The ToT paper; introduces BFS/DFS over thoughts and the Game-of-24, creative-writing, and crossword tasks.</span>
+<span id="cb1-261"><a href="#cb1-261" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Kocsis &amp; Szepesvári, "Bandit based Monte-Carlo Planning" (ECML 2006).** The UCT algorithm — UCB1 applied to tree search.</span>
+<span id="cb1-262"><a href="#cb1-262" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Silver et al., "Mastering the game of Go without human knowledge" (Nature 2017).** AlphaZero: policy + value + MCTS with PUCT, trained by self-play.</span>
+<span id="cb1-263"><a href="#cb1-263" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Feng et al., "AlphaZero-like Tree-Search can Guide Large Language Model Decoding and Training" (2023).** TS-LLM: the full policy/value/MCTS loop for LLM reasoning.</span>
+<span id="cb1-264"><a href="#cb1-264" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Zhou, Yan, Shlapentokh-Rothman, Wang &amp; Wang, "Language Agent Tree Search Unifies Reasoning, Acting, and Planning in Language Models" (LATS, ICML 2024).** Combines ReAct-style acting with tree search and value-based pruning.</span>
+<span id="cb1-265"><a href="#cb1-265" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Browne et al., "A Survey of Monte Carlo Tree Search Methods" (IEEE TCIAIG 2012).** The comprehensive MCTS reference, including the robust-child commit rule and UCT variants.</span>
+<span id="cb1-266"><a href="#cb1-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-267"><a href="#cb1-267" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-268"><a href="#cb1-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-269"><a href="#cb1-269" aria-hidden="true" tabindex="-1"></a>**That completes Topic 3.** We went from decoding a fixed policy (<span class="co">[</span><span class="ot">3a</span><span class="co">](03a-decoding-as-inference.qmd)</span>) to acting with tools (<span class="co">[</span><span class="ot">3b</span><span class="co">](03b-tool-use.qmd)</span>) to searching over reasoning (this post) — the full arc of *inference-time computation*. The recurring theme: a trained policy is just the starting point, and how cleverly we spend compute at inference time can matter as much as the training itself. Search is the most powerful — and most expensive — lever in that toolkit, and §9 is the reminder to pull it only when the space and the guide justify it.</span>
+<span id="cb1-270"><a href="#cb1-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-271"><a href="#cb1-271" aria-hidden="true" tabindex="-1"></a>**Next up — Topic 4: Memory, retrieval, and reflection.** Agents that act over long horizons need to remember, retrieve relevant context, and evaluate their own outputs. We treat retrieval-augmented generation as Bayesian conditioning, self-reflection as a Monte Carlo estimate of answer quality, and confront the calibration problem that §8.1 of <span class="co">[</span><span class="ot">Post 3b</span><span class="co">](03b-tool-use.qmd)</span> flagged as foundational: an agent that doesn't know what it doesn't know cannot decide when to retrieve, reflect, or act.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/03c-tree-of-thoughts.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

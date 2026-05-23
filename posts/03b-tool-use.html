@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-27">
+<meta name="description" content="Topic 3, post 2 of 3. When an LM can call tools, it becomes an agent acting in an extended MDP. We build the ReAct loop from scratch, frame tool use as a POMDP, derive when to call a tool, and watch errors compound over multi-hop chains.">
+
+<title>Tool Use as Actions: ReAct and the Agent Loop – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-df4e96bc8c3facb458d6222fd420fecc.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-agent-loop" id="toc-the-agent-loop" class="nav-link active" data-scroll-target="#the-agent-loop">0. The agent loop</a>
+  <ul class="collapse">
+  <li><a href="#tool-use-as-a-pomdp" id="toc-tool-use-as-a-pomdp" class="nav-link" data-scroll-target="#tool-use-as-a-pomdp">0.1 Tool use as a POMDP</a></li>
+  <li><a href="#the-belief-view" id="toc-the-belief-view" class="nav-link" data-scroll-target="#the-belief-view">0.2 The belief view</a></li>
+  </ul></li>
+  <li><a href="#why-tools-the-internal-accuracy-cliff" id="toc-why-tools-the-internal-accuracy-cliff" class="nav-link" data-scroll-target="#why-tools-the-internal-accuracy-cliff">1. Why tools? The internal-accuracy cliff</a></li>
+  <li><a href="#a-react-trace" id="toc-a-react-trace" class="nav-link" data-scroll-target="#a-react-trace">2. A ReAct trace</a></li>
+  <li><a href="#the-step-budget" id="toc-the-step-budget" class="nav-link" data-scroll-target="#the-step-budget">3. The step budget</a></li>
+  <li><a href="#when-should-a-rational-agent-call-a-tool" id="toc-when-should-a-rational-agent-call-a-tool" class="nav-link" data-scroll-target="#when-should-a-rational-agent-call-a-tool">4. When should a rational agent call a tool?</a></li>
+  <li><a href="#the-anatomy-of-real-tool-use" id="toc-the-anatomy-of-real-tool-use" class="nav-link" data-scroll-target="#the-anatomy-of-real-tool-use">5. The anatomy of real tool use</a>
+  <ul class="collapse">
+  <li><a href="#read-tools-vs-write-effectful-tools" id="toc-read-tools-vs-write-effectful-tools" class="nav-link" data-scroll-target="#read-tools-vs-write-effectful-tools">5.1 Read tools vs write (effectful) tools</a></li>
+  <li><a href="#which-tool-selection-as-part-of-the-policy" id="toc-which-tool-selection-as-part-of-the-policy" class="nav-link" data-scroll-target="#which-tool-selection-as-part-of-the-policy">5.2 Which tool? Selection as part of the policy</a></li>
+  <li><a href="#how-models-learn-to-use-tools-at-all" id="toc-how-models-learn-to-use-tools-at-all" class="nav-link" data-scroll-target="#how-models-learn-to-use-tools-at-all">5.3 How models learn to use tools at all</a></li>
+  </ul></li>
+  <li><a href="#forward-connections" id="toc-forward-connections" class="nav-link" data-scroll-target="#forward-connections">6. Forward connections</a>
+  <ul class="collapse">
+  <li><a href="#tools-and-verifiers-are-the-same-thing" id="toc-tools-and-verifiers-are-the-same-thing" class="nav-link" data-scroll-target="#tools-and-verifiers-are-the-same-thing">6.1 Tools and verifiers are the same thing</a></li>
+  <li><a href="#toward-search-post-3c" id="toc-toward-search-post-3c" class="nav-link" data-scroll-target="#toward-search-post-3c">6.2 Toward search (Post 3c)</a></li>
+  <li><a href="#the-reliability-problem" id="toc-the-reliability-problem" class="nav-link" data-scroll-target="#the-reliability-problem">6.3 The reliability problem</a></li>
+  </ul></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">7. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#optimal-tool-use-threshold" id="toc-optimal-tool-use-threshold" class="nav-link" data-scroll-target="#optimal-tool-use-threshold">7.1 Optimal tool-use threshold</a></li>
+  <li><a href="#error-compounding-over-chains" id="toc-error-compounding-over-chains" class="nav-link" data-scroll-target="#error-compounding-over-chains">7.2 Error compounding over chains</a></li>
+  <li><a href="#robustness-to-unreliable-tools" id="toc-robustness-to-unreliable-tools" class="nav-link" data-scroll-target="#robustness-to-unreliable-tools">7.3 Robustness to unreliable tools</a></li>
+  <li><a href="#react-vs-answer-immediately" id="toc-react-vs-answer-immediately" class="nav-link" data-scroll-target="#react-vs-answer-immediately">7.4 ReAct vs answer-immediately</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">8. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#optimal-tool-use-threshold-experiments03b_sol1_optimal_threshold.py" id="toc-optimal-tool-use-threshold-experiments03b_sol1_optimal_threshold.py" class="nav-link" data-scroll-target="#optimal-tool-use-threshold-experiments03b_sol1_optimal_threshold.py">8.1 Optimal tool-use threshold — <code>experiments/03b_sol1_optimal_threshold.py</code></a></li>
+  <li><a href="#error-compounding-experiments03b_sol2_chain_length.py" id="toc-error-compounding-experiments03b_sol2_chain_length.py" class="nav-link" data-scroll-target="#error-compounding-experiments03b_sol2_chain_length.py">8.2 Error compounding — <code>experiments/03b_sol2_chain_length.py</code></a></li>
+  <li><a href="#robustness-to-unreliable-tools-experiments03b_sol3_tool_errors.py" id="toc-robustness-to-unreliable-tools-experiments03b_sol3_tool_errors.py" class="nav-link" data-scroll-target="#robustness-to-unreliable-tools-experiments03b_sol3_tool_errors.py">8.3 Robustness to unreliable tools — <code>experiments/03b_sol3_tool_errors.py</code></a></li>
+  <li><a href="#react-vs-answer-immediately-experiments03b_sol4_react_vs_immediate.py" id="toc-react-vs-answer-immediately-experiments03b_sol4_react_vs_immediate.py" class="nav-link" data-scroll-target="#react-vs-answer-immediately-experiments03b_sol4_react_vs_immediate.py">8.4 ReAct vs answer-immediately — <code>experiments/03b_sol4_react_vs_immediate.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">9. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/03b-tool-use.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Tool Use as Actions: ReAct and the Agent Loop</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">tool use</div>
+    <div class="quarto-category">react</div>
+    <div class="quarto-category">agents</div>
+    <div class="quarto-category">pomdp</div>
+    <div class="quarto-category">multi-hop reasoning</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Topic 3, post 2 of 3. When an LM can call tools, it becomes an agent acting in an extended MDP. We build the ReAct loop from scratch, frame tool use as a POMDP, derive when to call a tool, and watch errors compound over multi-hop chains.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 27, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Topic 3, post 2 of 3.</em></p>
+</blockquote>
+<p>In <a href="../posts/03a-decoding-as-inference.html">Post 3a</a> we treated a trained LM as a fixed distribution and asked how to sample from it well. The most powerful technique we found — best-of-N with a verifier — already hinted at something bigger: what if the “verifier” isn’t just a passive scorer, but an active <em>tool</em> the model can call mid-generation? A calculator. A search engine. A Python interpreter. A database.</p>
+<p>Once the model can call tools, something qualitative changes. It is no longer producing a single forward pass of text. It is <strong>acting</strong> — emitting an action, receiving a result from the world, and deciding what to do next based on that result. It has become an agent.</p>
+<p>Why does this matter so much? Because it can relax the two hardest limits on a fixed language model, when used correctly. A model’s weights are frozen and finite: it cannot know facts that postdate its training, and it cannot reliably execute precise procedures (arithmetic, code, lookups) that it only ever saw demonstrated. Tools can relax both limits — a search tool gives access to current information, a Python interpreter gives exact computation, a database gives ground truth — <em>provided the agent calls the right tool at the right time and uses what it returns correctly</em>. (As §8.3 shows, a badly-chosen or unreliable tool can make things worse, so “dissolve” would overstate it.) The model stops having to <em>be</em> an oracle and instead becomes a controller that knows <em>which</em> oracle to consult and how to use what it returns.</p>
+<p>This post builds that agent loop from scratch. The thesis: <strong>tool use turns the LM into an agent in an extended MDP</strong>, and the entire framework from Topic 1 — states, actions, observations, rewards, the POMDP belief update — applies directly. We’ll see the mechanism by which a text-only model calls a tool, implement ReAct (Yao et al.&nbsp;2022), frame it as a POMDP, derive when a rational agent should call a tool, and confront the central difficulty of agents: errors compound over long horizons.</p>
+<hr>
+<section id="the-agent-loop" class="level2">
+<h2 class="anchored" data-anchor-id="the-agent-loop">0. The agent loop</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_react_loop.png" class="img-fluid figure-img"></p>
+<figcaption>The ReAct loop. The agent (LM policy) chooses among THINK (a reasoning token), ACT (a tool call), and ANSWER (final output). Tool calls go to the environment; results return as observations. The cycle repeats until the agent answers and receives reward.</figcaption>
+</figure>
+</div>
+<p>Before the framework, the mechanism — because it is less magical than it sounds. A language model can do exactly one thing: emit text, one token at a time. It cannot run code, query a database, or browse the web. So how does it “call” a calculator?</p>
+<p>By convention. The model is prompted or fine-tuned to emit a specific structured string when it wants a tool — something like <code>Action: calculator[17 * 23]</code>. Around the model sits a <strong>harness</strong>: an ordinary program (not a neural network) that watches the generated text stream. When the harness recognizes the action pattern, it <em>pauses</em> generation, parses out the arguments, actually executes the real tool, and pastes the result back into the model’s context as an observation — <code>Observation: 391</code>. Then it resumes generation. The model, reading its own context, now sees the observation as if it had always been there, and continues from it.</p>
+<p>That loop — <em>model emits an action string → harness intercepts and executes → result appended to context → model continues</em> — is the entire mechanism of tool use. The intelligence is deliberately split: the model decides <em>what</em> to do and the harness does it. The model never executes anything; it orchestrates by emitting text that a program agrees to interpret. Modern “function calling” or “tool calling” APIs just formalize the convention — the model emits JSON conforming to a declared tool schema, and the harness dispatches on it — but the underlying loop is the same one ReAct introduced.</p>
+<p>The textual scaffolding that makes this legible is the <strong>Thought / Action / Observation</strong> format. A ReAct transcript reads like a diary: the model writes a thought (“I should compute 17 times 23”), then an action (<code>calculator[17 * 23]</code>), the harness injects an observation (<code>391</code>), and the model writes its next thought conditioned on it. Reasoning and acting interleave, each informing the next. Abstractly:</p>
+<p><strong>ReAct</strong> — Reasoning + Acting — interleaves three kinds of step:</p>
+<ul>
+<li><strong>THINK</strong>: an internal reasoning token. No effect on the environment; it updates the agent’s own working memory.</li>
+<li><strong>ACT</strong>: a tool call. The agent emits a structured action (e.g., <code>calculator(17, *, 23)</code>), the environment executes it, and returns an <strong>observation</strong>.</li>
+<li><strong>ANSWER</strong>: the agent emits its final output. The episode ends; reward is assigned.</li>
+</ul>
+<p>This is exactly an episode in a Markov Decision Process. Let’s make the correspondence precise, because it’s the whole point.</p>
+<section id="tool-use-as-a-pomdp" class="level3">
+<h3 class="anchored" data-anchor-id="tool-use-as-a-pomdp">0.1 Tool use as a POMDP</h3>
+<p>The cleanest formal model is the <strong>partially observable</strong> MDP from <a href="../posts/01d-pomdps-and-q-learning.html">Post 1d</a>, because the thing the agent is reasoning about — the true answer, the actual state of the world — is hidden from it. Mapping the pieces:</p>
+<ul>
+<li><strong>Hidden state.</strong> The true world/task state — the actual population of Paris, the real contents of the file, the correct answer. The agent never observes this directly; it is what the agent is trying to pin down.</li>
+<li><strong>Observations.</strong> What the agent actually sees: the conversation history (prompt, prior thoughts) and the outputs returned by tools. These are partial, noisy evidence about the hidden state. The prompt-plus-history is the agent’s <em>observation/context</em>, <strong>not</strong> the true MDP state — a distinction worth keeping, because conflating “what the agent has seen” with “how the world actually is” is exactly the error partial observability forces us to avoid.</li>
+<li><strong>Actions.</strong> It is useful to work at the level of <em>semantic macro-actions</em> — <code>THINK</code> (an internal reasoning step), <code>ACT(tool, args)</code> (invoke a tool), and <code>ANSWER</code> (commit a final output) — rather than raw tokens. This is a layered picture: at the <strong>token level</strong> the LM only ever emits text; at the <strong>harness level</strong>, certain structured spans of that text are <em>interpreted</em> as tool calls or as a final answer. The macro-actions are the agent-level abstraction over the token-level emission.</li>
+<li><strong>Belief.</strong> The agent’s inferred representation of the hidden state, updated as observations arrive — implicitly carried in the transformer’s activations over the growing context.</li>
+<li><strong>Reward.</strong> Assigned at the <code>ANSWER</code> step (1 if correct, 0 otherwise, in the simplest case).</li>
+</ul>
+<p>The augmentation that makes this <em>agentic</em> is in the action space: a vanilla LM’s actions are just the vocabulary; a tool-using LM’s macro-actions include calls that reach out into the world and return observations. Everything else — the policy, the trajectory, the return — carries over from Topic 2, now over a partially observed state.</p>
+</section>
+<section id="the-belief-view" class="level3">
+<h3 class="anchored" data-anchor-id="the-belief-view">0.2 The belief view</h3>
+<p>So the agent’s job is to take actions (tool calls) that produce observations, accumulating enough evidence to answer. This is the POMDP belief-update structure of Post 1d: each observation refines the agent’s belief about the hidden answer. To be careful about one phrasing, though — the <strong>ReAct trace is not literally the belief; it is the evidence/history from which the model forms an implicit belief.</strong> The written transcript of thoughts and observations is the <em>record of evidence</em>; the belief is whatever internal representation the model computes from that record when deciding its next action. Calling the trace “the belief” is a useful shorthand, but the trace is the data and the belief is the (approximate, learned) inference drawn from it.</p>
+<p>We saw this in the Tiger problem (Post 1d): the agent listens (observes), updates its belief, and acts once confident. Tool use is the same loop with a richer observation space.</p>
+<hr>
+</section>
+</section>
+<section id="why-tools-the-internal-accuracy-cliff" class="level2">
+<h2 class="anchored" data-anchor-id="why-tools-the-internal-accuracy-cliff">1. Why tools? The internal-accuracy cliff</h2>
+<p>The motivating empirical fact: LMs are unreliable at certain operations — multi-digit arithmetic being the canonical example — and tools are exact.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_internal_vs_tool.png" class="img-fluid figure-img"></p>
+<figcaption>Internal arithmetic degrades sharply with operand size (red), while a calculator stays exact (blue). Right: the synthetic model’s internal-accuracy curve P(correct) = base·exp(−decay·difficulty), with the shaded region showing the value of the tool.</figcaption>
+</figure>
+</div>
+<p>We model this with a synthetic agent whose internal arithmetic accuracy decays exponentially with problem difficulty:</p>
+<p><span class="math display">
+P(\text{correct internally} \mid \text{difficulty } d) = \alpha \cdot e^{-\lambda \max(d - d_0, 0)}.
+</span></p>
+<p>Small problems (<span class="math inline">d \le d_0</span>): nearly always right. Large problems: nearly always wrong. A calculator tool, by contrast, returns the exact answer regardless of difficulty.</p>
+<p>This is not a strawman. Real LLMs show exactly this profile: high accuracy on single-digit arithmetic, falling off a cliff as the operands grow, because they’re pattern-matching rather than executing an algorithm. The fix isn’t a bigger model — it’s giving the model a calculator. The same logic extends to search (for facts beyond training data), code execution (for precise computation), and databases (for current information).</p>
+<p>It is worth being precise about <em>why</em> the cliff exists, because it tells you which problems tools fix and which they don’t. A transformer computes in a fixed number of forward-pass steps; multi-digit multiplication requires a number of sequential carry operations that grows with the operand size, so beyond some width the algorithm simply does not fit in the available depth, and the model falls back to interpolating between memorized patterns. The failure is <em>structural</em>, not a knowledge gap — which is exactly why scaling the model up shifts the cliff right but never removes it, while a calculator removes it entirely. The general principle: tools help most for tasks that are <strong>precise, verifiable, and procedural</strong> (arithmetic, lookups, code execution, unit conversions) — tasks where a short exact procedure exists that the model approximates poorly. They help <em>least</em> for tasks that are about judgment, synthesis, or fluency, where there is no external oracle to call and the model’s own distribution is the best available answer. Knowing which side of that line a sub-task falls on is the first thing a good agent designer decides, and it is what the decision rule of §4 formalizes.</p>
+<hr>
+</section>
+<section id="a-react-trace" class="level2">
+<h2 class="anchored" data-anchor-id="a-react-trace">2. A ReAct trace</h2>
+<p>The multi-step structure is clearest on a <strong>multi-hop</strong> task: a question whose answer requires chaining several lookups. We use a small knowledge graph where entities are connected by typed relations (<code>next</code>, <code>parent</code>, <code>linked</code>), and each entity has a numeric <code>value</code>.</p>
+<p>A task: “Starting from E0, follow <code>linked</code>, then <code>parent</code>, then <code>parent</code>, then read the <code>value</code>.” No single lookup answers it — the agent must chain four tool calls, feeding each result into the next.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_react_trace.png" class="img-fluid figure-img"></p>
+<figcaption>A ReAct episode on a 4-hop lookup. The agent alternates ACT (call lookup) and OBSERVE (receive the result), threading the output of one lookup into the input of the next, until it reads the final value and answers. Each observation is one step of belief refinement.</figcaption>
+</figure>
+</div>
+<p>This trace is the heart of agentic behavior. Notice:</p>
+<ul>
+<li>The agent <strong>threads state</strong>: the observation E2 becomes the input to the next lookup <code>(E2, parent)</code>.</li>
+<li>It <strong>cannot shortcut</strong>: there’s no way to answer without performing each hop, because the intermediate entities are hidden until queried.</li>
+<li>The reward is <strong>sparse and terminal</strong>: correct only if the entire chain executes correctly.</li>
+</ul>
+<p>This is precisely the POMDP belief update. The agent starts knowing only E0. Each lookup is an action that yields an observation, collapsing uncertainty about the next entity in the chain. After four observations, the belief concentrates on the answer.</p>
+<p>In a real system, the clean trace above hides a layer of unglamorous harness engineering that is the difference between a demo and a working agent. The model emits <em>text</em>, and text is messy: it may produce a malformed action (<code>lookup(E2</code> with a missing paren), hallucinate a tool that doesn’t exist, pass arguments of the wrong type, or wrap the call in prose the parser doesn’t expect. A production harness must therefore (a) parse defensively — typically constraining the model to a strict format (JSON matching a tool schema) and validating before executing; (b) handle tool errors as <em>observations</em> rather than crashes — when a lookup fails, the harness appends <code>Observation: error: unknown relation</code> and lets the model recover on the next step, exactly as a human would re-read an error message and retry; and (c) guard against loops, since a confused agent will happily call the same failing tool forever (hence the step budget of §3, which doubles as a safety cutoff). The ReAct format earns its keep here: because every action and observation is explicit text in the context, the agent can <em>see</em> its own error and correct it — error recovery is just more reasoning over a longer trace. This is also why modern tool-use APIs constrain generation to a schema: it moves the “is this a valid action?” check from fragile post-hoc parsing into the decoding process itself.</p>
+<hr>
+</section>
+<section id="the-step-budget" class="level2">
+<h2 class="anchored" data-anchor-id="the-step-budget">3. The step budget</h2>
+<p>Multi-hop tasks expose a basic resource constraint: an <span class="math inline">L</span>-hop task needs at least <span class="math inline">L</span> tool calls. If the agent’s step budget is smaller, it physically cannot complete the chain.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_step_budget.png" class="img-fluid figure-img"></p>
+<figcaption>Multi-hop success vs step budget, for chain lengths 2, 4, 6, 8. Each shows a sharp threshold: success is 0 below (chain length + 1) tool calls, then jumps to 1.0. Dotted lines mark each chain’s minimum budget.</figcaption>
+</figure>
+</div>
+<p>The phase transition is crisp. Below the required budget, success is zero — not low, <em>zero</em>, because the agent can’t reach the answer. At and above, success is one (for the oracle policy).</p>
+<p>The practical implication: <strong>agent frameworks must budget steps for the hardest expected task</strong>. Too few steps and hard tasks are unsolvable regardless of model quality. This is why production agent systems expose a <code>max_steps</code> or <code>max_iterations</code> parameter, and why setting it too low silently caps capability.</p>
+<p>The “+1” in the threshold is the final <code>value</code> read — the chain of <span class="math inline">L</span> relations plus one attribute lookup. Different task structures have different constants, but the linear relationship between horizon and required budget is robust <em>in this synthetic multi-hop task</em>, where success is exactly zero below the required number of calls because every hop is mandatory and hidden. Real tasks are softer: a model may shortcut a chain with prior knowledge, a single retrieved document may contain several hops at once, or partial credit may be available — so the real-world version is “too small a budget caps capability,” not a perfectly sharp zero-to-one cliff.</p>
+<hr>
+</section>
+<section id="when-should-a-rational-agent-call-a-tool" class="level2">
+<h2 class="anchored" data-anchor-id="when-should-a-rational-agent-call-a-tool">4. When should a rational agent call a tool?</h2>
+<p>Tools aren’t free. Each call costs latency, tokens, money, and sometimes reliability. A rational agent should call a tool only when the expected benefit exceeds the cost.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_cost_accuracy.png" class="img-fluid figure-img"></p>
+<figcaption>Cost-accuracy tradeoff of a threshold policy (“call the tool iff difficulty ≥ threshold”). Left: as the threshold rises, both accuracy and tool-usage rate fall. Right: net utility (accuracy − λ·tool-rate) is maximized at an intermediate threshold that shifts right as the cost λ grows.</figcaption>
+</figure>
+</div>
+<p>Model the per-problem expected utility of each choice:</p>
+<p><span class="math display">
+U_{\text{internal}}(d) = P_{\text{internal}}(\text{correct} \mid d), \qquad U_{\text{tool}}(d) = P_{\text{tool}}(\text{correct} \mid d) - \lambda,
+</span></p>
+<p>where <span class="math inline">\lambda</span> is the cost of a tool call (in units of accuracy) and we allow the tool itself to be <strong>imperfect</strong>, succeeding with probability <span class="math inline">P_{\text{tool}}(\text{correct} \mid d) \le 1</span>. The agent should call the tool exactly when <span class="math inline">U_{\text{tool}} &gt; U_{\text{internal}}</span>:</p>
+<p><span class="math display">
+P_{\text{tool}}(\text{correct} \mid d) - \lambda \;&gt;\; P_{\text{internal}}(\text{correct} \mid d).
+</span></p>
+<p>The familiar <strong>perfect-tool</strong> rule is the special case <span class="math inline">P_{\text{tool}} = 1</span>, which recovers <span class="math inline">P_{\text{internal}}(\text{correct} \mid d) &lt; 1 - \lambda</span>. Since internal accuracy decreases with difficulty, this is a <strong>threshold rule</strong>: call the tool when the problem is hard enough that the tool’s expected accuracy advantage exceeds its cost. With a perfect tool the cutoff is exactly the difficulty at which internal accuracy drops to <span class="math inline">1 - \lambda</span>; with a flaky tool the bar is higher, because the tool itself might be wrong (we see this bite in §8.3).</p>
+<p>This is a clean, interpretable decision rule, and it falls right out of expected-utility maximization — the same logic as the bandit and MDP value comparisons from Topic 1. The agent is solving a tiny one-step decision problem at every turn: compute internally, or pay <span class="math inline">\lambda</span> for an exact answer.</p>
+<hr>
+</section>
+<section id="the-anatomy-of-real-tool-use" class="level2">
+<h2 class="anchored" data-anchor-id="the-anatomy-of-real-tool-use">5. The anatomy of real tool use</h2>
+<p>The toy uses one read-only lookup tool. Real agents juggle many tools, and two distinctions matter enough to change how you design the system.</p>
+<section id="read-tools-vs-write-effectful-tools" class="level3">
+<h3 class="anchored" data-anchor-id="read-tools-vs-write-effectful-tools">5.1 Read tools vs write (effectful) tools</h3>
+<p>Tools split into two kinds with very different risk profiles. <strong>Read tools</strong> — search, retrieval, a calculator, a database query — only return information; calling one twice is harmless, and a wrong call costs only some wasted budget. <strong>Write tools</strong> — sending an email, executing a trade, deleting a file, posting to an API — <em>change the world</em>, and their effects cannot be retried away. This asymmetry should reshape the decision rule of §4: for a read tool, the cost <span class="math inline">\lambda</span> is just latency and tokens, so when in doubt, call it. For a write tool, the “cost” of a wrong call is unbounded and irreversible, so the bar for calling should be far higher — and many production agents insert a confirmation step (human-in-the-loop) before any effectful action. The error-compounding analysis of §8.2 is also far more dangerous for write tools: a wrong read is a detour, but a wrong write is damage. A useful design principle falls out of this: keep the agent’s <em>default</em> loop in read-only tools (gather evidence freely), and gate the small number of write actions behind explicit confirmation or verification.</p>
+</section>
+<section id="which-tool-selection-as-part-of-the-policy" class="level3">
+<h3 class="anchored" data-anchor-id="which-tool-selection-as-part-of-the-policy">5.2 Which tool? Selection as part of the policy</h3>
+<p>The toy agent decides only <em>whether</em> to call its single tool. A real agent must also decide <em>which</em> of many tools to call and <em>with what arguments</em> — tool selection is itself part of the policy. Mechanically this is handled by giving the model a list of tool schemas (name, description, argument types) in its context and letting it emit a call naming one of them. Conceptually it is a routing problem: the model maps the current observation to a choice over an enlarged action set <span class="math inline">\{\text{THINK}\} \cup \{\text{ANSWER}\} \cup \{\text{ACT}(\text{tool}_j, \text{args})\}_j</span>. More tools means a larger action space, which means more ways to choose wrong — so, as with the branching factor in tree search (Post 3c), a focused toolset the model understands well usually beats a sprawling one. The description text matters as much as the code: the model selects tools by reading their descriptions, so a poorly-described tool is an unusable one regardless of how well it works.</p>
+</section>
+<section id="how-models-learn-to-use-tools-at-all" class="level3">
+<h3 class="anchored" data-anchor-id="how-models-learn-to-use-tools-at-all">5.3 How models learn to use tools at all</h3>
+<p>We have described the <em>mechanism</em> of tool use, but where does the <em>ability</em> come from — how does a next-token predictor learn to emit a well-formed <code>Action:</code> at the right moment? Two routes, in increasing order of how much they bake the skill into the weights. The first is <strong>few-shot prompting</strong>: show the model a handful of ReAct exemplars in its context and rely on in-context learning to imitate the format. This works with capable base models and requires no training, but it is brittle — the model may drift out of format on long traces. The second is <strong>fine-tuning on tool-use traces</strong>, the route taken by Toolformer (Schick et al.&nbsp;2023): generate or collect many transcripts in which tool calls appear at useful points, then train the model on them so that emitting and using tools becomes part of its learned behavior. Toolformer’s clever twist is self-supervision — it inserts candidate API calls into text, keeps the ones that <em>reduce the model’s loss</em> on the following tokens (i.e.&nbsp;the call actually helped predict what came next), and trains on those. This is the same “learn from a signal you can compute” idea that runs through the whole curriculum: here the signal is “did the tool call make the continuation more predictable?” Modern function-calling models combine both — instruction-tuned on large collections of tool-use traces, then prompted with task-specific schemas at inference time.</p>
+<hr>
+</section>
+</section>
+<section id="forward-connections" class="level2">
+<h2 class="anchored" data-anchor-id="forward-connections">6. Forward connections</h2>
+<section id="tools-and-verifiers-are-the-same-thing" class="level3">
+<h3 class="anchored" data-anchor-id="tools-and-verifiers-are-the-same-thing">6.1 Tools and verifiers are the same thing</h3>
+<p>In Post 3a, best-of-N used a verifier to score candidates. Here, tools provide observations. These converge: <strong>a tool that checks correctness is a verifier, and a verifier you can query mid-generation is a tool.</strong> A code interpreter that runs unit tests is simultaneously (a) a tool the agent calls and (b) a verifier of the agent’s output. The boundary dissolves.</p>
+<p>This unification is why agentic coding works as well as it does: the compiler/test-runner is a perfect verifier <em>and</em> a perfect tool. The agent generates code, runs it, observes the failures, and refines — best-of-N and ReAct fused into one loop.</p>
+</section>
+<section id="toward-search-post-3c" class="level3">
+<h3 class="anchored" data-anchor-id="toward-search-post-3c">6.2 Toward search (Post 3c)</h3>
+<p>A ReAct trace is a single <em>path</em> through the space of action sequences. But at each step, the agent could have chosen differently — a different tool, a different query, a different reasoning branch. What if, instead of committing to one path, the agent <em>searched</em> over multiple branches, expanding promising ones and pruning dead ends?</p>
+<p>That’s Tree of Thoughts and MCTS for LLMs — the subject of Post 3c. It’s the natural combination of this post’s action-space view with the search techniques from classical RL (Post 1c’s value iteration, the tree search underlying AlphaGo). Tool use gives us the action space; search gives us a smarter way to explore it.</p>
+</section>
+<section id="the-reliability-problem" class="level3">
+<h3 class="anchored" data-anchor-id="the-reliability-problem">6.3 The reliability problem</h3>
+<p>The deepest issue this post raises is in §8.2 below: errors compound. Under the simplest model — <em>independent</em> per-step errors where <em>any</em> single error is fatal — an agent with a 10% per-step error rate has only a <span class="math inline">(1-0.1)^{10} \approx 35\%</span> chance of correctly completing a 10-step task. Those two assumptions matter: real environments often allow recovery (a later step fixes an earlier slip) or redundancy (multiple paths to the answer), which softens the decay, so <span class="math inline">(1-p)^L</span> is best read as a worst-case lower bound. Even so, the exponential sensitivity to per-step reliability is <em>the</em> central challenge of long-horizon agents, and it motivates everything from self-verification to the planning methods of the next post.</p>
+<hr>
+</section>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">7. Experiments to actually run</h2>
+<section id="optimal-tool-use-threshold" class="level3">
+<h3 class="anchored" data-anchor-id="optimal-tool-use-threshold">7.1 Optimal tool-use threshold</h3>
+<p>Derive and verify the rule “call the tool when internal accuracy &lt; 1 − λ.” Sweep the cost λ and check the empirically-optimal threshold against the analytical prediction.</p>
+</section>
+<section id="error-compounding-over-chains" class="level3">
+<h3 class="anchored" data-anchor-id="error-compounding-over-chains">7.2 Error compounding over chains</h3>
+<p>Sweep chain length and per-step error rate. How fast does success decay? Compare to the <span class="math inline">(1-p)^L</span> prediction.</p>
+</section>
+<section id="robustness-to-unreliable-tools" class="level3">
+<h3 class="anchored" data-anchor-id="robustness-to-unreliable-tools">7.3 Robustness to unreliable tools</h3>
+<p>Give the calculator an error rate. At what tool-error-rate does using the tool stop being worth it — and how does that depend on problem difficulty?</p>
+</section>
+<section id="react-vs-answer-immediately" class="level3">
+<h3 class="anchored" data-anchor-id="react-vs-answer-immediately">7.4 ReAct vs answer-immediately</h3>
+<p>Compare a tool-using agent to one that always answers from internal computation, across difficulty levels. Add a threshold agent and measure its tool-call savings.</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">8. Solutions</h2>
+<section id="optimal-tool-use-threshold-experiments03b_sol1_optimal_threshold.py" class="level3">
+<h3 class="anchored" data-anchor-id="optimal-tool-use-threshold-experiments03b_sol1_optimal_threshold.py">8.1 Optimal tool-use threshold — <code>experiments/03b_sol1_optimal_threshold.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_sol1_optimal_threshold.png" class="img-fluid figure-img"></p>
+<figcaption>Empirical optimal threshold (blue dots) vs the analytical rule P(correct) = 1 − λ (red curve). They match: as tool cost rises, the optimal threshold climbs, meaning the agent should reserve tools for progressively harder problems.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The empirical optimum — found by brute-force sweeping the threshold and picking the one that maximizes mean utility — lands right on the analytical curve derived in §4. As <span class="math inline">\lambda \to 0</span> (free tools), the threshold goes to zero: always use the tool. As <span class="math inline">\lambda</span> grows, the threshold rises: only call the tool for problems hard enough that internal accuracy has dropped below <span class="math inline">1 - \lambda</span>.</p>
+<p>The discretization scatter comes from the finite candidate-threshold grid and the difficulty being a discrete-ish quantity (digit counts), but the trend is unmistakable.</p>
+<p><strong>The deeper lesson.</strong> Tool-use decisions are <em>expected-value calculations</em>, identical in structure to the action-value comparisons of Topic 1. The agent doesn’t need a separate “should I use a tool” module — it needs to estimate its own reliability and compare it to the tool’s cost. This is why <strong>calibration</strong> (knowing what you don’t know, the subject of Topic 4) is foundational for agents: an agent that’s miscalibrated about its internal accuracy will call tools at the wrong times.</p>
+</section>
+<section id="error-compounding-experiments03b_sol2_chain_length.py" class="level3">
+<h3 class="anchored" data-anchor-id="error-compounding-experiments03b_sol2_chain_length.py">8.2 Error compounding — <code>experiments/03b_sol2_chain_length.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_sol2_chain_length.png" class="img-fluid figure-img"></p>
+<figcaption>Error compounding over chains. Left: success rate vs chain length for several per-step error rates; the dashed (1−p)^L curves are a lower bound. Right: the predicted (1−p)^L surface as a heatmap with 0.5 and 0.9 success contours.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Success decays roughly geometrically with chain length. A perfect agent (<span class="math inline">p=0</span>) stays at 1.0. But even a small per-step error rate compounds:</p>
+<ul>
+<li><span class="math inline">p = 0.05</span>: a 10-hop chain succeeds ~80% of the time empirically.</li>
+<li><span class="math inline">p = 0.1</span>: ~55%.</li>
+<li><span class="math inline">p = 0.2</span>: ~28%.</li>
+</ul>
+<p><strong>The honest finding: the empirical curves sit <em>above</em> the <span class="math inline">(1-p)^L</span> prediction.</strong> In a finite graph, a wrong relation sometimes lands on the correct next entity by coincidence, or reaches a different entity that happens to share the same terminal value. So <span class="math inline">(1-p)^L</span> is a <em>lower bound</em> on success — reality is more forgiving than the worst case, because not every error is fatal.</p>
+<p>This is itself a useful lesson: the clean exponential model assumes every mistake derails the whole chain. Real environments often have redundancy or recoverability that softens the decay. But the qualitative story — exponential sensitivity to per-step reliability — holds.</p>
+<p><strong>The deeper lesson.</strong> This is <em>the</em> reason long-horizon agents are hard. To complete a 20-step task at 90% success, you need a per-step error rate below ~0.5%. Current LLMs are nowhere near that on open-ended steps. Everything in modern agent engineering — self-verification, retrying failed steps, decomposition into checkpoints, human-in-the-loop — is an attempt to fight this exponential. The next post’s planning methods are another weapon: search lets the agent recover from a bad step by exploring alternatives rather than committing to the first choice.</p>
+</section>
+<section id="robustness-to-unreliable-tools-experiments03b_sol3_tool_errors.py" class="level3">
+<h3 class="anchored" data-anchor-id="robustness-to-unreliable-tools-experiments03b_sol3_tool_errors.py">8.3 Robustness to unreliable tools — <code>experiments/03b_sol3_tool_errors.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_sol3_tool_errors.png" class="img-fluid figure-img"></p>
+<figcaption>Tool accuracy declines linearly with tool error rate (blue). Internal-computation baselines (dashed) sit at 0.80 (easy), 0.11 (medium), 0.01 (hard). The X marks where a flaky tool stops beating internal computation on easy problems — around a 20% error rate.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The tool’s accuracy is just <span class="math inline">1 - \text{error rate}</span>, independent of problem difficulty. The internal baselines depend strongly on difficulty: 80% on easy 1-digit problems, ~1% on hard 5-digit ones.</p>
+<p>The crossover (the green X) tells the story: on <strong>easy</strong> problems, a tool with &gt;20% error rate is <em>worse</em> than just computing internally — you’d be better off not calling it. On <strong>hard</strong> problems, even a 50%-error tool crushes the ~1% internal baseline.</p>
+<p><strong>The deeper lesson.</strong> Tool use isn’t unconditionally good. The value of a tool is <code>(tool accuracy − internal accuracy)</code>, and that can be <em>negative</em> when the tool is unreliable and the task is easy. A well-designed agent should weigh tool reliability against its own competence per task. This is why blindly routing everything through tools (or through a flaky external API) can hurt — and why the threshold policy of §4 should really threshold on <em>expected accuracy gain</em>, not just difficulty.</p>
+</section>
+<section id="react-vs-answer-immediately-experiments03b_sol4_react_vs_immediate.py" class="level3">
+<h3 class="anchored" data-anchor-id="react-vs-answer-immediately-experiments03b_sol4_react_vs_immediate.py">8.4 ReAct vs answer-immediately — <code>experiments/03b_sol4_react_vs_immediate.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03b_sol4_react_vs_immediate.png" class="img-fluid figure-img"></p>
+<figcaption>Left: accuracy by difficulty. Answer-immediately (red) collapses from 0.78 to 0.01 as operands grow; both ReAct variants stay at ~1.0. Right: tool-call cost. Always-tool uses 1.0 calls/problem everywhere; the threshold agent uses ~0.3 on easy problems, rising to 1.0 on hard ones.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The answer-immediately agent tracks the internal-accuracy cliff exactly — fine on trivial problems, useless on hard ones. Both ReAct agents stay near-perfect across all difficulties.</p>
+<p>The interesting comparison is between the two ReAct variants. The <strong>always-tool</strong> agent calls the calculator on every problem (cost = 1.0 per problem). The <strong>threshold</strong> agent (<code>difficulty ≥ 4</code>) matches its accuracy while calling the tool only ~30% of the time on easy problems — it solves trivial arithmetic internally and reserves the tool for cases that need it.</p>
+<p><strong>The deeper lesson.</strong> The best agent isn’t the one that uses tools the most; it’s the one that uses them <em>when warranted</em>. On easy problems, internal computation is free and accurate, so calling a tool is pure overhead. On hard problems, the tool is essential. The threshold policy captures this, and it generalizes: a good agent routes each sub-task to the cheapest method that’s reliable enough. This is the seed of the “router” pattern in modern agent systems — cheap model for easy turns, expensive model or tool for hard ones.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">9. Further reading</h2>
+<ul>
+<li><strong>Yao, Zhao, Yu, Du, Shafran, Narasimhan &amp; Cao, “ReAct: Synergizing Reasoning and Acting in Language Models” (ICLR 2023).</strong> The ReAct paper.</li>
+<li><strong>Schick, Dwivedi-Yu, Dessì, Raileanu, Lomeli, Zettlemoyer, Cancedda &amp; Scialom, “Toolformer: Language Models Can Teach Themselves to Use Tools” (NeurIPS 2023).</strong> Self-supervised tool-use learning.</li>
+<li><strong>Parisi, Zhao &amp; Fiedel, “TALM: Tool Augmented Language Models” (2022).</strong> An early tool-augmentation framework.</li>
+<li><strong>Mialon et al., “Augmented Language Models: a Survey” (TMLR 2023).</strong> Broad survey of tool use, reasoning, and acting.</li>
+<li><strong>Kahneman, <em>Thinking, Fast and Slow</em> (2011).</strong> The System 1 / System 2 distinction is a useful lens: internal computation is System 1, tool use is the agent invoking deliberate System 2 machinery.</li>
+</ul>
+<hr>
+<p><strong>Next up — Post 3c: Tree of Thoughts and MCTS for LLMs.</strong> A ReAct trace is a single path; what if the agent searches over many? We’ll combine the action-space view from this post with the tree search behind AlphaGo, building Tree of Thoughts and a lightweight MCTS over reasoning steps — and confronting the error-compounding problem head-on with search-based recovery.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Tool {Use} as {Actions:} {ReAct} and the {Agent} {Loop}},
+  date = {2026-05-27},
+  url = {https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html},
+  langid = {en}
+}
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
+Tran, Ba-Hien. 2026. <span>“Tool Use as Actions: ReAct and the Agent
+Loop.”</span> May 27. <a href="https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html">https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html</a>.
+</div></div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Tool Use as Actions: ReAct and the Agent Loop"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Topic 3, post 2 of 3. When an LM can call tools, it becomes an agent acting in an extended MDP. We build the ReAct loop from scratch, frame tool use as a POMDP, derive when to call a tool, and watch errors compound over multi-hop chains."</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-27"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [tool use, react, agents, pomdp, multi-hop reasoning]</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/03b_react_loop.png</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Topic 3, post 2 of 3.*</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>In <span class="co">[</span><span class="ot">Post 3a</span><span class="co">](03a-decoding-as-inference.qmd)</span> we treated a trained LM as a fixed distribution and asked how to sample from it well. The most powerful technique we found — best-of-N with a verifier — already hinted at something bigger: what if the "verifier" isn't just a passive scorer, but an active *tool* the model can call mid-generation? A calculator. A search engine. A Python interpreter. A database.</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>Once the model can call tools, something qualitative changes. It is no longer producing a single forward pass of text. It is **acting** — emitting an action, receiving a result from the world, and deciding what to do next based on that result. It has become an agent.</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>Why does this matter so much? Because it can relax the two hardest limits on a fixed language model, when used correctly. A model's weights are frozen and finite: it cannot know facts that postdate its training, and it cannot reliably execute precise procedures (arithmetic, code, lookups) that it only ever saw demonstrated. Tools can relax both limits — a search tool gives access to current information, a Python interpreter gives exact computation, a database gives ground truth — *provided the agent calls the right tool at the right time and uses what it returns correctly*. (As §8.3 shows, a badly-chosen or unreliable tool can make things worse, so "dissolve" would overstate it.) The model stops having to *be* an oracle and instead becomes a controller that knows *which* oracle to consult and how to use what it returns.</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>This post builds that agent loop from scratch. The thesis: **tool use turns the LM into an agent in an extended MDP**, and the entire framework from Topic 1 — states, actions, observations, rewards, the POMDP belief update — applies directly. We'll see the mechanism by which a text-only model calls a tool, implement ReAct (Yao et al. 2022), frame it as a POMDP, derive when a rational agent should call a tool, and confront the central difficulty of agents: errors compound over long horizons.</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. The agent loop</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="al">![The ReAct loop. The agent (LM policy) chooses among THINK (a reasoning token), ACT (a tool call), and ANSWER (final output). Tool calls go to the environment; results return as observations. The cycle repeats until the agent answers and receives reward.](../figures/03b_react_loop.png)</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>Before the framework, the mechanism — because it is less magical than it sounds. A language model can do exactly one thing: emit text, one token at a time. It cannot run code, query a database, or browse the web. So how does it "call" a calculator?</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>By convention. The model is prompted or fine-tuned to emit a specific structured string when it wants a tool — something like <span class="in">`Action: calculator[17 * 23]`</span>. Around the model sits a **harness**: an ordinary program (not a neural network) that watches the generated text stream. When the harness recognizes the action pattern, it *pauses* generation, parses out the arguments, actually executes the real tool, and pastes the result back into the model's context as an observation — <span class="in">`Observation: 391`</span>. Then it resumes generation. The model, reading its own context, now sees the observation as if it had always been there, and continues from it.</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>That loop — *model emits an action string → harness intercepts and executes → result appended to context → model continues* — is the entire mechanism of tool use. The intelligence is deliberately split: the model decides *what* to do and the harness does it. The model never executes anything; it orchestrates by emitting text that a program agrees to interpret. Modern "function calling" or "tool calling" APIs just formalize the convention — the model emits JSON conforming to a declared tool schema, and the harness dispatches on it — but the underlying loop is the same one ReAct introduced.</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>The textual scaffolding that makes this legible is the **Thought / Action / Observation** format. A ReAct transcript reads like a diary: the model writes a thought ("I should compute 17 times 23"), then an action (<span class="in">`calculator[17 * 23]`</span>), the harness injects an observation (<span class="in">`391`</span>), and the model writes its next thought conditioned on it. Reasoning and acting interleave, each informing the next. Abstractly:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>**ReAct** — Reasoning + Acting — interleaves three kinds of step:</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**THINK**: an internal reasoning token. No effect on the environment; it updates the agent's own working memory.</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**ACT**: a tool call. The agent emits a structured action (e.g., `calculator(17, *, 23)`), the environment executes it, and returns an **observation**.</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**ANSWER**: the agent emits its final output. The episode ends; reward is assigned.</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>This is exactly an episode in a Markov Decision Process. Let's make the correspondence precise, because it's the whole point.</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="fu">### 0.1 Tool use as a POMDP</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>The cleanest formal model is the **partially observable** MDP from <span class="co">[</span><span class="ot">Post 1d</span><span class="co">](01d-pomdps-and-q-learning.qmd)</span>, because the thing the agent is reasoning about — the true answer, the actual state of the world — is hidden from it. Mapping the pieces:</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Hidden state.** The true world/task state — the actual population of Paris, the real contents of the file, the correct answer. The agent never observes this directly; it is what the agent is trying to pin down.</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Observations.** What the agent actually sees: the conversation history (prompt, prior thoughts) and the outputs returned by tools. These are partial, noisy evidence about the hidden state. The prompt-plus-history is the agent's *observation/context*, **not** the true MDP state — a distinction worth keeping, because conflating "what the agent has seen" with "how the world actually is" is exactly the error partial observability forces us to avoid.</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Actions.** It is useful to work at the level of *semantic macro-actions* — `THINK` (an internal reasoning step), `ACT(tool, args)` (invoke a tool), and `ANSWER` (commit a final output) — rather than raw tokens. This is a layered picture: at the **token level** the LM only ever emits text; at the **harness level**, certain structured spans of that text are *interpreted* as tool calls or as a final answer. The macro-actions are the agent-level abstraction over the token-level emission.</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Belief.** The agent's inferred representation of the hidden state, updated as observations arrive — implicitly carried in the transformer's activations over the growing context.</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Reward.** Assigned at the <span class="in">`ANSWER`</span> step (1 if correct, 0 otherwise, in the simplest case).</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>The augmentation that makes this *agentic* is in the action space: a vanilla LM's actions are just the vocabulary; a tool-using LM's macro-actions include calls that reach out into the world and return observations. Everything else — the policy, the trajectory, the return — carries over from Topic 2, now over a partially observed state.</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a><span class="fu">### 0.2 The belief view</span></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>So the agent's job is to take actions (tool calls) that produce observations, accumulating enough evidence to answer. This is the POMDP belief-update structure of Post 1d: each observation refines the agent's belief about the hidden answer. To be careful about one phrasing, though — the **ReAct trace is not literally the belief; it is the evidence/history from which the model forms an implicit belief.** The written transcript of thoughts and observations is the *record of evidence*; the belief is whatever internal representation the model computes from that record when deciding its next action. Calling the trace "the belief" is a useful shorthand, but the trace is the data and the belief is the (approximate, learned) inference drawn from it.</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>We saw this in the Tiger problem (Post 1d): the agent listens (observes), updates its belief, and acts once confident. Tool use is the same loop with a richer observation space.</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Why tools? The internal-accuracy cliff</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>The motivating empirical fact: LMs are unreliable at certain operations — multi-digit arithmetic being the canonical example — and tools are exact.</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a><span class="al">![Internal arithmetic degrades sharply with operand size (red), while a calculator stays exact (blue). Right: the synthetic model's internal-accuracy curve P(correct) = base·exp(−decay·difficulty), with the shaded region showing the value of the tool.](../figures/03b_internal_vs_tool.png)</span></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>We model this with a synthetic agent whose internal arithmetic accuracy decays exponentially with problem difficulty:</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>P(\text{correct internally} \mid \text{difficulty } d) = \alpha \cdot e^{-\lambda \max(d - d_0, 0)}.</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>Small problems ($d \le d_0$): nearly always right. Large problems: nearly always wrong. A calculator tool, by contrast, returns the exact answer regardless of difficulty.</span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>This is not a strawman. Real LLMs show exactly this profile: high accuracy on single-digit arithmetic, falling off a cliff as the operands grow, because they're pattern-matching rather than executing an algorithm. The fix isn't a bigger model — it's giving the model a calculator. The same logic extends to search (for facts beyond training data), code execution (for precise computation), and databases (for current information).</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>It is worth being precise about *why* the cliff exists, because it tells you which problems tools fix and which they don't. A transformer computes in a fixed number of forward-pass steps; multi-digit multiplication requires a number of sequential carry operations that grows with the operand size, so beyond some width the algorithm simply does not fit in the available depth, and the model falls back to interpolating between memorized patterns. The failure is *structural*, not a knowledge gap — which is exactly why scaling the model up shifts the cliff right but never removes it, while a calculator removes it entirely. The general principle: tools help most for tasks that are **precise, verifiable, and procedural** (arithmetic, lookups, code execution, unit conversions) — tasks where a short exact procedure exists that the model approximates poorly. They help *least* for tasks that are about judgment, synthesis, or fluency, where there is no external oracle to call and the model's own distribution is the best available answer. Knowing which side of that line a sub-task falls on is the first thing a good agent designer decides, and it is what the decision rule of §4 formalizes.</span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. A ReAct trace</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>The multi-step structure is clearest on a **multi-hop** task: a question whose answer requires chaining several lookups. We use a small knowledge graph where entities are connected by typed relations (<span class="in">`next`</span>, <span class="in">`parent`</span>, <span class="in">`linked`</span>), and each entity has a numeric <span class="in">`value`</span>.</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>A task: "Starting from E0, follow <span class="in">`linked`</span>, then <span class="in">`parent`</span>, then <span class="in">`parent`</span>, then read the <span class="in">`value`</span>." No single lookup answers it — the agent must chain four tool calls, feeding each result into the next.</span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a><span class="al">![A ReAct episode on a 4-hop lookup. The agent alternates ACT (call lookup) and OBSERVE (receive the result), threading the output of one lookup into the input of the next, until it reads the final value and answers. Each observation is one step of belief refinement.](../figures/03b_react_trace.png)</span></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a>This trace is the heart of agentic behavior. Notice:</span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The agent **threads state**: the observation E2 becomes the input to the next lookup <span class="in">`(E2, parent)`</span>.</span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>It **cannot shortcut**: there's no way to answer without performing each hop, because the intermediate entities are hidden until queried.</span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The reward is **sparse and terminal**: correct only if the entire chain executes correctly.</span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a>This is precisely the POMDP belief update. The agent starts knowing only E0. Each lookup is an action that yields an observation, collapsing uncertainty about the next entity in the chain. After four observations, the belief concentrates on the answer.</span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>In a real system, the clean trace above hides a layer of unglamorous harness engineering that is the difference between a demo and a working agent. The model emits *text*, and text is messy: it may produce a malformed action (`lookup(E2` with a missing paren), hallucinate a tool that doesn't exist, pass arguments of the wrong type, or wrap the call in prose the parser doesn't expect. A production harness must therefore (a) parse defensively — typically constraining the model to a strict format (JSON matching a tool schema) and validating before executing; (b) handle tool errors as *observations* rather than crashes — when a lookup fails, the harness appends `Observation: error: unknown relation` and lets the model recover on the next step, exactly as a human would re-read an error message and retry; and (c) guard against loops, since a confused agent will happily call the same failing tool forever (hence the step budget of §3, which doubles as a safety cutoff). The ReAct format earns its keep here: because every action and observation is explicit text in the context, the agent can *see* its own error and correct it — error recovery is just more reasoning over a longer trace. This is also why modern tool-use APIs constrain generation to a schema: it moves the "is this a valid action?" check from fragile post-hoc parsing into the decoding process itself.</span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. The step budget</span></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a>Multi-hop tasks expose a basic resource constraint: an $L$-hop task needs at least $L$ tool calls. If the agent's step budget is smaller, it physically cannot complete the chain.</span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a><span class="al">![Multi-hop success vs step budget, for chain lengths 2, 4, 6, 8. Each shows a sharp threshold: success is 0 below (chain length + 1) tool calls, then jumps to 1.0. Dotted lines mark each chain's minimum budget.](../figures/03b_step_budget.png)</span></span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a>The phase transition is crisp. Below the required budget, success is zero — not low, *zero*, because the agent can't reach the answer. At and above, success is one (for the oracle policy).</span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a>The practical implication: **agent frameworks must budget steps for the hardest expected task**. Too few steps and hard tasks are unsolvable regardless of model quality. This is why production agent systems expose a <span class="in">`max_steps`</span> or <span class="in">`max_iterations`</span> parameter, and why setting it too low silently caps capability.</span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>The "+1" in the threshold is the final <span class="in">`value`</span> read — the chain of $L$ relations plus one attribute lookup. Different task structures have different constants, but the linear relationship between horizon and required budget is robust *in this synthetic multi-hop task*, where success is exactly zero below the required number of calls because every hop is mandatory and hidden. Real tasks are softer: a model may shortcut a chain with prior knowledge, a single retrieved document may contain several hops at once, or partial credit may be available — so the real-world version is "too small a budget caps capability," not a perfectly sharp zero-to-one cliff.</span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. When should a rational agent call a tool?</span></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>Tools aren't free. Each call costs latency, tokens, money, and sometimes reliability. A rational agent should call a tool only when the expected benefit exceeds the cost.</span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a><span class="al">![Cost-accuracy tradeoff of a threshold policy ("call the tool iff difficulty ≥ threshold"). Left: as the threshold rises, both accuracy and tool-usage rate fall. Right: net utility (accuracy − λ·tool-rate) is maximized at an intermediate threshold that shifts right as the cost λ grows.](../figures/03b_cost_accuracy.png)</span></span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>Model the per-problem expected utility of each choice:</span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>U_{\text{internal}}(d) = P_{\text{internal}}(\text{correct} \mid d), \qquad U_{\text{tool}}(d) = P_{\text{tool}}(\text{correct} \mid d) - \lambda,</span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>where $\lambda$ is the cost of a tool call (in units of accuracy) and we allow the tool itself to be **imperfect**, succeeding with probability $P_{\text{tool}}(\text{correct} \mid d) \le 1$. The agent should call the tool exactly when $U_{\text{tool}} &gt; U_{\text{internal}}$:</span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a>P_{\text{tool}}(\text{correct} \mid d) - \lambda \;&gt;\; P_{\text{internal}}(\text{correct} \mid d).</span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>The familiar **perfect-tool** rule is the special case $P_{\text{tool}} = 1$, which recovers $P_{\text{internal}}(\text{correct} \mid d) &lt; 1 - \lambda$. Since internal accuracy decreases with difficulty, this is a **threshold rule**: call the tool when the problem is hard enough that the tool's expected accuracy advantage exceeds its cost. With a perfect tool the cutoff is exactly the difficulty at which internal accuracy drops to $1 - \lambda$; with a flaky tool the bar is higher, because the tool itself might be wrong (we see this bite in §8.3).</span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>This is a clean, interpretable decision rule, and it falls right out of expected-utility maximization — the same logic as the bandit and MDP value comparisons from Topic 1. The agent is solving a tiny one-step decision problem at every turn: compute internally, or pay $\lambda$ for an exact answer.</span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. The anatomy of real tool use</span></span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>The toy uses one read-only lookup tool. Real agents juggle many tools, and two distinctions matter enough to change how you design the system.</span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.1 Read tools vs write (effectful) tools</span></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a>Tools split into two kinds with very different risk profiles. **Read tools** — search, retrieval, a calculator, a database query — only return information; calling one twice is harmless, and a wrong call costs only some wasted budget. **Write tools** — sending an email, executing a trade, deleting a file, posting to an API — *change the world*, and their effects cannot be retried away. This asymmetry should reshape the decision rule of §4: for a read tool, the cost $\lambda$ is just latency and tokens, so when in doubt, call it. For a write tool, the "cost" of a wrong call is unbounded and irreversible, so the bar for calling should be far higher — and many production agents insert a confirmation step (human-in-the-loop) before any effectful action. The error-compounding analysis of §8.2 is also far more dangerous for write tools: a wrong read is a detour, but a wrong write is damage. A useful design principle falls out of this: keep the agent's *default* loop in read-only tools (gather evidence freely), and gate the small number of write actions behind explicit confirmation or verification.</span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.2 Which tool? Selection as part of the policy</span></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a>The toy agent decides only *whether* to call its single tool. A real agent must also decide *which* of many tools to call and *with what arguments* — tool selection is itself part of the policy. Mechanically this is handled by giving the model a list of tool schemas (name, description, argument types) in its context and letting it emit a call naming one of them. Conceptually it is a routing problem: the model maps the current observation to a choice over an enlarged action set $<span class="sc">\{</span>\text{THINK}<span class="sc">\}</span> \cup <span class="sc">\{</span>\text{ANSWER}<span class="sc">\}</span> \cup <span class="sc">\{</span>\text{ACT}(\text{tool}_j, \text{args})<span class="sc">\}</span>_j$. More tools means a larger action space, which means more ways to choose wrong — so, as with the branching factor in tree search (Post 3c), a focused toolset the model understands well usually beats a sprawling one. The description text matters as much as the code: the model selects tools by reading their descriptions, so a poorly-described tool is an unusable one regardless of how well it works.</span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.3 How models learn to use tools at all</span></span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>We have described the *mechanism* of tool use, but where does the *ability* come from — how does a next-token predictor learn to emit a well-formed `Action:` at the right moment? Two routes, in increasing order of how much they bake the skill into the weights. The first is **few-shot prompting**: show the model a handful of ReAct exemplars in its context and rely on in-context learning to imitate the format. This works with capable base models and requires no training, but it is brittle — the model may drift out of format on long traces. The second is **fine-tuning on tool-use traces**, the route taken by Toolformer (Schick et al. 2023): generate or collect many transcripts in which tool calls appear at useful points, then train the model on them so that emitting and using tools becomes part of its learned behavior. Toolformer's clever twist is self-supervision — it inserts candidate API calls into text, keeps the ones that *reduce the model's loss* on the following tokens (i.e. the call actually helped predict what came next), and trains on those. This is the same "learn from a signal you can compute" idea that runs through the whole curriculum: here the signal is "did the tool call make the continuation more predictable?" Modern function-calling models combine both — instruction-tuned on large collections of tool-use traces, then prompted with task-specific schemas at inference time.</span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Forward connections</span></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 Tools and verifiers are the same thing</span></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>In Post 3a, best-of-N used a verifier to score candidates. Here, tools provide observations. These converge: **a tool that checks correctness is a verifier, and a verifier you can query mid-generation is a tool.** A code interpreter that runs unit tests is simultaneously (a) a tool the agent calls and (b) a verifier of the agent's output. The boundary dissolves.</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>This unification is why agentic coding works as well as it does: the compiler/test-runner is a perfect verifier *and* a perfect tool. The agent generates code, runs it, observes the failures, and refines — best-of-N and ReAct fused into one loop.</span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 Toward search (Post 3c)</span></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a>A ReAct trace is a single *path* through the space of action sequences. But at each step, the agent could have chosen differently — a different tool, a different query, a different reasoning branch. What if, instead of committing to one path, the agent *searched* over multiple branches, expanding promising ones and pruning dead ends?</span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>That's Tree of Thoughts and MCTS for LLMs — the subject of Post 3c. It's the natural combination of this post's action-space view with the search techniques from classical RL (Post 1c's value iteration, the tree search underlying AlphaGo). Tool use gives us the action space; search gives us a smarter way to explore it.</span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 The reliability problem</span></span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a>The deepest issue this post raises is in §8.2 below: errors compound. Under the simplest model — *independent* per-step errors where *any* single error is fatal — an agent with a 10% per-step error rate has only a $(1-0.1)^{10} \approx 35\%$ chance of correctly completing a 10-step task. Those two assumptions matter: real environments often allow recovery (a later step fixes an earlier slip) or redundancy (multiple paths to the answer), which softens the decay, so $(1-p)^L$ is best read as a worst-case lower bound. Even so, the exponential sensitivity to per-step reliability is *the* central challenge of long-horizon agents, and it motivates everything from self-verification to the planning methods of the next post.</span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Experiments to actually run</span></span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 Optimal tool-use threshold</span></span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a>Derive and verify the rule "call the tool when internal accuracy &lt; 1 − λ." Sweep the cost λ and check the empirically-optimal threshold against the analytical prediction.</span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Error compounding over chains</span></span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>Sweep chain length and per-step error rate. How fast does success decay? Compare to the $(1-p)^L$ prediction.</span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Robustness to unreliable tools</span></span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a>Give the calculator an error rate. At what tool-error-rate does using the tool stop being worth it — and how does that depend on problem difficulty?</span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 ReAct vs answer-immediately</span></span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a>Compare a tool-using agent to one that always answers from internal computation, across difficulty levels. Add a threshold agent and measure its tool-call savings.</span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Solutions</span></span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Optimal tool-use threshold — `experiments/03b_sol1_optimal_threshold.py`</span></span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a><span class="al">![Empirical optimal threshold (blue dots) vs the analytical rule P(correct) = 1 − λ (red curve). They match: as tool cost rises, the optimal threshold climbs, meaning the agent should reserve tools for progressively harder problems.](../figures/03b_sol1_optimal_threshold.png)</span></span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a>**What you should see.** The empirical optimum — found by brute-force sweeping the threshold and picking the one that maximizes mean utility — lands right on the analytical curve derived in §4. As $\lambda \to 0$ (free tools), the threshold goes to zero: always use the tool. As $\lambda$ grows, the threshold rises: only call the tool for problems hard enough that internal accuracy has dropped below $1 - \lambda$.</span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a>The discretization scatter comes from the finite candidate-threshold grid and the difficulty being a discrete-ish quantity (digit counts), but the trend is unmistakable.</span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Tool-use decisions are *expected-value calculations*, identical in structure to the action-value comparisons of Topic 1. The agent doesn't need a separate "should I use a tool" module — it needs to estimate its own reliability and compare it to the tool's cost. This is why **calibration** (knowing what you don't know, the subject of Topic 4) is foundational for agents: an agent that's miscalibrated about its internal accuracy will call tools at the wrong times.</span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 Error compounding — `experiments/03b_sol2_chain_length.py`</span></span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a><span class="al">![Error compounding over chains. Left: success rate vs chain length for several per-step error rates; the dashed (1−p)^L curves are a lower bound. Right: the predicted (1−p)^L surface as a heatmap with 0.5 and 0.9 success contours.](../figures/03b_sol2_chain_length.png)</span></span>
+<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a>**What you should see.** Success decays roughly geometrically with chain length. A perfect agent ($p=0$) stays at 1.0. But even a small per-step error rate compounds:</span>
+<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$p = 0.05$: a 10-hop chain succeeds ~80% of the time empirically.</span>
+<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$p = 0.1$: ~55%.</span>
+<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$p = 0.2$: ~28%.</span>
+<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a>**The honest finding: the empirical curves sit *above* the $(1-p)^L$ prediction.** In a finite graph, a wrong relation sometimes lands on the correct next entity by coincidence, or reaches a different entity that happens to share the same terminal value. So $(1-p)^L$ is a *lower bound* on success — reality is more forgiving than the worst case, because not every error is fatal.</span>
+<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a>This is itself a useful lesson: the clean exponential model assumes every mistake derails the whole chain. Real environments often have redundancy or recoverability that softens the decay. But the qualitative story — exponential sensitivity to per-step reliability — holds.</span>
+<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-224"><a href="#cb1-224" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** This is *the* reason long-horizon agents are hard. To complete a 20-step task at 90% success, you need a per-step error rate below ~0.5%. Current LLMs are nowhere near that on open-ended steps. Everything in modern agent engineering — self-verification, retrying failed steps, decomposition into checkpoints, human-in-the-loop — is an attempt to fight this exponential. The next post's planning methods are another weapon: search lets the agent recover from a bad step by exploring alternatives rather than committing to the first choice.</span>
+<span id="cb1-225"><a href="#cb1-225" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-226"><a href="#cb1-226" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Robustness to unreliable tools — `experiments/03b_sol3_tool_errors.py`</span></span>
+<span id="cb1-227"><a href="#cb1-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-228"><a href="#cb1-228" aria-hidden="true" tabindex="-1"></a><span class="al">![Tool accuracy declines linearly with tool error rate (blue). Internal-computation baselines (dashed) sit at 0.80 (easy), 0.11 (medium), 0.01 (hard). The X marks where a flaky tool stops beating internal computation on easy problems — around a 20% error rate.](../figures/03b_sol3_tool_errors.png)</span></span>
+<span id="cb1-229"><a href="#cb1-229" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-230"><a href="#cb1-230" aria-hidden="true" tabindex="-1"></a>**What you should see.** The tool's accuracy is just $1 - \text{error rate}$, independent of problem difficulty. The internal baselines depend strongly on difficulty: 80% on easy 1-digit problems, ~1% on hard 5-digit ones.</span>
+<span id="cb1-231"><a href="#cb1-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-232"><a href="#cb1-232" aria-hidden="true" tabindex="-1"></a>The crossover (the green X) tells the story: on **easy** problems, a tool with &gt;20% error rate is *worse* than just computing internally — you'd be better off not calling it. On **hard** problems, even a 50%-error tool crushes the ~1% internal baseline.</span>
+<span id="cb1-233"><a href="#cb1-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-234"><a href="#cb1-234" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Tool use isn't unconditionally good. The value of a tool is <span class="in">`(tool accuracy − internal accuracy)`</span>, and that can be *negative* when the tool is unreliable and the task is easy. A well-designed agent should weigh tool reliability against its own competence per task. This is why blindly routing everything through tools (or through a flaky external API) can hurt — and why the threshold policy of §4 should really threshold on *expected accuracy gain*, not just difficulty.</span>
+<span id="cb1-235"><a href="#cb1-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-236"><a href="#cb1-236" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 ReAct vs answer-immediately — `experiments/03b_sol4_react_vs_immediate.py`</span></span>
+<span id="cb1-237"><a href="#cb1-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-238"><a href="#cb1-238" aria-hidden="true" tabindex="-1"></a><span class="al">![Left: accuracy by difficulty. Answer-immediately (red) collapses from 0.78 to 0.01 as operands grow; both ReAct variants stay at ~1.0. Right: tool-call cost. Always-tool uses 1.0 calls/problem everywhere; the threshold agent uses ~0.3 on easy problems, rising to 1.0 on hard ones.](../figures/03b_sol4_react_vs_immediate.png)</span></span>
+<span id="cb1-239"><a href="#cb1-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-240"><a href="#cb1-240" aria-hidden="true" tabindex="-1"></a>**What you should see.** The answer-immediately agent tracks the internal-accuracy cliff exactly — fine on trivial problems, useless on hard ones. Both ReAct agents stay near-perfect across all difficulties.</span>
+<span id="cb1-241"><a href="#cb1-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-242"><a href="#cb1-242" aria-hidden="true" tabindex="-1"></a>The interesting comparison is between the two ReAct variants. The **always-tool** agent calls the calculator on every problem (cost = 1.0 per problem). The **threshold** agent (<span class="in">`difficulty ≥ 4`</span>) matches its accuracy while calling the tool only ~30% of the time on easy problems — it solves trivial arithmetic internally and reserves the tool for cases that need it.</span>
+<span id="cb1-243"><a href="#cb1-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-244"><a href="#cb1-244" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** The best agent isn't the one that uses tools the most; it's the one that uses them *when warranted*. On easy problems, internal computation is free and accurate, so calling a tool is pure overhead. On hard problems, the tool is essential. The threshold policy captures this, and it generalizes: a good agent routes each sub-task to the cheapest method that's reliable enough. This is the seed of the "router" pattern in modern agent systems — cheap model for easy turns, expensive model or tool for hard ones.</span>
+<span id="cb1-245"><a href="#cb1-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-246"><a href="#cb1-246" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-247"><a href="#cb1-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-248"><a href="#cb1-248" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Further reading</span></span>
+<span id="cb1-249"><a href="#cb1-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-250"><a href="#cb1-250" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Yao, Zhao, Yu, Du, Shafran, Narasimhan &amp; Cao, "ReAct: Synergizing Reasoning and Acting in Language Models" (ICLR 2023).** The ReAct paper.</span>
+<span id="cb1-251"><a href="#cb1-251" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schick, Dwivedi-Yu, Dessì, Raileanu, Lomeli, Zettlemoyer, Cancedda &amp; Scialom, "Toolformer: Language Models Can Teach Themselves to Use Tools" (NeurIPS 2023).** Self-supervised tool-use learning.</span>
+<span id="cb1-252"><a href="#cb1-252" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Parisi, Zhao &amp; Fiedel, "TALM: Tool Augmented Language Models" (2022).** An early tool-augmentation framework.</span>
+<span id="cb1-253"><a href="#cb1-253" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Mialon et al., "Augmented Language Models: a Survey" (TMLR 2023).** Broad survey of tool use, reasoning, and acting.</span>
+<span id="cb1-254"><a href="#cb1-254" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Kahneman, *Thinking, Fast and Slow* (2011).** The System 1 / System 2 distinction is a useful lens: internal computation is System 1, tool use is the agent invoking deliberate System 2 machinery.</span>
+<span id="cb1-255"><a href="#cb1-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-256"><a href="#cb1-256" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-257"><a href="#cb1-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-258"><a href="#cb1-258" aria-hidden="true" tabindex="-1"></a>**Next up — Post 3c: Tree of Thoughts and MCTS for LLMs.** A ReAct trace is a single path; what if the agent searches over many? We'll combine the action-space view from this post with the tree search behind AlphaGo, building Tree of Thoughts and a lightweight MCTS over reasoning steps — and confronting the error-compounding problem head-on with search-based recovery.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/03b-tool-use.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

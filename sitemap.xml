@@ -1,47 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html</loc>
+    <lastmod>2026-05-23T12:19:06.891Z</lastmod>
+  </url>
+  <url>
+    <loc>https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html</loc>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
+  </url>
+  <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html</loc>
-    <lastmod>2026-05-21T19:24:37.490Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html</loc>
-    <lastmod>2026-05-21T19:24:37.490Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html</loc>
-    <lastmod>2026-05-21T19:24:37.489Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</loc>
-    <lastmod>2026-05-21T19:24:37.489Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts.html</loc>
-    <lastmod>2026-05-21T19:24:37.488Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.889Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/about.html</loc>
-    <lastmod>2026-05-21T19:24:37.418Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.821Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/index.html</loc>
-    <lastmod>2026-05-21T19:24:37.488Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.887Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html</loc>
-    <lastmod>2026-05-21T19:24:37.488Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.889Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html</loc>
-    <lastmod>2026-05-21T19:24:37.489Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</loc>
-    <lastmod>2026-05-21T19:24:37.489Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
   </url>
   <url>
     <loc>https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html</loc>
-    <lastmod>2026-05-21T19:24:37.490Z</lastmod>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
+  </url>
+  <url>
+    <loc>https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html</loc>
+    <lastmod>2026-05-23T12:19:06.890Z</lastmod>
+  </url>
+  <url>
+    <loc>https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html</loc>
+    <lastmod>2026-05-23T12:19:06.891Z</lastmod>
   </url>
 </urlset>

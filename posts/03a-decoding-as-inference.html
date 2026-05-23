@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-05-26">
+<meta name="description" content="Topic 3, post 1 of 3. Once you have a trained language model, what should you do with it? We treat decoding — temperature, top-k, top-p, beam search, self-consistency, best-of-N — as approximate Bayesian inference, and see why test-time compute scales.">
+
+<title>Decoding as Inference: Sampling, Search, and Test-Time Compute – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-df4e96bc8c3facb458d6222fd420fecc.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#setup-the-lm-as-a-policy" id="toc-setup-the-lm-as-a-policy" class="nav-link active" data-scroll-target="#setup-the-lm-as-a-policy">0. Setup: the LM as a policy</a></li>
+  <li><a href="#temperature" id="toc-temperature" class="nav-link" data-scroll-target="#temperature">1. Temperature</a>
+  <ul class="collapse">
+  <li><a href="#the-diversityquality-tradeoff" id="toc-the-diversityquality-tradeoff" class="nav-link" data-scroll-target="#the-diversityquality-tradeoff">1.1 The diversity–quality tradeoff</a></li>
+  </ul></li>
+  <li><a href="#top-k-and-top-p-truncation" id="toc-top-k-and-top-p-truncation" class="nav-link" data-scroll-target="#top-k-and-top-p-truncation">2. Top-k and top-p truncation</a>
+  <ul class="collapse">
+  <li><a href="#as-bayesian-inference" id="toc-as-bayesian-inference" class="nav-link" data-scroll-target="#as-bayesian-inference">2.1 As Bayesian inference</a></li>
+  </ul></li>
+  <li><a href="#beam-search-and-the-map-collapse" id="toc-beam-search-and-the-map-collapse" class="nav-link" data-scroll-target="#beam-search-and-the-map-collapse">3. Beam search and the MAP collapse</a>
+  <ul class="collapse">
+  <li><a href="#why-map-collapses" id="toc-why-map-collapses" class="nav-link" data-scroll-target="#why-map-collapses">3.1 Why MAP collapses</a></li>
+  </ul></li>
+  <li><a href="#self-consistency" id="toc-self-consistency" class="nav-link" data-scroll-target="#self-consistency">4. Self-consistency</a>
+  <ul class="collapse">
+  <li><a href="#the-monte-carlo-connection" id="toc-the-monte-carlo-connection" class="nav-link" data-scroll-target="#the-monte-carlo-connection">4.1 The Monte Carlo connection</a></li>
+  <li><a href="#connection-to-ensembling" id="toc-connection-to-ensembling" class="nav-link" data-scroll-target="#connection-to-ensembling">4.2 Connection to ensembling</a></li>
+  </ul></li>
+  <li><a href="#best-of-n-sampling-verifier" id="toc-best-of-n-sampling-verifier" class="nav-link" data-scroll-target="#best-of-n-sampling-verifier">5. Best-of-N: sampling + verifier</a></li>
+  <li><a href="#test-time-scaling-the-deep-connection" id="toc-test-time-scaling-the-deep-connection" class="nav-link" data-scroll-target="#test-time-scaling-the-deep-connection">6. Test-time scaling: the deep connection</a>
+  <ul class="collapse">
+  <li><a href="#scaling-laws-at-test-time" id="toc-scaling-laws-at-test-time" class="nav-link" data-scroll-target="#scaling-laws-at-test-time">6.1 Scaling laws at test time</a></li>
+  <li><a href="#composition" id="toc-composition" class="nav-link" data-scroll-target="#composition">6.2 Composition</a></li>
+  <li><a href="#forward-connections" id="toc-forward-connections" class="nav-link" data-scroll-target="#forward-connections">6.3 Forward connections</a></li>
+  </ul></li>
+  <li><a href="#a-practical-decoders-guide" id="toc-a-practical-decoders-guide" class="nav-link" data-scroll-target="#a-practical-decoders-guide">7. A practical decoder’s guide</a></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">8. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#temperature-sweep-with-self-consistency" id="toc-temperature-sweep-with-self-consistency" class="nav-link" data-scroll-target="#temperature-sweep-with-self-consistency">8.1 Temperature sweep with self-consistency</a></li>
+  <li><a href="#beam-width-sweep" id="toc-beam-width-sweep" class="nav-link" data-scroll-target="#beam-width-sweep">8.2 Beam width sweep</a></li>
+  <li><a href="#top-k-and-top-p-with-self-consistency" id="toc-top-k-and-top-p-with-self-consistency" class="nav-link" data-scroll-target="#top-k-and-top-p-with-self-consistency">8.3 Top-k and top-p with self-consistency</a></li>
+  <li><a href="#best-of-n-vs-self-consistency-with-imperfect-verifiers" id="toc-best-of-n-vs-self-consistency-with-imperfect-verifiers" class="nav-link" data-scroll-target="#best-of-n-vs-self-consistency-with-imperfect-verifiers">8.4 Best-of-N vs self-consistency with imperfect verifiers</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">9. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#temperature-self-consistency-experiments03a_sol1_temperature_sweep.py" id="toc-temperature-self-consistency-experiments03a_sol1_temperature_sweep.py" class="nav-link" data-scroll-target="#temperature-self-consistency-experiments03a_sol1_temperature_sweep.py">9.1 Temperature × self-consistency — <code>experiments/03a_sol1_temperature_sweep.py</code></a></li>
+  <li><a href="#beam-width-sweep-experiments03a_sol2_beam_width_sweep.py" id="toc-beam-width-sweep-experiments03a_sol2_beam_width_sweep.py" class="nav-link" data-scroll-target="#beam-width-sweep-experiments03a_sol2_beam_width_sweep.py">9.2 Beam width sweep — <code>experiments/03a_sol2_beam_width_sweep.py</code></a></li>
+  <li><a href="#top-k-top-p-self-consistency-experiments03a_sol3_top_k_top_p.py" id="toc-top-k-top-p-self-consistency-experiments03a_sol3_top_k_top_p.py" class="nav-link" data-scroll-target="#top-k-top-p-self-consistency-experiments03a_sol3_top_k_top_p.py">9.3 Top-k / top-p × self-consistency — <code>experiments/03a_sol3_top_k_top_p.py</code></a></li>
+  <li><a href="#best-of-n-with-imperfect-verifiers-experiments03a_sol4_best_of_n.py" id="toc-best-of-n-with-imperfect-verifiers-experiments03a_sol4_best_of_n.py" class="nav-link" data-scroll-target="#best-of-n-with-imperfect-verifiers-experiments03a_sol4_best_of_n.py">9.4 Best-of-N with imperfect verifiers — <code>experiments/03a_sol4_best_of_n.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">10. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/03a-decoding-as-inference.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Decoding as Inference: Sampling, Search, and Test-Time Compute</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">decoding</div>
+    <div class="quarto-category">sampling</div>
+    <div class="quarto-category">beam search</div>
+    <div class="quarto-category">self-consistency</div>
+    <div class="quarto-category">test-time compute</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Topic 3, post 1 of 3. Once you have a trained language model, what should you do with it? We treat decoding — temperature, top-k, top-p, beam search, self-consistency, best-of-N — as approximate Bayesian inference, and see why test-time compute scales.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 26, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p><em>Topic 3, post 1 of 3.</em></p>
+</blockquote>
+<p>Topics 1 and 2 were about <em>training</em> a policy. By the end of <a href="../posts/02d-rlhf-dpo-grpo.html">Post 2d</a>, we had the full algorithmic stack — from the log-derivative trick through REINFORCE, A2C+GAE, PPO, and RLHF/DPO/GRPO — for fitting a language model policy to human preferences or verifier signals.</p>
+<p>Topic 3 is about what to do with that policy once you have it. This post starts with the most basic operation: <strong>decoding</strong> — turning a trained model into actual text. It is worth being concrete about what that involves, because the whole post hinges on it. At each position, a language model does not output a word. It outputs a vector of <strong>logits</strong> — one real number per vocabulary token, perhaps 50,000 of them — which a softmax turns into a full probability distribution over what the next token could be. To produce text we must repeatedly <em>collapse</em> that distribution into a single chosen token, append it, and run the model again. <strong>Decoding is the rule for doing the collapsing.</strong> Take the most probable token every time? Sample in proportion to probability? Keep several candidate sequences alive at once? Each rule is a different decoder, and — crucially — the choice of rule is entirely separate from the trained weights. The same model, decoded two different ways, can be eloquent or degenerate, reliable or creative. That the seemingly mundane choice of <em>how</em> to collapse is one of the most consequential design decisions in modern AI systems is the surprise this post unpacks.</p>
+<p>The thesis: <strong>decoding is approximate inference</strong>. The LM defines a distribution <span class="math inline">\pi(y \mid x)</span> over completions; every decoding strategy is some way of selecting from that distribution — approximating the <strong>mode</strong> (the single most probable completion), drawing a <strong>sample from a tempered or truncated</strong> version of it, or estimating a <strong>marginal decision</strong> such as the majority-vote answer. (Note we deliberately avoid saying “the mean”: text has no natural average — there is no meaningful midpoint between two sentences — so the useful targets are high-probability sequences and marginal answer distributions, not a mean completion.) Once you see the family clearly, you can predict when each strategy will work, when it’ll fail, and how to compose them.</p>
+<hr>
+<section id="setup-the-lm-as-a-policy" class="level2">
+<h2 class="anchored" data-anchor-id="setup-the-lm-as-a-policy">0. Setup: the LM as a policy</h2>
+<p>A language model defines a conditional distribution</p>
+<p><span class="math display">
+\pi_\theta(y_1, y_2, \ldots, y_L \mid x) \;=\; \prod_{t=1}^{L} \pi_\theta(y_t \mid x, y_{&lt;t}).
+</span></p>
+<p>Each token is drawn conditional on the prompt <span class="math inline">x</span> and all previous tokens — this factorization (the chain rule of probability) is what “autoregressive” means. It is exactly the policy form from Posts 2a–2c, with state = <span class="math inline">(x, y_{&lt;t})</span> and action = <span class="math inline">y_t</span>: the prompt-plus-history-so-far is the state, and the next token is the action. Decoding, then, is just <em>rolling out a policy</em> in this sequential decision process — and the decoding strategies below are the rollout rules.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_autoregressive_tree.png" class="img-fluid figure-img"></p>
+<figcaption>Autoregressive generation viewed as a tree. With vocabulary V and length L there are V^L sequences. The ‘greedy / MAP’ path (red) is one specific deterministic descent. Other paths are reachable via sampling.</figcaption>
+</figure>
+</div>
+<p>The exponential branching is what makes decoding non-trivial. With a vocabulary of ~50,000 (a typical LLM) and 100-token responses, the space of sequences is <span class="math inline">50000^{100}</span> — far larger than any astronomical number you’ve heard of. We cannot enumerate. Every decoding strategy is some way of biasing search through this combinatorial space.</p>
+<p>Throughout this post we work with a <strong>tiny synthetic LM</strong> (<span class="math inline">V \approx 8</span>, <span class="math inline">L \approx 4</span>) where we can enumerate all sequences and compute exact properties. The phenomena we’ll demonstrate scale up to real LMs — the toy just lets us <em>see</em> them precisely.</p>
+<hr>
+</section>
+<section id="temperature" class="level2">
+<h2 class="anchored" data-anchor-id="temperature">1. Temperature</h2>
+<p>The most familiar knob. Given logits <span class="math inline">z_v</span> for each vocabulary token <span class="math inline">v</span>, temperature <span class="math inline">T</span> rescales:</p>
+<p><span class="math display">
+\pi_T(v) \;=\; \frac{\exp(z_v / T)}{\sum_{v'} \exp(z_{v'} / T)}.
+</span></p>
+<p>Limits:</p>
+<ul>
+<li><span class="math inline">T \to 0</span>: <span class="math inline">\pi_T</span> concentrates on <span class="math inline">\arg\max_v z_v</span> — pure greedy.</li>
+<li><span class="math inline">T = 1</span>: the LM’s own distribution.</li>
+<li><span class="math inline">T \to \infty</span>: uniform over the vocabulary.</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_temperature.png" class="img-fluid figure-img"></p>
+<figcaption>Temperature controls a tradeoff. Left: same logits at four temperatures — T=0.5 sharpens (p_max = 0.56), T=5 flattens (p_max = 0.19). Right: mean reward over samples vs T. Greedy reaches reward 1.0 on this LM; T=1 gives 0.26.</figcaption>
+</figure>
+</div>
+<p>This isn’t only a presentation choice. There’s a deeper connection: <strong>temperature controls a Boltzmann distribution</strong> <span class="math inline">\pi_T(y) \propto \exp(r(y) / T)</span>. In statistical mechanics, <span class="math inline">1/T</span> is the <em>inverse temperature</em> <span class="math inline">\beta</span>. Familiar?</p>
+<p>You’ve seen exactly this in Post 2d §2.1 — the optimal RLHF policy is</p>
+<p><span class="math display">
+\pi^\star(y \mid x) \;\propto\; \pi_{\text{ref}}(y \mid x) \exp\!\left(\frac{r(y, x)}{\beta}\right).
+</span></p>
+<p>The RLHF training temperature <span class="math inline">\beta</span> and the inference-time temperature <span class="math inline">T</span> are <strong>mathematically analogous but not the same object</strong>, and it’s worth being precise about the difference. Inference-time <span class="math inline">T</span> reshapes a <em>fixed</em>, already-trained model distribution — it changes only how sharply we sample, with the weights untouched. RLHF’s <span class="math inline">\beta</span> is a coefficient <em>inside an optimization</em>: it sets the trade-off between maximizing reward and staying close to the reference policy during the KL-regularized training that <em>produces</em> the weights. Both have the Boltzmann form <span class="math inline">\exp(\cdot/\text{temperature})</span>, and both implement “softer here, sharper there” — but one is a knob on a frozen distribution and the other is a knob on a training objective. The shared algebra is a real and useful connection; the equivalence is structural, not literal.</p>
+<section id="the-diversityquality-tradeoff" class="level3">
+<h3 class="anchored" data-anchor-id="the-diversityquality-tradeoff">1.1 The diversity–quality tradeoff</h3>
+<p>Low <span class="math inline">T</span> gives high mean reward per sample but no diversity. High <span class="math inline">T</span> gives diverse samples but lower mean reward. The right-panel curve shows this monotonically — for a single sample, low <span class="math inline">T</span> wins.</p>
+<p>But as we’ll see in §5, <strong>a single sample isn’t always what we want.</strong> If we can take many samples and aggregate, diversity becomes valuable, and the optimal <span class="math inline">T</span> shifts away from zero.</p>
+<hr>
+</section>
+</section>
+<section id="top-k-and-top-p-truncation" class="level2">
+<h2 class="anchored" data-anchor-id="top-k-and-top-p-truncation">2. Top-k and top-p truncation</h2>
+<p>Temperature scales every logit. Sometimes we want to <em>truncate</em> — keep only the few most likely tokens and renormalize among them.</p>
+<p><strong>Top-k</strong>: keep the highest-probability <span class="math inline">k</span> tokens, zero out the rest, renormalize.</p>
+<p><strong>Top-p (nucleus sampling)</strong>: keep the smallest set of tokens whose cumulative probability is at least <span class="math inline">p</span>, in descending order. The size of this set varies with the distribution shape.</p>
+<p>Both are inference-time interventions on the same model — no retraining. They handle the “long tail” of low-probability tokens that would otherwise contribute generation noise.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_top_k_top_p.png" class="img-fluid figure-img"></p>
+<figcaption>Truncation rules. Left: applied to one distribution — top-k=3 keeps a fixed three tokens; top-p=0.9 keeps as many as it takes to cover 90% mass (six tokens here). Right: how each rule responds to varying source entropy. Top-p tracks; top-k clips at log(3) regardless.</figcaption>
+</figure>
+</div>
+<p>The right panel makes the conceptual difference clear:</p>
+<ul>
+<li><strong>Top-k</strong> truncates to a fixed <em>count</em> of tokens regardless of distribution shape. When the original distribution is peaked, this is fine; when it’s flat, you’re throwing away most of the probability mass arbitrarily.</li>
+<li><strong>Top-p</strong> truncates to a target <em>probability mass</em>. The effective number of kept tokens adapts: many for flat distributions, few for peaked ones.</li>
+</ul>
+<p>In practice, top-p (<span class="math inline">p \in [0.9, 0.95]</span>) is the more common default in modern LLM systems. Combined with <span class="math inline">T \in [0.7, 1.0]</span>, it forms the standard “creative generation” setup.</p>
+<section id="as-bayesian-inference" class="level3">
+<h3 class="anchored" data-anchor-id="as-bayesian-inference">2.1 As Bayesian inference</h3>
+<p>Both truncations can be viewed as <strong>conditioning on a truncated support</strong> — restricting the distribution to a <em>set</em> of allowed tokens and renormalizing over it. Top-k says: “the answer is one of the top-<span class="math inline">k</span> tokens; renormalize over them.” Top-p says: “the answer lies in the smallest set of tokens covering probability mass <span class="math inline">p</span>; renormalize over that set.” (This is conditioning on a set, not imposing a Dirac prior — a Dirac would put all mass on a <em>single</em> point, whereas truncation keeps a whole support set and rescales it.) What we sample from is the original distribution restricted and renormalized to that support.</p>
+<p>This isn’t just elegant. It tells us when truncation helps: when the long tail is mostly noise (low-confidence “wrong” tokens), truncating cleans up the distribution. When the long tail contains meaningful low-probability options, truncation hurts.</p>
+<hr>
+</section>
+</section>
+<section id="beam-search-and-the-map-collapse" class="level2">
+<h2 class="anchored" data-anchor-id="beam-search-and-the-map-collapse">3. Beam search and the MAP collapse</h2>
+<p>Sampling explores the distribution. The opposite extreme is <strong>search</strong> — find the highest-probability sequence(s).</p>
+<p><strong>Beam search</strong> is the standard approximate MAP algorithm. Maintain <span class="math inline">B</span> candidate sequences (“beams”) at each step. Expand each beam by all possible next tokens, score the <span class="math inline">B \cdot V</span> continuations by total log-probability, keep the top <span class="math inline">B</span>. After <span class="math inline">L</span> steps, return the highest-log-probability sequence.</p>
+<p>This is approximate because the true MAP would require enumerating <span class="math inline">V^L</span> sequences. Beam search keeps only <span class="math inline">B</span> at each step; sequences that look bad early but become great later get pruned. With <span class="math inline">B = 1</span> it’s pure greedy.</p>
+<p>Beam search is the default of most translation and summarization systems. The intuition seems sound: surely the <em>highest-probability</em> sequence is the best one?</p>
+<p>It’s not.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_map_collapse.png" class="img-fluid figure-img"></p>
+<figcaption>All sequences in the space, plotted by log-probability (x) and reward (y, jittered). Reward-1 sequences (blue stars) exist at relatively high log-prob but NOT the highest. Top-5 beam search candidates (red diamonds) lock onto a reward-0.2 sequence that has slightly higher log-prob. The MAP collapses to a ‘safe but bland’ answer.</figcaption>
+</figure>
+</div>
+<p><strong>The MAP collapse</strong> is a robustly-observed phenomenon: for open-ended generation, the highest-log-prob sequence from a well-trained LM is often <em>worse</em> than typical samples — bland, repetitive, or otherwise degenerate. Framed precisely, it is a risk of <strong>optimizing pure model likelihood</strong>: the mode of the model distribution is not the same as a good answer, especially when the output space is open-ended and the model places spurious mass on safe, generic continuations. It was documented for neural machine translation (Stahlberg &amp; Byrne 2019), open-ended generation (Holtzman et al.&nbsp;2020), and reasoning (Wang et al.&nbsp;2022).</p>
+<p>This does <em>not</em> make beam search globally bad. On the contrary, beam search remains the workhorse for tasks with a constrained, well-defined target — machine translation, summarization, and other structured generation — especially when paired with length normalization, repetition or coverage penalties, and reranking. There the target distribution is peaked enough that high likelihood really does track quality, and the failure mode above is mild. The collapse bites hardest in open-ended generation, where likelihood and quality diverge.</p>
+<p>The right panel makes the same point a different way: in <strong>this synthetic LM</strong>, beam search of any width (1, 3, 10, 50) gets stuck at the same MAP — wider beams give more candidates, but the top-1 by log-prob happens not to change here. In general this is <em>not</em> guaranteed: a wider beam preserves prefixes that a narrower beam would prune early, and one of those surviving prefixes can finish as a higher-log-prob sequence than anything the narrow beam kept — so beam width genuinely can change the returned sequence. What is robust is the deeper issue: pure-MAP decoding optimizes <em>model likelihood</em>, and for a well-trained LM the highest-likelihood sequence is often bland or degenerate. Sampling at <span class="math inline">T=1</span> has lower mean reward (0.11) because each individual sample is risky, but that variability is what lets us escape the MAP collapse via the next two sections.</p>
+<section id="why-map-collapses" class="level3">
+<h3 class="anchored" data-anchor-id="why-map-collapses">3.1 Why MAP collapses</h3>
+<p>A trained LM optimizes likelihood, not quality. Two related forces produce the collapse:</p>
+<ol type="1">
+<li><p><strong>Long sequences with small probability per token.</strong> A 100-token sequence with average per-token probability <span class="math inline">0.5</span> has joint probability <span class="math inline">0.5^{100} \approx 10^{-30}</span>. MAP search prefers sequences that take less risk on each token — so it ends up producing short, common phrases that compound to a “safe” path.</p></li>
+<li><p><strong>Approximation error in the LM.</strong> The LM is trained on a finite dataset and assigns <em>some</em> probability to every continuation. The exact MAP often picks up these spurious high-probability paths that don’t correspond to anything meaningful.</p></li>
+</ol>
+<p>The fix is to either (a) regularize the search (e.g., length normalization, repetition penalty), (b) abandon MAP and sample, or (c) sample + rerank, which is the bridge to the next section.</p>
+<hr>
+</section>
+</section>
+<section id="self-consistency" class="level2">
+<h2 class="anchored" data-anchor-id="self-consistency">4. Self-consistency</h2>
+<p>If sampling exposes us to diversity, <strong>self-consistency</strong> (Wang et al.&nbsp;2022) aggregates it: sample <span class="math inline">N</span> completions, group them by some notion of “answer,” and take the majority vote.</p>
+<p>The setup: for a reasoning task, the “answer” is a specific token (the final answer to a math problem, the choice in a multiple-choice question, etc.). Different <em>reasoning paths</em> may lead to the same answer, and voting over reasoning paths reduces noise.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_self_consistency.png" class="img-fluid figure-img"></p>
+<figcaption>Self-consistency on the synthetic LM. Left: 50 samples at T=1, vote distribution over the final-token ‘answers’. Correct answers (green) win the vote: token 7 with 22 votes. Right: accuracy vs N samples at three temperatures.</figcaption>
+</figure>
+</div>
+<p>The right panel is one of the most important figures in this post. <strong>Test-time accuracy scales with <span class="math inline">N</span></strong>, and the rate depends on temperature:</p>
+<ul>
+<li><span class="math inline">T = 0.7</span>: starts at 0.80 accuracy, saturates by <span class="math inline">N = 16</span>.</li>
+<li><span class="math inline">T = 1.0</span>: starts at 0.55, reaches near-perfect by <span class="math inline">N = 64</span>.</li>
+<li><span class="math inline">T = 1.5</span>: starts at 0.45, takes <span class="math inline">N = 128</span> to saturate.</li>
+</ul>
+<p>Higher temperature → more diverse samples → more compute needed to saturate → eventually still gets there.</p>
+<section id="the-monte-carlo-connection" class="level3">
+<h3 class="anchored" data-anchor-id="the-monte-carlo-connection">4.1 The Monte Carlo connection</h3>
+<p>Self-consistency is <strong>Monte Carlo estimation of the answer marginal</strong>:</p>
+<p><span class="math display">
+P(\text{answer} = a \mid x) \;=\; \mathbb{E}_{y \sim \pi(\cdot \mid x)}[\mathbf{1}[\text{answer}(y) = a]].
+</span></p>
+<p>We sample <span class="math inline">N</span> trajectories from the policy, compute the indicator for each answer, and average. The majority vote returns <span class="math inline">\arg\max_a \hat P(a)</span>, the empirical mode. With enough samples, <span class="math inline">\hat P \to P</span> and the mode converges to the true marginal mode.</p>
+<p>This is <em>almost certainly</em> not the same as the MAP of the joint distribution over <span class="math inline">y</span>. MAP picks the single most likely sequence; self-consistency picks the most likely <em>answer</em>, marginalizing out everything else. <strong>The fact that these differ is exactly the MAP collapse.</strong></p>
+<p>Why does the marginal mode beat the sequence mode? Because there are typically <em>many</em> reasoning paths to the right answer and <em>many different</em> paths to each wrong answer, so the right answer’s probability is spread across — and summed over — a large set of correct derivations, while each individual wrong path may be locally fluent (high sequence-probability) but isolated. Marginalizing collects all the correct paths’ mass onto one answer; MAP, fixated on the single highest-probability <em>string</em>, can land on a confident-but-wrong path whose answer few other paths share. There is a clean condition for when voting works: as long as the model places more marginal mass on the correct answer than on <em>any single</em> wrong answer, the empirical mode converges to correct as <span class="math inline">N\to\infty</span>. This is a Condorcet-style result — you do <em>not</em> need each sample to be more-often-right-than-wrong overall, only that the correct answer is the <em>plurality</em> winner. It is exactly why a model with, say, 40% per-sample accuracy spread over one correct answer can reach near-100% with enough votes, provided the remaining 60% is fragmented across many wrong answers rather than concentrated on one.</p>
+<p>The convergence rate is the standard Monte Carlo <span class="math inline">1/\sqrt N</span>: the empirical answer frequencies approach the true marginal at that rate, so the probability of a wrong plurality decays roughly exponentially in <span class="math inline">N</span> once the correct answer leads. This is also why self-consistency shows diminishing returns — going from 4 to 16 samples helps far more than 64 to 256.</p>
+</section>
+<section id="connection-to-ensembling" class="level3">
+<h3 class="anchored" data-anchor-id="connection-to-ensembling">4.2 Connection to ensembling</h3>
+<p>Self-consistency is also exactly the same idea as ensembling in classical ML. Sample <span class="math inline">N</span> classifiers from your posterior; average their predictions. Reduces variance proportional to <span class="math inline">1/N</span> (for independent samples).</p>
+<p>In LLMs, the “ensemble members” are different reasoning trajectories from a single model. The variance comes from sampling. The accuracy gain is the variance reduction.</p>
+<hr>
+</section>
+</section>
+<section id="best-of-n-sampling-verifier" class="level2">
+<h2 class="anchored" data-anchor-id="best-of-n-sampling-verifier">5. Best-of-N: sampling + verifier</h2>
+<p>Self-consistency aggregates by voting. The alternative is to score each candidate with an external <strong>verifier</strong> and pick the highest-scored one. This is <strong>best-of-N (BoN)</strong>:</p>
+<ol type="1">
+<li>Sample <span class="math inline">N</span> candidates from the LM.</li>
+<li>Score each with a verifier <span class="math inline">V(\text{candidate})</span>.</li>
+<li>Return <span class="math inline">\arg\max_i V(y_i)</span>.</li>
+</ol>
+<p>The verifier can be many things:</p>
+<ul>
+<li>A learned reward model (this is essentially RLHF inference: sample at high <span class="math inline">T</span>, rerank with the RM).</li>
+<li>An executable check (unit tests for code generation).</li>
+<li>An external solver (a math checker).</li>
+<li>Another LLM scoring the candidate (LLM-as-judge).</li>
+</ul>
+<p>When does BoN beat self-consistency? It depends on the verifier:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_sol4_best_of_n.png" class="img-fluid figure-img"></p>
+<figcaption>BoN with varying verifier quality. Perfect verifier saturates fastest (reaches 1.0 by N=8). 10%-noisy verifier plateaus at 0.93. 30%-noisy verifier plateaus at 0.75 — worse than self-consistency at large N. Self-consistency reaches 1.0 at N=64 with no verifier.</figcaption>
+</figure>
+</div>
+<p>The crucial observation: <strong>a noisy verifier doesn’t just slow BoN down — it imposes an accuracy ceiling</strong>. With 30% verifier-flip rate, BoN plateaus at 0.75 no matter how many candidates you sample, because some fraction of the time the verifier picks a wrong candidate that it mistakenly scored highly.</p>
+<p>The mechanism behind the ceiling is worth making precise, because it is the opposite of voting’s behaviour. As <span class="math inline">N</span> grows, BoN samples <em>more</em> candidates, which means more chances for the verifier to be fooled by a high-scoring wrong answer. Past a point, the bottleneck stops being “did we sample a correct candidate?” (almost surely yes, at large <span class="math inline">N</span>) and becomes “did the verifier rank a correct one first?” — which is capped by the verifier’s own reliability, independent of <span class="math inline">N</span>. More samples can even <em>hurt</em>: a better verifier-fooling wrong answer is more likely to appear in a larger pool. So BoN’s accuracy is bounded by verifier quality, and a sufficiently noisy verifier makes BoN <em>worse</em> than no verifier at all (just voting). This is the same lesson as the noisy-heuristic story in tree search (Post 3c §6): an unreliable evaluator that you trust completely is dangerous, while aggregation that <em>averages</em> over noise (voting) degrades gracefully.</p>
+<p>Self-consistency, in contrast, has no such ceiling. As <span class="math inline">N</span> grows, the empirical answer distribution converges to the true marginal, and the vote winner converges to the right answer (as long as the LM puts more mass on the right answer than any single wrong answer).</p>
+<p>This explains why both methods coexist in practice:</p>
+<ul>
+<li>For tasks with reliable verifiers (e.g., code generation with unit tests), BoN is dominant.</li>
+<li>For tasks without reliable verifiers (e.g., open-ended reasoning), self-consistency is more robust.</li>
+</ul>
+<hr>
+</section>
+<section id="test-time-scaling-the-deep-connection" class="level2">
+<h2 class="anchored" data-anchor-id="test-time-scaling-the-deep-connection">6. Test-time scaling: the deep connection</h2>
+<p>The big picture beneath everything above: <strong>inference is computationally tunable</strong>. We can spend more compute at test time and get better answers.</p>
+<p>This is qualitatively different from training-time compute. When training, we adjust <em>parameters</em>. The compute is amortized over all future inference. When sampling, we generate <em>more candidates</em> per query. The compute scales linearly with calls.</p>
+<p>Both can be productive. The recent “reasoning model” trend (OpenAI’s o-series, DeepSeek-R1) clearly trades test-time compute for accuracy — longer chains of thought, and in many systems multiple sampled drafts with selection. The exact internal pipelines are not public, so we should be careful not to over-claim the specifics; but the <em>general</em> principle they exploit — spend more inference compute to raise accuracy — is exactly the principle this post makes precise, and the building blocks here (sampling, self-consistency, verification) are the vocabulary in which those systems are described.</p>
+<section id="scaling-laws-at-test-time" class="level3">
+<h3 class="anchored" data-anchor-id="scaling-laws-at-test-time">6.1 Scaling laws at test time</h3>
+<p>A typical empirical observation:</p>
+<p><span class="math display">
+\text{error}(N) \approx \text{error}(\infty) + \frac{C}{N^\alpha}
+</span></p>
+<p>for some <span class="math inline">\alpha \in [0.3, 1.0]</span>. Accuracy improves with <span class="math inline">N</span> but with diminishing returns. The exponent <span class="math inline">\alpha</span> depends on the task — easier tasks have higher <span class="math inline">\alpha</span> (faster saturation); harder ones have lower.</p>
+<p>This is a power-law analog of the training-time scaling laws (Kaplan et al.&nbsp;2020, Hoffmann et al.&nbsp;2022). Both come from the same statistical structure: more samples → tighter Monte Carlo estimate → less error.</p>
+</section>
+<section id="composition" class="level3">
+<h3 class="anchored" data-anchor-id="composition">6.2 Composition</h3>
+<p>The most effective inference-time systems compose multiple strategies:</p>
+<ul>
+<li>Sample <span class="math inline">N = 64</span> candidates at <span class="math inline">T = 0.7</span>, top-p = 0.9.</li>
+<li>Score each with a learned reward model.</li>
+<li>Re-sample <span class="math inline">K = 16</span> from the top-scored.</li>
+<li>Average / vote among them.</li>
+</ul>
+<p>These compositions are the kind of thing behind headline results like “a strong base model with chain-of-thought plus self-consistency reaches ~95% on GSM8K.” The exact recipe varies by report and the precise numbers depend on the model, but the qualitative decomposition holds: the base model’s single-sample accuracy is substantially lower, and a large part of the rest is decoding — chain-of-thought to expose intermediate steps, then self-consistency or verification to aggregate over samples.</p>
+</section>
+<section id="forward-connections" class="level3">
+<h3 class="anchored" data-anchor-id="forward-connections">6.3 Forward connections</h3>
+<p>The next two posts of Topic 3 extend this thread:</p>
+<ul>
+<li><p><strong>Post 3b — Tool use as actions.</strong> When the verifier becomes an executable check (compile/run/test), the loop tightens: the LM generates, the tool verifies, the LM refines. This is <em>agentic</em> behavior built on the inference-time tools we’ve introduced here.</p></li>
+<li><p><strong>Post 3c — Tree of Thoughts and MCTS.</strong> What if instead of sampling N flat candidates we <em>search</em> through a tree of reasoning steps, expanding promising paths and pruning dead ends? This is decoding + search, and it is how systems built in the AlphaZero mould (such as AlphaProof) operate.</p></li>
+</ul>
+<p>Both are continuations of the same idea — what we now know how to train, we can deploy more cleverly at inference time.</p>
+<hr>
+</section>
+</section>
+<section id="a-practical-decoders-guide" class="level2">
+<h2 class="anchored" data-anchor-id="a-practical-decoders-guide">7. A practical decoder’s guide</h2>
+<p>Pulling the post together into something you can act on. The right decoder depends on the task, because tasks differ in whether likelihood tracks quality and whether a verifier is available:</p>
+<ul>
+<li><strong>Creative / open-ended writing → top-p sampling</strong> (e.g.&nbsp;<span class="math inline">p \approx 0.9</span>, <span class="math inline">T \approx 0.8</span>–<span class="math inline">1.0</span>). You <em>want</em> diversity and you have no single correct target, so avoid MAP and sample from a truncated tail that drops the noise.</li>
+<li><strong>Exact-answer reasoning (math, multiple-choice) → self-consistency.</strong> Sample several chains of thought at moderate <span class="math inline">T</span> and majority-vote the final answer; this estimates the answer marginal, which is exactly what you care about, and it needs no external verifier.</li>
+<li><strong>Code and anything with a checkable spec → best-of-N with execution.</strong> When you can <em>run</em> candidates against tests, generate <span class="math inline">N</span> and keep the one that passes. The executable check is a near-perfect verifier, so best-of-N dominates here (§9.4).</li>
+<li><strong>Translation / summarization / structured generation → beam search with length normalization and reranking.</strong> The target is constrained enough that high likelihood tracks quality, the MAP collapse is mild, and beam search with penalties is the established, strong choice.</li>
+</ul>
+<p>The meta-point: match the decoder to whether your task has a verifier and whether its likelihood is trustworthy. There is no universally best decoder — only the best one for the structure of your problem.</p>
+<hr>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">8. Experiments to actually run</h2>
+<section id="temperature-sweep-with-self-consistency" class="level3">
+<h3 class="anchored" data-anchor-id="temperature-sweep-with-self-consistency">8.1 Temperature sweep with self-consistency</h3>
+<p>Sweep <span class="math inline">T</span> from 0.2 to 3.0. Plot both single-sample accuracy and self-consistency accuracy at <span class="math inline">N = 16</span>. Where do they peak? Are they the same?</p>
+</section>
+<section id="beam-width-sweep" class="level3">
+<h3 class="anchored" data-anchor-id="beam-width-sweep">8.2 Beam width sweep</h3>
+<p>Vary beam width from 1 to 200. Show two things on the same plot: the top-1 reward (the actual output of beam search), and the <em>best</em> reward anywhere in the beam (what reranking by reward could find).</p>
+</section>
+<section id="top-k-and-top-p-with-self-consistency" class="level3">
+<h3 class="anchored" data-anchor-id="top-k-and-top-p-with-self-consistency">8.3 Top-k and top-p with self-consistency</h3>
+<p>Compare full-vocabulary <span class="math inline">T=1</span> to truncated <span class="math inline">T=1</span> at different cuts (top-k = 3, top-p = 0.9, top-p = 0.7). Does truncation help self-consistency, or hurt it?</p>
+</section>
+<section id="best-of-n-vs-self-consistency-with-imperfect-verifiers" class="level3">
+<h3 class="anchored" data-anchor-id="best-of-n-vs-self-consistency-with-imperfect-verifiers">8.4 Best-of-N vs self-consistency with imperfect verifiers</h3>
+<p>Sweep verifier quality from perfect to 30% flip rate. At what verifier quality does self-consistency overtake BoN?</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">9. Solutions</h2>
+<section id="temperature-self-consistency-experiments03a_sol1_temperature_sweep.py" class="level3">
+<h3 class="anchored" data-anchor-id="temperature-self-consistency-experiments03a_sol1_temperature_sweep.py">9.1 Temperature × self-consistency — <code>experiments/03a_sol1_temperature_sweep.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_sol1_temperature_sweep.png" class="img-fluid figure-img"></p>
+<figcaption>Temperature sweep with single-sample vs self-consistency (N=16). Single-sample monotonically decreases with T (peaks at low T). Self-consistency stays near 1.0 until T = 1.0 then degrades.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The two curves tell complementary stories:</p>
+<ul>
+<li><strong>Single sample</strong> peaks at low <span class="math inline">T</span> (~1.0 accuracy at <span class="math inline">T = 0.2</span>) and decreases monotonically. This is the textbook “greedy is best” result for a single shot.</li>
+<li><strong>Self-consistency (N=16)</strong> holds at 1.0 across <span class="math inline">T \in [0.2, 0.8]</span> — the easy regime where even a single sample is mostly right. Then it gracefully degrades, but stays above the single-sample line throughout.</li>
+</ul>
+<p>The <em>gap</em> between the two curves (shaded region) is the <strong>value of test-time compute</strong>. It’s tiny at low <span class="math inline">T</span> (because single-sample is already optimal) and large at moderate <span class="math inline">T</span>. There’s a sweet spot around <span class="math inline">T = 0.8</span> where:</p>
+<ul>
+<li>Single-sample is starting to fail (~0.63 accuracy).</li>
+<li>Self-consistency is still maxed out (~1.0).</li>
+</ul>
+<p>Compute budget of 16 samples turns a 63%-accuracy generator into a 100%-accuracy one. That’s the practical value of the technique.</p>
+<p><strong>Why doesn’t high <span class="math inline">T</span> break things?</strong> Even at <span class="math inline">T = 3.0</span>, self-consistency is still at 0.44 — better than single-sample at 0.32. The crucial property is that at any <span class="math inline">T</span>, <em>the most likely answer in expectation</em> is still the correct one (assuming the LM is reasonably calibrated). Voting reveals that mode.</p>
+<p><strong>The deeper lesson.</strong> Temperature and test-time compute are <em>substitutes</em>. You can either dial T down to follow the MAP (cheap but capped at single-sample accuracy) or dial T up and use compute to aggregate (expensive but higher ceiling). Modern systems lean toward the latter because compute is increasingly cheap relative to model parameters.</p>
+</section>
+<section id="beam-width-sweep-experiments03a_sol2_beam_width_sweep.py" class="level3">
+<h3 class="anchored" data-anchor-id="beam-width-sweep-experiments03a_sol2_beam_width_sweep.py">9.2 Beam width sweep — <code>experiments/03a_sol2_beam_width_sweep.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_sol2_beam_width_sweep.png" class="img-fluid figure-img"></p>
+<figcaption>Beam width sweep on three LMs with different MAP/reward alignment. Left: top-1 reward of beam search. Right: best reward anywhere in the beam. Top-1 is flat — beam width doesn’t change MAP. But wider beams contain better candidates that could be selected with reranking.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Two panels make the same point from different angles:</p>
+<p><strong>Left (Top-1)</strong>: Beam width has <em>no effect</em> on the top-1 output. Whatever the MAP is, that’s what beam search returns regardless of <span class="math inline">B</span>. For the “MAP collapses” LM, the top-1 is reward 0.2 for any <span class="math inline">B</span>.</p>
+<p><strong>Right (Best-in-beam)</strong>: Wider beams <em>contain</em> sequences with higher reward. By <span class="math inline">B = 5</span>, all three configurations have a reward-1 sequence somewhere in the beam. By <span class="math inline">B = 50</span>, every beam contains good candidates.</p>
+<p><strong>Why this matters.</strong> Beam search alone is bad on mis-calibrated LMs. But beam search + reranking — use beam search as a candidate generator and rerank by reward — gets you the benefits without the MAP collapse.</p>
+<p>This is exactly the recipe in many production code-generation systems: beam-search candidates, then test/rank each one, return the best.</p>
+<p><strong>The deeper lesson.</strong> Decoding strategies decompose into <em>generation</em> and <em>selection</em>. Beam search is one way to generate; argmax-by-logprob is one way to select. The two can be mixed and matched. Generation + reranking is consistently better than generation + take-first when you have access to any signal beyond log-probability.</p>
+</section>
+<section id="top-k-top-p-self-consistency-experiments03a_sol3_top_k_top_p.py" class="level3">
+<h3 class="anchored" data-anchor-id="top-k-top-p-self-consistency-experiments03a_sol3_top_k_top_p.py">9.3 Top-k / top-p × self-consistency — <code>experiments/03a_sol3_top_k_top_p.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_sol3_top_k_top_p.png" class="img-fluid figure-img"></p>
+<figcaption>Top-k/top-p effects on self-consistency. Top-p = 0.7 is best at every N including N=1 (100% accuracy). Top-p = 0.9 is second. Top-k = 3 is third. Full vocab is worst.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> A clean ordering across all <span class="math inline">N</span>:</p>
+<ul>
+<li>Top-p = 0.7: 100% accuracy at <span class="math inline">N = 1</span>.</li>
+<li>Top-p = 0.9: 70% at <span class="math inline">N = 1</span>, 100% by <span class="math inline">N = 32</span>.</li>
+<li>Top-k = 3: 63% at <span class="math inline">N = 1</span>, 100% by <span class="math inline">N = 32</span>.</li>
+<li>Full vocab: 56% at <span class="math inline">N = 1</span>, 100% by <span class="math inline">N = 32</span>.</li>
+</ul>
+<p>The most striking result: <strong>tightening top-p from 0.9 to 0.7 single-handedly turns a 70%-accuracy decoder into a 100%-accuracy one</strong>. No more samples, no reranking — just a tighter truncation.</p>
+<p><strong>Why top-p beats top-k.</strong> Adaptive truncation. On distributions where the LM is confident (entropy low), top-p = 0.7 keeps only the top 1-2 tokens. On distributions where it’s uncertain, it expands to more. Top-k = 3 is the same width everywhere, which over-truncates confident contexts and under-truncates uncertain ones.</p>
+<p><strong>Why all the truncated variants eventually reach 1.0.</strong> Self-consistency exposes the underlying truth: as long as the <em>correct</em> answer has the highest marginal probability under the (truncated) generative process, enough samples will surface it. The truncation just affects how <em>fast</em> this happens.</p>
+<p><strong>The deeper lesson — truncation is a regularizer.</strong> It removes the model’s least-confident predictions, which are also the most likely to be wrong. Truncation interacts with model calibration: a well-calibrated LM’s tail is meaningful information, and truncation hurts; a miscalibrated LM’s tail is noise, and truncation helps.</p>
+<p>LLMs are typically <em>under-confident</em> in their tails (the noise interpretation). Real-world top-p values around 0.9–0.95 reflect this. Truncate less than that and the noise contributes; more than that and you lose actual options.</p>
+</section>
+<section id="best-of-n-with-imperfect-verifiers-experiments03a_sol4_best_of_n.py" class="level3">
+<h3 class="anchored" data-anchor-id="best-of-n-with-imperfect-verifiers-experiments03a_sol4_best_of_n.py">9.4 Best-of-N with imperfect verifiers — <code>experiments/03a_sol4_best_of_n.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/03a_sol4_best_of_n.png" class="img-fluid figure-img"></p>
+<figcaption>BoN vs self-consistency at varying verifier quality. Perfect verifier: 1.0 by N=8. 10% flip: plateaus at 0.93. 30% flip: plateaus at 0.75. Self-consistency: slowest start, but reaches 1.0 by N=64.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Four regimes:</p>
+<ul>
+<li><strong>Perfect verifier</strong>: BoN is fastest. Saturates at N=8 with 1.0 accuracy.</li>
+<li><strong>10% flip verifier</strong>: BoN still beats self-consistency at low <span class="math inline">N</span> (N≤8) but plateaus at 0.93 — there’s a noise floor.</li>
+<li><strong>30% flip verifier</strong>: BoN plateaus at 0.75. Self-consistency surpasses it at <span class="math inline">N = 16</span>.</li>
+<li><strong>No verifier (self-consistency)</strong>: Slowest start but no ceiling. Reaches 1.0 at <span class="math inline">N = 64</span>.</li>
+</ul>
+<p><strong>The bias-variance tradeoff in disguise.</strong> A verifier is a high-bias, low-variance signal — each candidate gets one score, ranked once. Self-consistency is high-variance, low-bias — it averages over many noisy samples but converges to truth. At small <span class="math inline">N</span>, low-variance (good verifier) wins. At large <span class="math inline">N</span>, low-bias (no verifier) wins.</p>
+<p><strong>Practical implication.</strong> Whether to use BoN or self-consistency depends on:</p>
+<ol type="1">
+<li><strong>How good is your verifier?</strong> Code tasks (perfect verifier via execution) → BoN. Open-ended reasoning (no verifier or LLM-as-judge with noise) → self-consistency.</li>
+<li><strong>How much compute can you spend?</strong> Small budgets favor BoN (better at low N). Large budgets favor self-consistency (better at high N).</li>
+<li><strong>What’s the cost of being wrong?</strong> BoN’s plateau is a hard ceiling. If you need &gt;95% accuracy, you need a near-perfect verifier or you need self-consistency.</li>
+</ol>
+<p><strong>The deeper lesson — combine them.</strong> In practice, the strongest systems combine both: sample <span class="math inline">N_{\text{big}}</span> candidates, filter to <span class="math inline">N_{\text{med}}</span> with a verifier, vote among those. This gets you the high-quality candidate pool of BoN + the noise-averaging of self-consistency.</p>
+<p>DeepSeek-R1’s reasoning pipeline does exactly this. So does GPT-4’s coding mode. The classical methods are alive and well — they’re just nested inside bigger systems now.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">10. Further reading</h2>
+<ul>
+<li><strong>Holtzman, Buys, Du, Forbes &amp; Choi, “The Curious Case of Neural Text Degeneration” (ICLR 2020).</strong> The MAP-collapse paper for open-ended generation. Introduces nucleus sampling.</li>
+<li><strong>Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery &amp; Zhou, “Self-Consistency Improves Chain of Thought Reasoning in Language Models” (ICLR 2023).</strong> The self-consistency paper.</li>
+<li><strong>Stahlberg &amp; Byrne, “On NMT Search Errors and Model Errors: Cat Got Your Tongue?” (EMNLP 2019).</strong> The empirical MAP-collapse paper for translation.</li>
+<li><strong>Eikema &amp; Aziz, “Is MAP Decoding All You Need?” (COLING 2020).</strong> A thorough survey of MAP vs sampling trade-offs.</li>
+<li><strong>Snell, Lee, Xu &amp; Kumar, “Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters” (2024).</strong> Empirical study of test-time compute scaling.</li>
+</ul>
+<hr>
+<p><strong>Next up — Post 3b: Tool use as actions.</strong> When the LM can call out to tools (search, code execution, calculators), the inference loop tightens: generate → execute → refine. We’ll see ReAct from scratch, treat tool use as an extended MDP, and connect back to the bandit/Q-learning framework from Topic 1. Verifiers and tools merge into a single concept: <em>external signals the LM can incorporate</em>.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Decoding as {Inference:} {Sampling,} {Search,} and
+    {Test-Time} {Compute}},
+  date = {2026-05-26},
+  url = {https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html},
+  langid = {en}
+}
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
+Tran, Ba-Hien. 2026. <span>“Decoding as Inference: Sampling, Search, and
+Test-Time Compute.”</span> May 26. <a href="https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html">https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html</a>.
+</div></div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Decoding as Inference: Sampling, Search, and Test-Time Compute"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Topic 3, post 1 of 3. Once you have a trained language model, what should you do with it? We treat decoding — temperature, top-k, top-p, beam search, self-consistency, best-of-N — as approximate Bayesian inference, and see why test-time compute scales."</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-26"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [decoding, sampling, beam search, self-consistency, test-time compute]</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/03a_self_consistency.png</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Topic 3, post 1 of 3.*</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>Topics 1 and 2 were about *training* a policy. By the end of <span class="co">[</span><span class="ot">Post 2d</span><span class="co">](02d-rlhf-dpo-grpo.qmd)</span>, we had the full algorithmic stack — from the log-derivative trick through REINFORCE, A2C+GAE, PPO, and RLHF/DPO/GRPO — for fitting a language model policy to human preferences or verifier signals.</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>Topic 3 is about what to do with that policy once you have it. This post starts with the most basic operation: **decoding** — turning a trained model into actual text. It is worth being concrete about what that involves, because the whole post hinges on it. At each position, a language model does not output a word. It outputs a vector of **logits** — one real number per vocabulary token, perhaps 50,000 of them — which a softmax turns into a full probability distribution over what the next token could be. To produce text we must repeatedly *collapse* that distribution into a single chosen token, append it, and run the model again. **Decoding is the rule for doing the collapsing.** Take the most probable token every time? Sample in proportion to probability? Keep several candidate sequences alive at once? Each rule is a different decoder, and — crucially — the choice of rule is entirely separate from the trained weights. The same model, decoded two different ways, can be eloquent or degenerate, reliable or creative. That the seemingly mundane choice of *how* to collapse is one of the most consequential design decisions in modern AI systems is the surprise this post unpacks.</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>The thesis: **decoding is approximate inference**. The LM defines a distribution $\pi(y \mid x)$ over completions; every decoding strategy is some way of selecting from that distribution — approximating the **mode** (the single most probable completion), drawing a **sample from a tempered or truncated** version of it, or estimating a **marginal decision** such as the majority-vote answer. (Note we deliberately avoid saying "the mean": text has no natural average — there is no meaningful midpoint between two sentences — so the useful targets are high-probability sequences and marginal answer distributions, not a mean completion.) Once you see the family clearly, you can predict when each strategy will work, when it'll fail, and how to compose them.</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. Setup: the LM as a policy</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>A language model defines a conditional distribution</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>\pi_\theta(y_1, y_2, \ldots, y_L \mid x) \;=\; \prod_{t=1}^{L} \pi_\theta(y_t \mid x, y_{&lt;t}).</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>Each token is drawn conditional on the prompt $x$ and all previous tokens — this factorization (the chain rule of probability) is what "autoregressive" means. It is exactly the policy form from Posts 2a–2c, with state = $(x, y_{&lt;t})$ and action = $y_t$: the prompt-plus-history-so-far is the state, and the next token is the action. Decoding, then, is just *rolling out a policy* in this sequential decision process — and the decoding strategies below are the rollout rules.</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="al">![Autoregressive generation viewed as a tree. With vocabulary V and length L there are V^L sequences. The 'greedy / MAP' path (red) is one specific deterministic descent. Other paths are reachable via sampling.](../figures/03a_autoregressive_tree.png)</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>The exponential branching is what makes decoding non-trivial. With a vocabulary of ~50,000 (a typical LLM) and 100-token responses, the space of sequences is $50000^{100}$ — far larger than any astronomical number you've heard of. We cannot enumerate. Every decoding strategy is some way of biasing search through this combinatorial space.</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>Throughout this post we work with a **tiny synthetic LM** ($V \approx 8$, $L \approx 4$) where we can enumerate all sequences and compute exact properties. The phenomena we'll demonstrate scale up to real LMs — the toy just lets us *see* them precisely.</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Temperature</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>The most familiar knob. Given logits $z_v$ for each vocabulary token $v$, temperature $T$ rescales:</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>\pi_T(v) \;=\; \frac{\exp(z_v / T)}{\sum_{v'} \exp(z_{v'} / T)}.</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>Limits:</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$T \to 0$: $\pi_T$ concentrates on $\arg\max_v z_v$ — pure greedy.</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$T = 1$: the LM's own distribution.</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$T \to \infty$: uniform over the vocabulary.</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="al">![Temperature controls a tradeoff. Left: same logits at four temperatures — T=0.5 sharpens (p_max = 0.56), T=5 flattens (p_max = 0.19). Right: mean reward over samples vs T. Greedy reaches reward 1.0 on this LM; T=1 gives 0.26.](../figures/03a_temperature.png)</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>This isn't only a presentation choice. There's a deeper connection: **temperature controls a Boltzmann distribution** $\pi_T(y) \propto \exp(r(y) / T)$. In statistical mechanics, $1/T$ is the *inverse temperature* $\beta$. Familiar?</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>You've seen exactly this in Post 2d §2.1 — the optimal RLHF policy is</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>\pi^\star(y \mid x) \;\propto\; \pi_{\text{ref}}(y \mid x) \exp<span class="sc">\!</span>\left(\frac{r(y, x)}{\beta}\right).</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>The RLHF training temperature $\beta$ and the inference-time temperature $T$ are **mathematically analogous but not the same object**, and it's worth being precise about the difference. Inference-time $T$ reshapes a *fixed*, already-trained model distribution — it changes only how sharply we sample, with the weights untouched. RLHF's $\beta$ is a coefficient *inside an optimization*: it sets the trade-off between maximizing reward and staying close to the reference policy during the KL-regularized training that *produces* the weights. Both have the Boltzmann form $\exp(\cdot/\text{temperature})$, and both implement "softer here, sharper there" — but one is a knob on a frozen distribution and the other is a knob on a training objective. The shared algebra is a real and useful connection; the equivalence is structural, not literal.</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="fu">### 1.1 The diversity–quality tradeoff</span></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>Low $T$ gives high mean reward per sample but no diversity. High $T$ gives diverse samples but lower mean reward. The right-panel curve shows this monotonically — for a single sample, low $T$ wins.</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>But as we'll see in §5, **a single sample isn't always what we want.** If we can take many samples and aggregate, diversity becomes valuable, and the optimal $T$ shifts away from zero.</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Top-k and top-p truncation</span></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a>Temperature scales every logit. Sometimes we want to *truncate* — keep only the few most likely tokens and renormalize among them.</span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>**Top-k**: keep the highest-probability $k$ tokens, zero out the rest, renormalize.</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>**Top-p (nucleus sampling)**: keep the smallest set of tokens whose cumulative probability is at least $p$, in descending order. The size of this set varies with the distribution shape.</span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>Both are inference-time interventions on the same model — no retraining. They handle the "long tail" of low-probability tokens that would otherwise contribute generation noise.</span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="al">![Truncation rules. Left: applied to one distribution — top-k=3 keeps a fixed three tokens; top-p=0.9 keeps as many as it takes to cover 90% mass (six tokens here). Right: how each rule responds to varying source entropy. Top-p tracks; top-k clips at log(3) regardless.](../figures/03a_top_k_top_p.png)</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a>The right panel makes the conceptual difference clear:</span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Top-k** truncates to a fixed *count* of tokens regardless of distribution shape. When the original distribution is peaked, this is fine; when it's flat, you're throwing away most of the probability mass arbitrarily.</span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Top-p** truncates to a target *probability mass*. The effective number of kept tokens adapts: many for flat distributions, few for peaked ones.</span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a>In practice, top-p ($p \in <span class="co">[</span><span class="ot">0.9, 0.95</span><span class="co">]</span>$) is the more common default in modern LLM systems. Combined with $T \in <span class="co">[</span><span class="ot">0.7, 1.0</span><span class="co">]</span>$, it forms the standard "creative generation" setup.</span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 As Bayesian inference</span></span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a>Both truncations can be viewed as **conditioning on a truncated support** — restricting the distribution to a *set* of allowed tokens and renormalizing over it. Top-k says: "the answer is one of the top-$k$ tokens; renormalize over them." Top-p says: "the answer lies in the smallest set of tokens covering probability mass $p$; renormalize over that set." (This is conditioning on a set, not imposing a Dirac prior — a Dirac would put all mass on a *single* point, whereas truncation keeps a whole support set and rescales it.) What we sample from is the original distribution restricted and renormalized to that support.</span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a>This isn't just elegant. It tells us when truncation helps: when the long tail is mostly noise (low-confidence "wrong" tokens), truncating cleans up the distribution. When the long tail contains meaningful low-probability options, truncation hurts.</span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. Beam search and the MAP collapse</span></span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a>Sampling explores the distribution. The opposite extreme is **search** — find the highest-probability sequence(s).</span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a>**Beam search** is the standard approximate MAP algorithm. Maintain $B$ candidate sequences ("beams") at each step. Expand each beam by all possible next tokens, score the $B \cdot V$ continuations by total log-probability, keep the top $B$. After $L$ steps, return the highest-log-probability sequence.</span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a>This is approximate because the true MAP would require enumerating $V^L$ sequences. Beam search keeps only $B$ at each step; sequences that look bad early but become great later get pruned. With $B = 1$ it's pure greedy.</span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>Beam search is the default of most translation and summarization systems. The intuition seems sound: surely the *highest-probability* sequence is the best one?</span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a>It's not.</span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a><span class="al">![All sequences in the space, plotted by log-probability (x) and reward (y, jittered). Reward-1 sequences (blue stars) exist at relatively high log-prob but NOT the highest. Top-5 beam search candidates (red diamonds) lock onto a reward-0.2 sequence that has slightly higher log-prob. The MAP collapses to a 'safe but bland' answer.](../figures/03a_map_collapse.png)</span></span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>**The MAP collapse** is a robustly-observed phenomenon: for open-ended generation, the highest-log-prob sequence from a well-trained LM is often *worse* than typical samples — bland, repetitive, or otherwise degenerate. Framed precisely, it is a risk of **optimizing pure model likelihood**: the mode of the model distribution is not the same as a good answer, especially when the output space is open-ended and the model places spurious mass on safe, generic continuations. It was documented for neural machine translation (Stahlberg &amp; Byrne 2019), open-ended generation (Holtzman et al. 2020), and reasoning (Wang et al. 2022).</span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>This does *not* make beam search globally bad. On the contrary, beam search remains the workhorse for tasks with a constrained, well-defined target — machine translation, summarization, and other structured generation — especially when paired with length normalization, repetition or coverage penalties, and reranking. There the target distribution is peaked enough that high likelihood really does track quality, and the failure mode above is mild. The collapse bites hardest in open-ended generation, where likelihood and quality diverge.</span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>The right panel makes the same point a different way: in **this synthetic LM**, beam search of any width (1, 3, 10, 50) gets stuck at the same MAP — wider beams give more candidates, but the top-1 by log-prob happens not to change here. In general this is *not* guaranteed: a wider beam preserves prefixes that a narrower beam would prune early, and one of those surviving prefixes can finish as a higher-log-prob sequence than anything the narrow beam kept — so beam width genuinely can change the returned sequence. What is robust is the deeper issue: pure-MAP decoding optimizes *model likelihood*, and for a well-trained LM the highest-likelihood sequence is often bland or degenerate. Sampling at $T=1$ has lower mean reward (0.11) because each individual sample is risky, but that variability is what lets us escape the MAP collapse via the next two sections.</span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a><span class="fu">### 3.1 Why MAP collapses</span></span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>A trained LM optimizes likelihood, not quality. Two related forces produce the collapse:</span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Long sequences with small probability per token.** A 100-token sequence with average per-token probability $0.5$ has joint probability $0.5^{100} \approx 10^{-30}$. MAP search prefers sequences that take less risk on each token — so it ends up producing short, common phrases that compound to a "safe" path.</span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Approximation error in the LM.** The LM is trained on a finite dataset and assigns *some* probability to every continuation. The exact MAP often picks up these spurious high-probability paths that don't correspond to anything meaningful.</span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>The fix is to either (a) regularize the search (e.g., length normalization, repetition penalty), (b) abandon MAP and sample, or (c) sample + rerank, which is the bridge to the next section.</span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Self-consistency</span></span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a>If sampling exposes us to diversity, **self-consistency** (Wang et al. 2022) aggregates it: sample $N$ completions, group them by some notion of "answer," and take the majority vote.</span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>The setup: for a reasoning task, the "answer" is a specific token (the final answer to a math problem, the choice in a multiple-choice question, etc.). Different *reasoning paths* may lead to the same answer, and voting over reasoning paths reduces noise.</span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a><span class="al">![Self-consistency on the synthetic LM. Left: 50 samples at T=1, vote distribution over the final-token 'answers'. Correct answers (green) win the vote: token 7 with 22 votes. Right: accuracy vs N samples at three temperatures.](../figures/03a_self_consistency.png)</span></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>The right panel is one of the most important figures in this post. **Test-time accuracy scales with $N$**, and the rate depends on temperature:</span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$T = 0.7$: starts at 0.80 accuracy, saturates by $N = 16$.</span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$T = 1.0$: starts at 0.55, reaches near-perfect by $N = 64$.</span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>$T = 1.5$: starts at 0.45, takes $N = 128$ to saturate.</span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>Higher temperature → more diverse samples → more compute needed to saturate → eventually still gets there.</span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 The Monte Carlo connection</span></span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>Self-consistency is **Monte Carlo estimation of the answer marginal**:</span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a>P(\text{answer} = a \mid x) \;=\; \mathbb{E}_{y \sim \pi(\cdot \mid x)}<span class="co">[</span><span class="ot">\mathbf{1}[\text{answer}(y) = a]</span><span class="co">]</span>.</span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>We sample $N$ trajectories from the policy, compute the indicator for each answer, and average. The majority vote returns $\arg\max_a \hat P(a)$, the empirical mode. With enough samples, $\hat P \to P$ and the mode converges to the true marginal mode.</span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>This is *almost certainly* not the same as the MAP of the joint distribution over $y$. MAP picks the single most likely sequence; self-consistency picks the most likely *answer*, marginalizing out everything else. **The fact that these differ is exactly the MAP collapse.**</span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>Why does the marginal mode beat the sequence mode? Because there are typically *many* reasoning paths to the right answer and *many different* paths to each wrong answer, so the right answer's probability is spread across — and summed over — a large set of correct derivations, while each individual wrong path may be locally fluent (high sequence-probability) but isolated. Marginalizing collects all the correct paths' mass onto one answer; MAP, fixated on the single highest-probability *string*, can land on a confident-but-wrong path whose answer few other paths share. There is a clean condition for when voting works: as long as the model places more marginal mass on the correct answer than on *any single* wrong answer, the empirical mode converges to correct as $N\to\infty$. This is a Condorcet-style result — you do *not* need each sample to be more-often-right-than-wrong overall, only that the correct answer is the *plurality* winner. It is exactly why a model with, say, 40% per-sample accuracy spread over one correct answer can reach near-100% with enough votes, provided the remaining 60% is fragmented across many wrong answers rather than concentrated on one.</span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a>The convergence rate is the standard Monte Carlo $1/\sqrt N$: the empirical answer frequencies approach the true marginal at that rate, so the probability of a wrong plurality decays roughly exponentially in $N$ once the correct answer leads. This is also why self-consistency shows diminishing returns — going from 4 to 16 samples helps far more than 64 to 256.</span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 Connection to ensembling</span></span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>Self-consistency is also exactly the same idea as ensembling in classical ML. Sample $N$ classifiers from your posterior; average their predictions. Reduces variance proportional to $1/N$ (for independent samples).</span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>In LLMs, the "ensemble members" are different reasoning trajectories from a single model. The variance comes from sampling. The accuracy gain is the variance reduction.</span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. Best-of-N: sampling + verifier</span></span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a>Self-consistency aggregates by voting. The alternative is to score each candidate with an external **verifier** and pick the highest-scored one. This is **best-of-N (BoN)**:</span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Sample $N$ candidates from the LM.</span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Score each with a verifier $V(\text{candidate})$.</span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Return $\arg\max_i V(y_i)$.</span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>The verifier can be many things:</span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>A learned reward model (this is essentially RLHF inference: sample at high $T$, rerank with the RM).</span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>An executable check (unit tests for code generation).</span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>An external solver (a math checker).</span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Another LLM scoring the candidate (LLM-as-judge).</span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>When does BoN beat self-consistency? It depends on the verifier:</span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a><span class="al">![BoN with varying verifier quality. Perfect verifier saturates fastest (reaches 1.0 by N=8). 10%-noisy verifier plateaus at 0.93. 30%-noisy verifier plateaus at 0.75 — worse than self-consistency at large N. Self-consistency reaches 1.0 at N=64 with no verifier.](../figures/03a_sol4_best_of_n.png)</span></span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a>The crucial observation: **a noisy verifier doesn't just slow BoN down — it imposes an accuracy ceiling**. With 30% verifier-flip rate, BoN plateaus at 0.75 no matter how many candidates you sample, because some fraction of the time the verifier picks a wrong candidate that it mistakenly scored highly.</span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a>The mechanism behind the ceiling is worth making precise, because it is the opposite of voting's behaviour. As $N$ grows, BoN samples *more* candidates, which means more chances for the verifier to be fooled by a high-scoring wrong answer. Past a point, the bottleneck stops being "did we sample a correct candidate?" (almost surely yes, at large $N$) and becomes "did the verifier rank a correct one first?" — which is capped by the verifier's own reliability, independent of $N$. More samples can even *hurt*: a better verifier-fooling wrong answer is more likely to appear in a larger pool. So BoN's accuracy is bounded by verifier quality, and a sufficiently noisy verifier makes BoN *worse* than no verifier at all (just voting). This is the same lesson as the noisy-heuristic story in tree search (Post 3c §6): an unreliable evaluator that you trust completely is dangerous, while aggregation that *averages* over noise (voting) degrades gracefully.</span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a>Self-consistency, in contrast, has no such ceiling. As $N$ grows, the empirical answer distribution converges to the true marginal, and the vote winner converges to the right answer (as long as the LM puts more mass on the right answer than any single wrong answer).</span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a>This explains why both methods coexist in practice:</span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For tasks with reliable verifiers (e.g., code generation with unit tests), BoN is dominant.</span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>For tasks without reliable verifiers (e.g., open-ended reasoning), self-consistency is more robust.</span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Test-time scaling: the deep connection</span></span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a>The big picture beneath everything above: **inference is computationally tunable**. We can spend more compute at test time and get better answers.</span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a>This is qualitatively different from training-time compute. When training, we adjust *parameters*. The compute is amortized over all future inference. When sampling, we generate *more candidates* per query. The compute scales linearly with calls.</span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a>Both can be productive. The recent "reasoning model" trend (OpenAI's o-series, DeepSeek-R1) clearly trades test-time compute for accuracy — longer chains of thought, and in many systems multiple sampled drafts with selection. The exact internal pipelines are not public, so we should be careful not to over-claim the specifics; but the *general* principle they exploit — spend more inference compute to raise accuracy — is exactly the principle this post makes precise, and the building blocks here (sampling, self-consistency, verification) are the vocabulary in which those systems are described.</span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 Scaling laws at test time</span></span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a>A typical empirical observation:</span>
+<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a>\text{error}(N) \approx \text{error}(\infty) + \frac{C}{N^\alpha}</span>
+<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a>for some $\alpha \in <span class="co">[</span><span class="ot">0.3, 1.0</span><span class="co">]</span>$. Accuracy improves with $N$ but with diminishing returns. The exponent $\alpha$ depends on the task — easier tasks have higher $\alpha$ (faster saturation); harder ones have lower.</span>
+<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a>This is a power-law analog of the training-time scaling laws (Kaplan et al. 2020, Hoffmann et al. 2022). Both come from the same statistical structure: more samples → tighter Monte Carlo estimate → less error.</span>
+<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 Composition</span></span>
+<span id="cb1-224"><a href="#cb1-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-225"><a href="#cb1-225" aria-hidden="true" tabindex="-1"></a>The most effective inference-time systems compose multiple strategies:</span>
+<span id="cb1-226"><a href="#cb1-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-227"><a href="#cb1-227" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Sample $N = 64$ candidates at $T = 0.7$, top-p = 0.9.</span>
+<span id="cb1-228"><a href="#cb1-228" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Score each with a learned reward model.</span>
+<span id="cb1-229"><a href="#cb1-229" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Re-sample $K = 16$ from the top-scored.</span>
+<span id="cb1-230"><a href="#cb1-230" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Average / vote among them.</span>
+<span id="cb1-231"><a href="#cb1-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-232"><a href="#cb1-232" aria-hidden="true" tabindex="-1"></a>These compositions are the kind of thing behind headline results like "a strong base model with chain-of-thought plus self-consistency reaches ~95% on GSM8K." The exact recipe varies by report and the precise numbers depend on the model, but the qualitative decomposition holds: the base model's single-sample accuracy is substantially lower, and a large part of the rest is decoding — chain-of-thought to expose intermediate steps, then self-consistency or verification to aggregate over samples.</span>
+<span id="cb1-233"><a href="#cb1-233" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-234"><a href="#cb1-234" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 Forward connections</span></span>
+<span id="cb1-235"><a href="#cb1-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-236"><a href="#cb1-236" aria-hidden="true" tabindex="-1"></a>The next two posts of Topic 3 extend this thread:</span>
+<span id="cb1-237"><a href="#cb1-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-238"><a href="#cb1-238" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Post 3b — Tool use as actions.** When the verifier becomes an executable check (compile/run/test), the loop tightens: the LM generates, the tool verifies, the LM refines. This is *agentic* behavior built on the inference-time tools we've introduced here.</span>
+<span id="cb1-239"><a href="#cb1-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-240"><a href="#cb1-240" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Post 3c — Tree of Thoughts and MCTS.** What if instead of sampling N flat candidates we *search* through a tree of reasoning steps, expanding promising paths and pruning dead ends? This is decoding + search, and it is how systems built in the AlphaZero mould (such as AlphaProof) operate.</span>
+<span id="cb1-241"><a href="#cb1-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-242"><a href="#cb1-242" aria-hidden="true" tabindex="-1"></a>Both are continuations of the same idea — what we now know how to train, we can deploy more cleverly at inference time.</span>
+<span id="cb1-243"><a href="#cb1-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-244"><a href="#cb1-244" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-245"><a href="#cb1-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-246"><a href="#cb1-246" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. A practical decoder's guide</span></span>
+<span id="cb1-247"><a href="#cb1-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-248"><a href="#cb1-248" aria-hidden="true" tabindex="-1"></a>Pulling the post together into something you can act on. The right decoder depends on the task, because tasks differ in whether likelihood tracks quality and whether a verifier is available:</span>
+<span id="cb1-249"><a href="#cb1-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-250"><a href="#cb1-250" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Creative / open-ended writing → top-p sampling** (e.g. $p \approx 0.9$, $T \approx 0.8$–$1.0$). You *want* diversity and you have no single correct target, so avoid MAP and sample from a truncated tail that drops the noise.</span>
+<span id="cb1-251"><a href="#cb1-251" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Exact-answer reasoning (math, multiple-choice) → self-consistency.** Sample several chains of thought at moderate $T$ and majority-vote the final answer; this estimates the answer marginal, which is exactly what you care about, and it needs no external verifier.</span>
+<span id="cb1-252"><a href="#cb1-252" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Code and anything with a checkable spec → best-of-N with execution.** When you can *run* candidates against tests, generate $N$ and keep the one that passes. The executable check is a near-perfect verifier, so best-of-N dominates here (§9.4).</span>
+<span id="cb1-253"><a href="#cb1-253" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Translation / summarization / structured generation → beam search with length normalization and reranking.** The target is constrained enough that high likelihood tracks quality, the MAP collapse is mild, and beam search with penalties is the established, strong choice.</span>
+<span id="cb1-254"><a href="#cb1-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-255"><a href="#cb1-255" aria-hidden="true" tabindex="-1"></a>The meta-point: match the decoder to whether your task has a verifier and whether its likelihood is trustworthy. There is no universally best decoder — only the best one for the structure of your problem.</span>
+<span id="cb1-256"><a href="#cb1-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-257"><a href="#cb1-257" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-258"><a href="#cb1-258" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-259"><a href="#cb1-259" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Experiments to actually run</span></span>
+<span id="cb1-260"><a href="#cb1-260" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-261"><a href="#cb1-261" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Temperature sweep with self-consistency</span></span>
+<span id="cb1-262"><a href="#cb1-262" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-263"><a href="#cb1-263" aria-hidden="true" tabindex="-1"></a>Sweep $T$ from 0.2 to 3.0. Plot both single-sample accuracy and self-consistency accuracy at $N = 16$. Where do they peak? Are they the same?</span>
+<span id="cb1-264"><a href="#cb1-264" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-265"><a href="#cb1-265" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 Beam width sweep</span></span>
+<span id="cb1-266"><a href="#cb1-266" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-267"><a href="#cb1-267" aria-hidden="true" tabindex="-1"></a>Vary beam width from 1 to 200. Show two things on the same plot: the top-1 reward (the actual output of beam search), and the *best* reward anywhere in the beam (what reranking by reward could find).</span>
+<span id="cb1-268"><a href="#cb1-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-269"><a href="#cb1-269" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Top-k and top-p with self-consistency</span></span>
+<span id="cb1-270"><a href="#cb1-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-271"><a href="#cb1-271" aria-hidden="true" tabindex="-1"></a>Compare full-vocabulary $T=1$ to truncated $T=1$ at different cuts (top-k = 3, top-p = 0.9, top-p = 0.7). Does truncation help self-consistency, or hurt it?</span>
+<span id="cb1-272"><a href="#cb1-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-273"><a href="#cb1-273" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 Best-of-N vs self-consistency with imperfect verifiers</span></span>
+<span id="cb1-274"><a href="#cb1-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-275"><a href="#cb1-275" aria-hidden="true" tabindex="-1"></a>Sweep verifier quality from perfect to 30% flip rate. At what verifier quality does self-consistency overtake BoN?</span>
+<span id="cb1-276"><a href="#cb1-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-277"><a href="#cb1-277" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-278"><a href="#cb1-278" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-279"><a href="#cb1-279" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Solutions</span></span>
+<span id="cb1-280"><a href="#cb1-280" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-281"><a href="#cb1-281" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.1 Temperature × self-consistency — `experiments/03a_sol1_temperature_sweep.py`</span></span>
+<span id="cb1-282"><a href="#cb1-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-283"><a href="#cb1-283" aria-hidden="true" tabindex="-1"></a><span class="al">![Temperature sweep with single-sample vs self-consistency (N=16). Single-sample monotonically decreases with T (peaks at low T). Self-consistency stays near 1.0 until T = 1.0 then degrades.](../figures/03a_sol1_temperature_sweep.png)</span></span>
+<span id="cb1-284"><a href="#cb1-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-285"><a href="#cb1-285" aria-hidden="true" tabindex="-1"></a>**What you should see.** The two curves tell complementary stories:</span>
+<span id="cb1-286"><a href="#cb1-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-287"><a href="#cb1-287" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Single sample** peaks at low $T$ (~1.0 accuracy at $T = 0.2$) and decreases monotonically. This is the textbook "greedy is best" result for a single shot.</span>
+<span id="cb1-288"><a href="#cb1-288" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Self-consistency (N=16)** holds at 1.0 across $T \in <span class="co">[</span><span class="ot">0.2, 0.8</span><span class="co">]</span>$ — the easy regime where even a single sample is mostly right. Then it gracefully degrades, but stays above the single-sample line throughout.</span>
+<span id="cb1-289"><a href="#cb1-289" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-290"><a href="#cb1-290" aria-hidden="true" tabindex="-1"></a>The *gap* between the two curves (shaded region) is the **value of test-time compute**. It's tiny at low $T$ (because single-sample is already optimal) and large at moderate $T$. There's a sweet spot around $T = 0.8$ where:</span>
+<span id="cb1-291"><a href="#cb1-291" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-292"><a href="#cb1-292" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Single-sample is starting to fail (~0.63 accuracy).</span>
+<span id="cb1-293"><a href="#cb1-293" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Self-consistency is still maxed out (~1.0).</span>
+<span id="cb1-294"><a href="#cb1-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-295"><a href="#cb1-295" aria-hidden="true" tabindex="-1"></a>Compute budget of 16 samples turns a 63%-accuracy generator into a 100%-accuracy one. That's the practical value of the technique.</span>
+<span id="cb1-296"><a href="#cb1-296" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-297"><a href="#cb1-297" aria-hidden="true" tabindex="-1"></a>**Why doesn't high $T$ break things?** Even at $T = 3.0$, self-consistency is still at 0.44 — better than single-sample at 0.32. The crucial property is that at any $T$, *the most likely answer in expectation* is still the correct one (assuming the LM is reasonably calibrated). Voting reveals that mode.</span>
+<span id="cb1-298"><a href="#cb1-298" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-299"><a href="#cb1-299" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Temperature and test-time compute are *substitutes*. You can either dial T down to follow the MAP (cheap but capped at single-sample accuracy) or dial T up and use compute to aggregate (expensive but higher ceiling). Modern systems lean toward the latter because compute is increasingly cheap relative to model parameters.</span>
+<span id="cb1-300"><a href="#cb1-300" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-301"><a href="#cb1-301" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.2 Beam width sweep — `experiments/03a_sol2_beam_width_sweep.py`</span></span>
+<span id="cb1-302"><a href="#cb1-302" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-303"><a href="#cb1-303" aria-hidden="true" tabindex="-1"></a><span class="al">![Beam width sweep on three LMs with different MAP/reward alignment. Left: top-1 reward of beam search. Right: best reward anywhere in the beam. Top-1 is flat — beam width doesn't change MAP. But wider beams contain better candidates that could be selected with reranking.](../figures/03a_sol2_beam_width_sweep.png)</span></span>
+<span id="cb1-304"><a href="#cb1-304" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-305"><a href="#cb1-305" aria-hidden="true" tabindex="-1"></a>**What you should see.** Two panels make the same point from different angles:</span>
+<span id="cb1-306"><a href="#cb1-306" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-307"><a href="#cb1-307" aria-hidden="true" tabindex="-1"></a>**Left (Top-1)**: Beam width has *no effect* on the top-1 output. Whatever the MAP is, that's what beam search returns regardless of $B$. For the "MAP collapses" LM, the top-1 is reward 0.2 for any $B$.</span>
+<span id="cb1-308"><a href="#cb1-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-309"><a href="#cb1-309" aria-hidden="true" tabindex="-1"></a>**Right (Best-in-beam)**: Wider beams *contain* sequences with higher reward. By $B = 5$, all three configurations have a reward-1 sequence somewhere in the beam. By $B = 50$, every beam contains good candidates.</span>
+<span id="cb1-310"><a href="#cb1-310" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-311"><a href="#cb1-311" aria-hidden="true" tabindex="-1"></a>**Why this matters.** Beam search alone is bad on mis-calibrated LMs. But beam search + reranking — use beam search as a candidate generator and rerank by reward — gets you the benefits without the MAP collapse.</span>
+<span id="cb1-312"><a href="#cb1-312" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-313"><a href="#cb1-313" aria-hidden="true" tabindex="-1"></a>This is exactly the recipe in many production code-generation systems: beam-search candidates, then test/rank each one, return the best.</span>
+<span id="cb1-314"><a href="#cb1-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-315"><a href="#cb1-315" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Decoding strategies decompose into *generation* and *selection*. Beam search is one way to generate; argmax-by-logprob is one way to select. The two can be mixed and matched. Generation + reranking is consistently better than generation + take-first when you have access to any signal beyond log-probability.</span>
+<span id="cb1-316"><a href="#cb1-316" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-317"><a href="#cb1-317" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.3 Top-k / top-p × self-consistency — `experiments/03a_sol3_top_k_top_p.py`</span></span>
+<span id="cb1-318"><a href="#cb1-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-319"><a href="#cb1-319" aria-hidden="true" tabindex="-1"></a><span class="al">![Top-k/top-p effects on self-consistency. Top-p = 0.7 is best at every N including N=1 (100% accuracy). Top-p = 0.9 is second. Top-k = 3 is third. Full vocab is worst.](../figures/03a_sol3_top_k_top_p.png)</span></span>
+<span id="cb1-320"><a href="#cb1-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-321"><a href="#cb1-321" aria-hidden="true" tabindex="-1"></a>**What you should see.** A clean ordering across all $N$:</span>
+<span id="cb1-322"><a href="#cb1-322" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-323"><a href="#cb1-323" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Top-p = 0.7: 100% accuracy at $N = 1$.</span>
+<span id="cb1-324"><a href="#cb1-324" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Top-p = 0.9: 70% at $N = 1$, 100% by $N = 32$.</span>
+<span id="cb1-325"><a href="#cb1-325" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Top-k = 3: 63% at $N = 1$, 100% by $N = 32$.</span>
+<span id="cb1-326"><a href="#cb1-326" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Full vocab: 56% at $N = 1$, 100% by $N = 32$.</span>
+<span id="cb1-327"><a href="#cb1-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-328"><a href="#cb1-328" aria-hidden="true" tabindex="-1"></a>The most striking result: **tightening top-p from 0.9 to 0.7 single-handedly turns a 70%-accuracy decoder into a 100%-accuracy one**. No more samples, no reranking — just a tighter truncation.</span>
+<span id="cb1-329"><a href="#cb1-329" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-330"><a href="#cb1-330" aria-hidden="true" tabindex="-1"></a>**Why top-p beats top-k.** Adaptive truncation. On distributions where the LM is confident (entropy low), top-p = 0.7 keeps only the top 1-2 tokens. On distributions where it's uncertain, it expands to more. Top-k = 3 is the same width everywhere, which over-truncates confident contexts and under-truncates uncertain ones.</span>
+<span id="cb1-331"><a href="#cb1-331" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-332"><a href="#cb1-332" aria-hidden="true" tabindex="-1"></a>**Why all the truncated variants eventually reach 1.0.** Self-consistency exposes the underlying truth: as long as the *correct* answer has the highest marginal probability under the (truncated) generative process, enough samples will surface it. The truncation just affects how *fast* this happens.</span>
+<span id="cb1-333"><a href="#cb1-333" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-334"><a href="#cb1-334" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — truncation is a regularizer.** It removes the model's least-confident predictions, which are also the most likely to be wrong. Truncation interacts with model calibration: a well-calibrated LM's tail is meaningful information, and truncation hurts; a miscalibrated LM's tail is noise, and truncation helps.</span>
+<span id="cb1-335"><a href="#cb1-335" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-336"><a href="#cb1-336" aria-hidden="true" tabindex="-1"></a>LLMs are typically *under-confident* in their tails (the noise interpretation). Real-world top-p values around 0.9–0.95 reflect this. Truncate less than that and the noise contributes; more than that and you lose actual options.</span>
+<span id="cb1-337"><a href="#cb1-337" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-338"><a href="#cb1-338" aria-hidden="true" tabindex="-1"></a><span class="fu">### 9.4 Best-of-N with imperfect verifiers — `experiments/03a_sol4_best_of_n.py`</span></span>
+<span id="cb1-339"><a href="#cb1-339" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-340"><a href="#cb1-340" aria-hidden="true" tabindex="-1"></a><span class="al">![BoN vs self-consistency at varying verifier quality. Perfect verifier: 1.0 by N=8. 10% flip: plateaus at 0.93. 30% flip: plateaus at 0.75. Self-consistency: slowest start, but reaches 1.0 by N=64.](../figures/03a_sol4_best_of_n.png)</span></span>
+<span id="cb1-341"><a href="#cb1-341" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-342"><a href="#cb1-342" aria-hidden="true" tabindex="-1"></a>**What you should see.** Four regimes:</span>
+<span id="cb1-343"><a href="#cb1-343" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-344"><a href="#cb1-344" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Perfect verifier**: BoN is fastest. Saturates at N=8 with 1.0 accuracy.</span>
+<span id="cb1-345"><a href="#cb1-345" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**10% flip verifier**: BoN still beats self-consistency at low $N$ (N≤8) but plateaus at 0.93 — there's a noise floor.</span>
+<span id="cb1-346"><a href="#cb1-346" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**30% flip verifier**: BoN plateaus at 0.75. Self-consistency surpasses it at $N = 16$.</span>
+<span id="cb1-347"><a href="#cb1-347" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**No verifier (self-consistency)**: Slowest start but no ceiling. Reaches 1.0 at $N = 64$.</span>
+<span id="cb1-348"><a href="#cb1-348" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-349"><a href="#cb1-349" aria-hidden="true" tabindex="-1"></a>**The bias-variance tradeoff in disguise.** A verifier is a high-bias, low-variance signal — each candidate gets one score, ranked once. Self-consistency is high-variance, low-bias — it averages over many noisy samples but converges to truth. At small $N$, low-variance (good verifier) wins. At large $N$, low-bias (no verifier) wins.</span>
+<span id="cb1-350"><a href="#cb1-350" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-351"><a href="#cb1-351" aria-hidden="true" tabindex="-1"></a>**Practical implication.** Whether to use BoN or self-consistency depends on:</span>
+<span id="cb1-352"><a href="#cb1-352" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-353"><a href="#cb1-353" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**How good is your verifier?** Code tasks (perfect verifier via execution) → BoN. Open-ended reasoning (no verifier or LLM-as-judge with noise) → self-consistency.</span>
+<span id="cb1-354"><a href="#cb1-354" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**How much compute can you spend?** Small budgets favor BoN (better at low N). Large budgets favor self-consistency (better at high N).</span>
+<span id="cb1-355"><a href="#cb1-355" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**What's the cost of being wrong?** BoN's plateau is a hard ceiling. If you need &gt;95% accuracy, you need a near-perfect verifier or you need self-consistency.</span>
+<span id="cb1-356"><a href="#cb1-356" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-357"><a href="#cb1-357" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — combine them.** In practice, the strongest systems combine both: sample $N_{\text{big}}$ candidates, filter to $N_{\text{med}}$ with a verifier, vote among those. This gets you the high-quality candidate pool of BoN + the noise-averaging of self-consistency.</span>
+<span id="cb1-358"><a href="#cb1-358" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-359"><a href="#cb1-359" aria-hidden="true" tabindex="-1"></a>DeepSeek-R1's reasoning pipeline does exactly this. So does GPT-4's coding mode. The classical methods are alive and well — they're just nested inside bigger systems now.</span>
+<span id="cb1-360"><a href="#cb1-360" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-361"><a href="#cb1-361" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-362"><a href="#cb1-362" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-363"><a href="#cb1-363" aria-hidden="true" tabindex="-1"></a><span class="fu">## 10. Further reading</span></span>
+<span id="cb1-364"><a href="#cb1-364" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-365"><a href="#cb1-365" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Holtzman, Buys, Du, Forbes &amp; Choi, "The Curious Case of Neural Text Degeneration" (ICLR 2020).** The MAP-collapse paper for open-ended generation. Introduces nucleus sampling.</span>
+<span id="cb1-366"><a href="#cb1-366" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery &amp; Zhou, "Self-Consistency Improves Chain of Thought Reasoning in Language Models" (ICLR 2023).** The self-consistency paper.</span>
+<span id="cb1-367"><a href="#cb1-367" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Stahlberg &amp; Byrne, "On NMT Search Errors and Model Errors: Cat Got Your Tongue?" (EMNLP 2019).** The empirical MAP-collapse paper for translation.</span>
+<span id="cb1-368"><a href="#cb1-368" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Eikema &amp; Aziz, "Is MAP Decoding All You Need?" (COLING 2020).** A thorough survey of MAP vs sampling trade-offs.</span>
+<span id="cb1-369"><a href="#cb1-369" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Snell, Lee, Xu &amp; Kumar, "Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters" (2024).** Empirical study of test-time compute scaling.</span>
+<span id="cb1-370"><a href="#cb1-370" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-371"><a href="#cb1-371" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-372"><a href="#cb1-372" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-373"><a href="#cb1-373" aria-hidden="true" tabindex="-1"></a>**Next up — Post 3b: Tool use as actions.** When the LM can call out to tools (search, code execution, calculators), the inference loop tightens: generate → execute → refine. We'll see ReAct from scratch, treat tool use as an extended MDP, and connect back to the bandit/Q-learning framework from Topic 1. Verifiers and tools merge into a single concept: *external signals the LM can incorporate*.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/03a-decoding-as-inference.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

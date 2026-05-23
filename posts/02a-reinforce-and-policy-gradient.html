@@ -82,9 +82,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-73c813dbea455b23e33378fe00306777.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-31a58b6fe2429bd090d48104b1fcc408.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-df4e96bc8c3facb458d6222fd420fecc.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -474,7 +474,7 @@ window.Quarto = {
 <blockquote class="blockquote">
 <p><em>Policy gradient methods, from scratch — 1 of 4.</em></p>
 </blockquote>
-<p>Topic 1 built the value-based foundation: learn <span class="math inline">Q^\star</span>, then act greedily. That worked beautifully on small finite MDPs. It also has a fatal limitation for everything modern: <strong>it doesn’t scale to neural-network policies on continuous actions.</strong> Argmax over a continuous action space is hard; argmax over a neural network’s output is intractable; the policy is <em>implicit</em> in <span class="math inline">Q</span> rather than directly expressed.</p>
+<p>Topic 1 built the value-based foundation: learn <span class="math inline">Q^\star</span>, then act greedily. That worked beautifully on small finite MDPs. It runs into trouble, though, on the continuous, high-dimensional action spaces of everything modern: a <em>naive</em> tabular or argmax-over-<span class="math inline">Q</span> approach doesn’t scale, because argmax over a continuous action space is hard, argmax over a neural network’s output is intractable, and the policy is only <em>implicit</em> in <span class="math inline">Q</span> rather than directly expressed. (Value-based ideas <em>can</em> be adapted to continuous actions — deterministic policy gradients, SAC, and actor-critic methods all do exactly that — but they get there by borrowing the policy-parameterization trick we are about to introduce, not by brute-force argmax.)</p>
 <p>Policy gradient methods take a different approach. <strong>Parameterize the policy directly</strong> — <span class="math inline">\pi_\theta(a \mid s)</span> — and optimize <span class="math inline">\theta</span> by gradient ascent on expected return. The result is an algorithm that scales to anything you can differentiate: neural nets, continuous actions, structured outputs, language models.</p>
 <p>This is the foundation post for Topic 2. We derive the policy gradient theorem from first principles, implement REINFORCE in clean NumPy, study baselines and variance reduction, and apply it to a continuous-action problem where Q-learning has no good answer. The next three posts will build on this: actor-critic (learned baseline), trust-region methods (PPO), and RLHF/DPO/GRPO. All of them are variations on the same theme set here.</p>
 <hr>
@@ -494,7 +494,7 @@ window.Quarto = {
 <li><strong>Sign</strong>: supervised wants <span class="math inline">\nabla J</span> (minimize loss); RL wants <span class="math inline">\nabla J</span> (maximize return). Just a flip.</li>
 <li><strong>Weight</strong>: supervised treats every example equally (<span class="math inline">w = 1</span>); RL weights each by the return <span class="math inline">G_t</span>. Good trajectories get amplified; bad ones get attenuated.</li>
 </ol>
-<p>That’s all RL is, at the gradient level: <strong>weighted maximum likelihood</strong>, where the weights are whatever signal you can extract from interaction. This framing makes RLHF (Reinforcement Learning from Human Feedback) immediate: replace <span class="math inline">G_t</span> with a learned reward model. It makes DPO (Direct Preference Optimization) feel like a natural reformulation: maximize the likelihood ratio of preferred over dispreferred responses. Once you see the gradient structure, the modern RL-for-LLMs literature becomes a sequence of careful weight designs.</p>
+<p>That’s the core of <strong>likelihood-ratio policy gradients</strong>, at the gradient level: <strong>weighted maximum likelihood</strong>, where the weights are whatever signal you can extract from interaction. (To be precise, this characterizes the policy-gradient <em>family</em> — REINFORCE, actor-critic, PPO, RLHF, DPO — not literally all of reinforcement learning; value-based methods like Q-learning from Topic 1 have a different gradient.) This framing makes RLHF (Reinforcement Learning from Human Feedback) immediate: replace <span class="math inline">G_t</span> with a learned reward model. It makes DPO (Direct Preference Optimization) feel like a natural reformulation: maximize the likelihood ratio of preferred over dispreferred responses. Once you see the gradient structure, the modern RL-for-LLMs literature becomes a sequence of careful weight designs.</p>
 <hr>
 </section>
 <section id="formal-setup" class="level2">
@@ -536,6 +536,7 @@ J(\theta) \;=\; \mathbb{E}_{\tau \sim P_\theta}[R(\tau)].
 \;=\; \mathbb{E}_{\tau \sim P_\theta}[R(\tau) \,\nabla_\theta \log P_\theta(\tau)].
 </span></p>
 <p>This converts an intractable gradient (of an expectation over <span class="math inline">\theta</span>-dependent distribution) into an expectation of a gradient (which can be estimated by sampling).</p>
+<p>The single algebraic move that makes this work is the <strong>log-derivative trick</strong>, <span class="math inline">\nabla_\theta P_\theta = P_\theta \nabla_\theta \log P_\theta</span> (just the chain rule, since <span class="math inline">\nabla \log P = \nabla P / P</span>). It is worth pausing on <em>why</em> it is the right move, because the same identity reappears in every method in Topic 2. The problem with <span class="math inline">\nabla_\theta \int P_\theta(\tau) R(\tau)\,d\tau</span> is that the thing we are differentiating is also the thing we sample from — the distribution itself depends on <span class="math inline">\theta</span>, so we cannot just average a fixed function over fixed samples. The trick relocates the <span class="math inline">\theta</span>-dependence: it turns “the gradient of a probability” into “a probability times the gradient of a log-probability,” and the leading <span class="math inline">P_\theta</span> is exactly what lets us rewrite the integral as an expectation <span class="math inline">\mathbb{E}_{\tau \sim P_\theta}[\cdot]</span> that we estimate by rolling out the policy. Intuitively, <span class="math inline">\nabla_\theta \log \pi_\theta(a \mid s)</span> is the direction in parameter space that makes action <span class="math inline">a</span> <em>more likely</em> in state <span class="math inline">s</span>; multiplying it by the return <span class="math inline">R(\tau)</span> says “move in the make-this-more-likely direction, scaled by how good the outcome was.” Good trajectories pull the parameters toward repeating their actions; bad ones push away. The whole policy-gradient family is variations on weighting that one direction.</p>
 </section>
 <section id="simplifying-nabla-log-p_thetatau" class="level3">
 <h3 class="anchored" data-anchor-id="simplifying-nabla-log-p_thetatau">2.2 Simplifying <span class="math inline">\nabla \log P_\theta(\tau)</span></h3>
@@ -567,6 +568,9 @@ G_t \;=\; \sum_{k=0}^{T-t-1} \gamma^k r_{t+k+1}.
 \;}
 </span></p>
 <p>This is the form usually called the “policy gradient theorem” (Sutton, McAllester, Singh &amp; Mansour 2000). It’s what REINFORCE implements.</p>
+<p><strong>A note on the discounting convention.</strong> With the discounted objective <span class="math inline">R(\tau) = \sum_t \gamma^t r_{t+1}</span>, the strictly-correct causal estimator carries an outer <span class="math inline">\gamma^t</span> on each term: <span class="math display">
+\nabla_\theta J(\theta) \;=\; \mathbb{E}\!\left[ \sum_{t=0}^{T-1} \gamma^t\, G_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right],
+</span> because a log-probability at time <span class="math inline">t</span> contributes to the objective only through the discounted rewards from <span class="math inline">t</span> onward. Many implementations (including the one here, and most practical codebases) <strong>drop the outer <span class="math inline">\gamma^t</span></strong>, which corresponds to optimizing the <em>undiscounted</em> sum of per-step objectives — a different but standard convention that tends to work better in practice because it doesn’t down-weight late-trajectory updates. We use the dropped-<span class="math inline">\gamma^t</span> form throughout; just know the convention is a deliberate choice, not an oversight.</p>
 </section>
 <section id="visualizing-the-gradient-in-1d" class="level3">
 <h3 class="anchored" data-anchor-id="visualizing-the-gradient-in-1d">2.4 Visualizing the gradient in 1D</h3>
@@ -609,6 +613,14 @@ G_t \;=\; \sum_{k=0}^{T-t-1} \gamma^k r_{t+k+1}.
 <section id="baselines-and-variance-reduction" class="level2">
 <h2 class="anchored" data-anchor-id="baselines-and-variance-reduction">4. Baselines and variance reduction</h2>
 <p>The big practical issue with REINFORCE: <strong>the gradient estimator has high variance</strong>. Different trajectories can yield wildly different returns; the gradient direction jitters from update to update; convergence is slow and unreliable.</p>
+<p>It is worth collecting REINFORCE’s limitations in one place, because the rest of Topic 2 is essentially a campaign against them:</p>
+<ul>
+<li><strong>High variance.</strong> A single trajectory’s return is a noisy estimate of the expected return; the gradient inherits that noise. (Baselines, §4, and learned critics, Post 2b, attack this.)</li>
+<li><strong>On-policy only.</strong> The expectation is over trajectories from the <em>current</em> <span class="math inline">\pi_\theta</span>, so every gradient step needs fresh samples from the latest policy — you cannot reuse old data. (Importance sampling and trust regions, Post 2c, relax this.)</li>
+<li><strong>Weak credit assignment.</strong> The whole return-from-<span class="math inline">t</span> multiplies every action equally; REINFORCE has no fine-grained sense of <em>which</em> action in a long trajectory deserves the credit. (Advantage estimation and GAE, Post 2b, sharpen this.)</li>
+<li><strong>Unstable under large updates.</strong> A big step can collapse the policy to something degenerate from which it never recovers, because the data distribution shifts with the policy. (Clipped surrogates in PPO, Post 2c, guard against this.)</li>
+</ul>
+<p>Keep this list in mind; each later method in Topic 2 is best understood as fixing one or more of these four.</p>
 <p>The key variance-reduction trick: <strong>subtract a baseline</strong> from the return.</p>
 <section id="the-unbiased-baseline-trick" class="level3">
 <h3 class="anchored" data-anchor-id="the-unbiased-baseline-trick">4.1 The unbiased baseline trick</h3>
@@ -623,14 +635,19 @@ G_t \;=\; \sum_{k=0}^{T-t-1} \gamma^k r_{t+k+1}.
 \;}
 </span></p>
 <p>The quantity <span class="math inline">A_t \equiv G_t - b(s_t)</span> is called the <strong>advantage</strong>.</p>
+<p>Why does this reduce variance when the expectation is unchanged? A small worked case makes it vivid. Suppose in some state both available actions are good, returning <span class="math inline">G = 100</span> and <span class="math inline">G = 102</span>. Without a baseline, every update pushes <em>up</em> on whichever action was sampled, with a huge weight (~100) — the gradient is dominated by the large common offset, and the tiny difference that actually distinguishes the actions (2 out of 102) is buried in noise. Subtract a baseline of <span class="math inline">b = 101</span> (roughly <span class="math inline">V^\pi</span>), and the weights become <span class="math inline">-1</span> and <span class="math inline">+1</span>: now the update <em>pushes down</em> on the slightly-worse action and <em>up</em> on the slightly-better one. Same expected gradient (the offset was constant and integrates to zero), but the variance is slashed because the weights are now centered near zero and reflect only the <em>relative</em> merit of each action. The baseline turns “everything was great, do more of all of it” into “this was better than average, do more of <em>this</em>” — which is both lower-variance and a sharper learning signal. That centering is the entire point, and it is why the best baseline is the expected return <span class="math inline">V^\pi(s)</span>: it makes the advantage measure deviation from the state’s own average.</p>
 </section>
 <section id="the-variance-minimizing-baseline" class="level3">
 <h3 class="anchored" data-anchor-id="the-variance-minimizing-baseline">4.2 The variance-minimizing baseline</h3>
-<p>What’s the best <span class="math inline">b(s)</span>? The choice that minimizes the variance of the gradient estimator is</p>
+<p>What’s the best <span class="math inline">b(s)</span>? Here we should be careful, because there are two different “best” baselines and they are often conflated. The <em>exact</em> variance-minimizing scalar baseline for the gradient estimator is <strong>score-norm weighted</strong>:</p>
 <p><span class="math display">
-b^\star(s) \;=\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(s).
+b^\star(s) \;=\; \frac{\mathbb{E}_{\pi_\theta}\!\big[\,G_t\,\lVert\nabla_\theta \log \pi_\theta(a_t\mid s_t)\rVert^2 \mid s_t = s\,\big]}{\mathbb{E}_{\pi_\theta}\!\big[\,\lVert\nabla_\theta \log \pi_\theta(a_t\mid s_t)\rVert^2 \mid s_t = s\,\big]},
 </span></p>
-<p>The optimal baseline is the <strong>current policy’s value function</strong>. This is intuitive: <span class="math inline">A_t = G_t - V^{\pi_\theta}(s_t)</span> measures how much <em>better</em> the actual return was than what the agent expects on average from state <span class="math inline">s_t</span>. Subtracting the expected return centers the advantage around zero.</p>
+<p>a ratio that weights returns by the squared norm of the score function. Under the simplifying assumption that the score norm is uncorrelated with the return (or constant across actions), this collapses to the much more familiar</p>
+<p><span class="math display">
+b^\star(s) \;\approx\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(s).
+</span></p>
+<p>So the <strong>current policy’s value function</strong> <span class="math inline">V^{\pi_\theta}</span> is the <em>practical</em> optimal baseline — it is what actor-critic methods learn and target, and it is correct under the simplifying assumption — but the truly variance-minimizing choice is the score-norm-weighted ratio above. We use <span class="math inline">V^{\pi_\theta}</span> throughout because it is the right engineering target; just know it is an approximation to the exact optimum. Intuitively, <span class="math inline">A_t = G_t - V^{\pi_\theta}(s_t)</span> measures how much <em>better</em> the actual return was than what the agent expects on average from state <span class="math inline">s_t</span>, centering the advantage around zero.</p>
 <p>In practice we don’t know <span class="math inline">V^{\pi_\theta}</span> either; it’s the same chicken-and-egg as <span class="math inline">Q^\star</span>. There are several practical approximations:</p>
 <ul>
 <li><strong>Running mean of returns</strong>: a single constant, updated online. Crude but free.</li>
@@ -680,11 +697,11 @@ b^\star(s) \;=\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(
 <h2 class="anchored" data-anchor-id="forward-connections">6. Forward connections</h2>
 <section id="reinforce-is-the-gradient-of-rlhf" class="level3">
 <h3 class="anchored" data-anchor-id="reinforce-is-the-gradient-of-rlhf">6.1 REINFORCE is the gradient of RLHF</h3>
-<p>In modern RLHF, the policy is an LLM, and the “reward” comes from a learned reward model trained on human preferences. The gradient is</p>
+<p>In modern RLHF, the policy is an LLM, and the “reward” comes from a learned reward model trained on human preferences. The <em>simplest</em> policy-gradient form of the objective is</p>
 <p><span class="math display">
 \nabla_\theta J(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta(\cdot \mid x)}\!\left[ r_\phi(x, y) \, \nabla_\theta \log \pi_\theta(y \mid x) \right]
 </span></p>
-<p>— exactly the REINFORCE estimator, with prompts <span class="math inline">x</span> as states and responses <span class="math inline">y</span> as actions. The only addition in practice is a KL penalty against a reference policy to prevent collapse to degenerate distributions.</p>
+<p>— exactly the REINFORCE estimator, with prompts <span class="math inline">x</span> as states and responses <span class="math inline">y</span> as actions. Production RLHF is more than this bare estimator: it adds a KL penalty against a reference policy to prevent collapse to degenerate distributions, and it almost always uses a PPO-style clipped update (Post 2c) rather than vanilla REINFORCE for stability. The point here is just that the <em>core</em> gradient signal — reward times score function — is the one we derived.</p>
 <p>If you understand the REINFORCE gradient, you understand the gradient of RLHF. Everything else is engineering: PPO clips the update size, GRPO uses group-relative advantages, RLOO uses leave-one-out, but the underlying gradient structure is what we just derived.</p>
 </section>
 <section id="the-variance-reduction-is-the-actor-critic-family" class="level3">
@@ -825,7 +842,17 @@ b^\star(s) \;=\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(
 
 </section>
 
-</main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {REINFORCE and the {Policy} {Gradient} {Theorem}},
+  date = {2026-05-22},
+  url = {https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html},
+  langid = {en}
+}
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
+Tran, Ba-Hien. 2026. <span>“REINFORCE and the Policy Gradient
+Theorem.”</span> May 22. <a href="https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html">https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</a>.
+</div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right
@@ -1296,405 +1323,431 @@ b^\star(s) \;=\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-22"</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [policy gradient, reinforce, log-derivative trick, variance reduction]</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../figures/02a_pg_schematic.png</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Policy gradient methods, from scratch — 1 of 4.*</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>Topic 1 built the value-based foundation: learn $Q^\star$, then act greedily. That worked beautifully on small finite MDPs. It also has a fatal limitation for everything modern: **it doesn't scale to neural-network policies on continuous actions.** Argmax over a continuous action space is hard; argmax over a neural network's output is intractable; the policy is *implicit* in $Q$ rather than directly expressed.</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>Policy gradient methods take a different approach. **Parameterize the policy directly** — $\pi_\theta(a \mid s)$ — and optimize $\theta$ by gradient ascent on expected return. The result is an algorithm that scales to anything you can differentiate: neural nets, continuous actions, structured outputs, language models.</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>This is the foundation post for Topic 2. We derive the policy gradient theorem from first principles, implement REINFORCE in clean NumPy, study baselines and variance reduction, and apply it to a continuous-action problem where Q-learning has no good answer. The next three posts will build on this: actor-critic (learned baseline), trust-region methods (PPO), and RLHF/DPO/GRPO. All of them are variations on the same theme set here.</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. The structural bridge to supervised learning</span></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="al">![Supervised learning vs policy gradient: same gradient structure, different weights. Both compute the gradient of log-probability of the chosen output. SL weights every example equally; RL weights by the return that followed.](../figures/02a_pg_schematic.png)</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>The clearest way to enter policy gradient methods is by analogy.</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>In **supervised classification**, the model defines a distribution $p_\theta(y \mid x)$. The loss is $-\log p_\theta(y \mid x)$ for each training example. The gradient is $-\nabla_\theta \log p_\theta(y \mid x)$ averaged over the dataset.</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>In **policy gradient RL**, the policy defines a distribution $\pi_\theta(a \mid s)$. There is no "correct $a$" — we sample, observe return $G_t$, and the gradient is $-G_t \cdot \nabla_\theta \log \pi_\theta(a_t \mid s_t)$ averaged over trajectories.</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>Two differences:</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Sign**: supervised wants $\nabla J$ (minimize loss); RL wants $\nabla J$ (maximize return). Just a flip.</span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Weight**: supervised treats every example equally ($w = 1$); RL weights each by the return $G_t$. Good trajectories get amplified; bad ones get attenuated.</span>
-<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>That's all RL is, at the gradient level: **weighted maximum likelihood**, where the weights are whatever signal you can extract from interaction. This framing makes RLHF (Reinforcement Learning from Human Feedback) immediate: replace $G_t$ with a learned reward model. It makes DPO (Direct Preference Optimization) feel like a natural reformulation: maximize the likelihood ratio of preferred over dispreferred responses. Once you see the gradient structure, the modern RL-for-LLMs literature becomes a sequence of careful weight designs.</span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Formal setup</span></span>
-<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>We work in the discounted-return MDP setting from <span class="co">[</span><span class="ot">Part 1c</span><span class="co">](01c-mdps-and-bellman.qmd)</span>. Let $\pi_\theta$ be a parameterized stochastic policy. A trajectory is</span>
-<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>\tau = (s_0, a_0, r_1, s_1, a_1, r_2, \dots, s_{T-1}, a_{T-1}, r_T, s_T)</span>
-<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>with $s_0 \sim p_0$, $a_t \sim \pi_\theta(\cdot \mid s_t)$, $s_{t+1} \sim P(\cdot \mid s_t, a_t)$, and $r_{t+1} = R(s_t, a_t, s_{t+1})$.</span>
-<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>The trajectory distribution is</span>
-<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>P_\theta(\tau) \;=\; p_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t \mid s_t) \, P(s_{t+1} \mid s_t, a_t).</span>
-<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>The total discounted return is $R(\tau) = \sum_{t=0}^{T-1} \gamma^t r_{t+1}$.</span>
-<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>The objective: maximize expected return</span>
-<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>J(\theta) \;=\; \mathbb{E}_{\tau \sim P_\theta}<span class="co">[</span><span class="ot">R(\tau)</span><span class="co">]</span>.</span>
-<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>We want $\nabla_\theta J(\theta)$ so we can do gradient ascent.</span>
-<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. The policy gradient theorem</span></span>
-<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>The fundamental result. Here is the derivation in full.</span>
-<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 The log-derivative trick</span></span>
-<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>The starting point is the identity</span>
-<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>\nabla_\theta P_\theta(\tau) \;=\; P_\theta(\tau) \,\nabla_\theta \log P_\theta(\tau).</span>
-<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>This is just the chain rule: $\nabla \log P = (1/P) \nabla P$, so $\nabla P = P \nabla \log P$.</span>
-<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>The trick is that **we can take expectations of $\nabla \log P$ in a way we can't of $\nabla P$ directly**. Specifically,</span>
-<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta)</span>
-<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>\;=\; \nabla_\theta \int P_\theta(\tau) R(\tau) \, d\tau</span>
-<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>\;=\; \int (\nabla_\theta P_\theta(\tau)) R(\tau) \, d\tau</span>
-<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Policy gradient methods, from scratch — 1 of 4.*</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>Topic 1 built the value-based foundation: learn $Q^\star$, then act greedily. That worked beautifully on small finite MDPs. It runs into trouble, though, on the continuous, high-dimensional action spaces of everything modern: a *naive* tabular or argmax-over-$Q$ approach doesn't scale, because argmax over a continuous action space is hard, argmax over a neural network's output is intractable, and the policy is only *implicit* in $Q$ rather than directly expressed. (Value-based ideas *can* be adapted to continuous actions — deterministic policy gradients, SAC, and actor-critic methods all do exactly that — but they get there by borrowing the policy-parameterization trick we are about to introduce, not by brute-force argmax.)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>Policy gradient methods take a different approach. **Parameterize the policy directly** — $\pi_\theta(a \mid s)$ — and optimize $\theta$ by gradient ascent on expected return. The result is an algorithm that scales to anything you can differentiate: neural nets, continuous actions, structured outputs, language models.</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>This is the foundation post for Topic 2. We derive the policy gradient theorem from first principles, implement REINFORCE in clean NumPy, study baselines and variance reduction, and apply it to a continuous-action problem where Q-learning has no good answer. The next three posts will build on this: actor-critic (learned baseline), trust-region methods (PPO), and RLHF/DPO/GRPO. All of them are variations on the same theme set here.</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. The structural bridge to supervised learning</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="al">![Supervised learning vs policy gradient: same gradient structure, different weights. Both compute the gradient of log-probability of the chosen output. SL weights every example equally; RL weights by the return that followed.](../figures/02a_pg_schematic.png)</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>The clearest way to enter policy gradient methods is by analogy.</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>In **supervised classification**, the model defines a distribution $p_\theta(y \mid x)$. The loss is $-\log p_\theta(y \mid x)$ for each training example. The gradient is $-\nabla_\theta \log p_\theta(y \mid x)$ averaged over the dataset.</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>In **policy gradient RL**, the policy defines a distribution $\pi_\theta(a \mid s)$. There is no "correct $a$" — we sample, observe return $G_t$, and the gradient is $-G_t \cdot \nabla_\theta \log \pi_\theta(a_t \mid s_t)$ averaged over trajectories.</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>Two differences:</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Sign**: supervised wants $\nabla J$ (minimize loss); RL wants $\nabla J$ (maximize return). Just a flip.</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Weight**: supervised treats every example equally ($w = 1$); RL weights each by the return $G_t$. Good trajectories get amplified; bad ones get attenuated.</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>That's the core of **likelihood-ratio policy gradients**, at the gradient level: **weighted maximum likelihood**, where the weights are whatever signal you can extract from interaction. (To be precise, this characterizes the policy-gradient *family* — REINFORCE, actor-critic, PPO, RLHF, DPO — not literally all of reinforcement learning; value-based methods like Q-learning from Topic 1 have a different gradient.) This framing makes RLHF (Reinforcement Learning from Human Feedback) immediate: replace $G_t$ with a learned reward model. It makes DPO (Direct Preference Optimization) feel like a natural reformulation: maximize the likelihood ratio of preferred over dispreferred responses. Once you see the gradient structure, the modern RL-for-LLMs literature becomes a sequence of careful weight designs.</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. Formal setup</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>We work in the discounted-return MDP setting from <span class="co">[</span><span class="ot">Part 1c</span><span class="co">](01c-mdps-and-bellman.qmd)</span>. Let $\pi_\theta$ be a parameterized stochastic policy. A trajectory is</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>\tau = (s_0, a_0, r_1, s_1, a_1, r_2, \dots, s_{T-1}, a_{T-1}, r_T, s_T)</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>with $s_0 \sim p_0$, $a_t \sim \pi_\theta(\cdot \mid s_t)$, $s_{t+1} \sim P(\cdot \mid s_t, a_t)$, and $r_{t+1} = R(s_t, a_t, s_{t+1})$.</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>The trajectory distribution is</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>P_\theta(\tau) \;=\; p_0(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t \mid s_t) \, P(s_{t+1} \mid s_t, a_t).</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>The total discounted return is $R(\tau) = \sum_{t=0}^{T-1} \gamma^t r_{t+1}$.</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>The objective: maximize expected return</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>J(\theta) \;=\; \mathbb{E}_{\tau \sim P_\theta}<span class="co">[</span><span class="ot">R(\tau)</span><span class="co">]</span>.</span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>We want $\nabla_\theta J(\theta)$ so we can do gradient ascent.</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. The policy gradient theorem</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>The fundamental result. Here is the derivation in full.</span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.1 The log-derivative trick</span></span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>The starting point is the identity</span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>\nabla_\theta P_\theta(\tau) \;=\; P_\theta(\tau) \,\nabla_\theta \log P_\theta(\tau).</span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>This is just the chain rule: $\nabla \log P = (1/P) \nabla P$, so $\nabla P = P \nabla \log P$.</span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>The trick is that **we can take expectations of $\nabla \log P$ in a way we can't of $\nabla P$ directly**. Specifically,</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta)</span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>\;=\; \nabla_\theta \int P_\theta(\tau) R(\tau) \, d\tau</span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>\;=\; \int (\nabla_\theta P_\theta(\tau)) R(\tau) \, d\tau</span>
 <span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>\;=\; \int P_\theta(\tau) (\nabla_\theta \log P_\theta(\tau)) R(\tau) \, d\tau</span>
-<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>\;=\; \mathbb{E}_{\tau \sim P_\theta}[R(\tau) \,\nabla_\theta \log P_\theta(\tau)].</span>
-<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>This converts an intractable gradient (of an expectation over $\theta$-dependent distribution) into an expectation of a gradient (which can be estimated by sampling).</span>
-<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 Simplifying $\nabla \log P_\theta(\tau)$</span></span>
-<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>Take the log of $P_\theta(\tau)$:</span>
-<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>\log P_\theta(\tau) \;=\; \log p_0(s_0) + \sum_{t=0}^{T-1} \log P(s_{t+1} \mid s_t, a_t) + \sum_{t=0}^{T-1} \log \pi_\theta(a_t \mid s_t).</span>
-<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>Take the gradient w.r.t. $\theta$. The first two terms don't depend on $\theta$ — they're determined by the environment, not the policy. So</span>
-<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>\boxed{\;</span>
-<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a>\nabla_\theta \log P_\theta(\tau) \;=\; \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t).</span>
-<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>\;}</span>
-<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>This is the **policy gradient theorem** in its raw form. The environment dynamics $P$ have vanished — we don't need a model to compute the gradient. Substituting back:</span>
-<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\tau \sim P_\theta}\!\left[ R(\tau) \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right].</span>
-<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.3 Causality: only future rewards depend on $a_t$</span></span>
-<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a>There's a refinement. The action $a_t$ can only affect rewards $r_{t+1}, r_{t+2}, \dots$ — it has no effect on rewards in the past. So we can replace $R(\tau)$ in the formula by the **return-from-$t$**:</span>
-<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a>G_t \;=\; \sum_{k=0}^{T-t-1} \gamma^k r_{t+k+1}.</span>
-<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>The resulting gradient is unbiased and has lower variance:</span>
-<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>\boxed{\;</span>
-<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\tau \sim P_\theta}\!\left[ \sum_{t=0}^{T-1} G_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right].</span>
-<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a>\;}</span>
-<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>This is the form usually called the "policy gradient theorem" (Sutton, McAllester, Singh &amp; Mansour 2000). It's what REINFORCE implements.</span>
-<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.4 Visualizing the gradient in 1D</span></span>
-<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a><span class="al">![Policy gradient on a 1D continuous bandit. Left: a Gaussian policy at μ=0 and the reward function r(a) = 1 - (a-2)². Center: the integrand π(a)·r(a)·(a-μ)/σ², split into positive (green) and negative (red) contributions. Right: gradient ascent trajectory of μ converging to the optimum at 2.](../figures/02a_log_derivative_trick.png)</span></span>
-<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a>Concretely: take a 1D Gaussian policy $\pi(a; \mu) = \mathcal{N}(\mu, \sigma^2)$ and a reward $r(a)$. The policy gradient is</span>
-<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>\;=\; \int P_\theta(\tau) (\nabla_\theta \log P_\theta(\tau)) R(\tau) \, d\tau</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>\;=\; \mathbb{E}_{\tau \sim P_\theta}[R(\tau) \,\nabla_\theta \log P_\theta(\tau)].</span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>This converts an intractable gradient (of an expectation over $\theta$-dependent distribution) into an expectation of a gradient (which can be estimated by sampling).</span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>The single algebraic move that makes this work is the **log-derivative trick**, $\nabla_\theta P_\theta = P_\theta \nabla_\theta \log P_\theta$ (just the chain rule, since $\nabla \log P = \nabla P / P$). It is worth pausing on *why* it is the right move, because the same identity reappears in every method in Topic 2. The problem with $\nabla_\theta \int P_\theta(\tau) R(\tau)\,d\tau$ is that the thing we are differentiating is also the thing we sample from — the distribution itself depends on $\theta$, so we cannot just average a fixed function over fixed samples. The trick relocates the $\theta$-dependence: it turns "the gradient of a probability" into "a probability times the gradient of a log-probability," and the leading $P_\theta$ is exactly what lets us rewrite the integral as an expectation $\mathbb{E}_{\tau \sim P_\theta}[\cdot]$ that we estimate by rolling out the policy. Intuitively, $\nabla_\theta \log \pi_\theta(a \mid s)$ is the direction in parameter space that makes action $a$ *more likely* in state $s$; multiplying it by the return $R(\tau)$ says "move in the make-this-more-likely direction, scaled by how good the outcome was." Good trajectories pull the parameters toward repeating their actions; bad ones push away. The whole policy-gradient family is variations on weighting that one direction.</span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.2 Simplifying $\nabla \log P_\theta(\tau)$</span></span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>Take the log of $P_\theta(\tau)$:</span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>\log P_\theta(\tau) \;=\; \log p_0(s_0) + \sum_{t=0}^{T-1} \log P(s_{t+1} \mid s_t, a_t) + \sum_{t=0}^{T-1} \log \pi_\theta(a_t \mid s_t).</span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>Take the gradient w.r.t. $\theta$. The first two terms don't depend on $\theta$ — they're determined by the environment, not the policy. So</span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>\boxed{\;</span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>\nabla_\theta \log P_\theta(\tau) \;=\; \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t).</span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>\;}</span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>This is the **policy gradient theorem** in its raw form. The environment dynamics $P$ have vanished — we don't need a model to compute the gradient. Substituting back:</span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\tau \sim P_\theta}\!\left[ R(\tau) \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right].</span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.3 Causality: only future rewards depend on $a_t$</span></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a>There's a refinement. The action $a_t$ can only affect rewards $r_{t+1}, r_{t+2}, \dots$ — it has no effect on rewards in the past. So we can replace $R(\tau)$ in the formula by the **return-from-$t$**:</span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>G_t \;=\; \sum_{k=0}^{T-t-1} \gamma^k r_{t+k+1}.</span>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>The resulting gradient is unbiased and has lower variance:</span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>\boxed{\;</span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}_{\tau \sim P_\theta}\!\left[ \sum_{t=0}^{T-1} G_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right].</span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a>\;}</span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a>This is the form usually called the "policy gradient theorem" (Sutton, McAllester, Singh &amp; Mansour 2000). It's what REINFORCE implements.</span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a>**A note on the discounting convention.** With the discounted objective $R(\tau) = \sum_t \gamma^t r_{t+1}$, the strictly-correct causal estimator carries an outer $\gamma^t$ on each term:</span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-139"><a href="#cb2-139" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> \sum_{t=0}^{T-1} \gamma^t\, G_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right</span><span class="co">]</span>,</span>
 <span id="cb2-140"><a href="#cb2-140" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a>\nabla_\mu J(\mu) \;=\; \mathbb{E}_{a \sim \pi}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> r(a) \cdot \frac{a - \mu}{\sigma^2} \right</span><span class="co">]</span>.</span>
-<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a>The factor $(a - \mu)/\sigma^2$ is the **score function** — the gradient of the log-density w.r.t. $\mu$. It points in the direction "if you want to make this action more likely, increase $\mu$ in this direction." Sampled actions contribute to the gradient in proportion to $r(a)$ times the score: good actions far from $\mu$ pull the mean toward them; bad actions far from $\mu$ push it away.</span>
-<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a>The right panel shows REINFORCE in action: starting from $\mu = 0$, gradient ascent moves the policy mean toward the reward peak at $a = 2$ in ~30 steps.</span>
-<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-148"><a href="#cb2-148" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb2-149"><a href="#cb2-149" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-150"><a href="#cb2-150" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. The REINFORCE algorithm</span></span>
-<span id="cb2-151"><a href="#cb2-151" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-152"><a href="#cb2-152" aria-hidden="true" tabindex="-1"></a>Williams' (1992) Monte Carlo algorithm is just the policy gradient theorem applied with stochastic gradient ascent. Each iteration:</span>
-<span id="cb2-153"><a href="#cb2-153" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-154"><a href="#cb2-154" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Sample one trajectory $\tau$ by rolling out under $\pi_\theta$.</span>
-<span id="cb2-155"><a href="#cb2-155" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Compute returns $G_t$ for each timestep.</span>
-<span id="cb2-156"><a href="#cb2-156" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Update $\theta \leftarrow \theta + \alpha \sum_t G_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)$.</span>
-<span id="cb2-157"><a href="#cb2-157" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-158"><a href="#cb2-158" aria-hidden="true" tabindex="-1"></a>For a softmax policy $\pi_\theta(a \mid s) = \text{softmax}(\theta_{s, \cdot})_a$, the score has a closed form:</span>
-<span id="cb2-159"><a href="#cb2-159" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-160"><a href="#cb2-160" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-161"><a href="#cb2-161" aria-hidden="true" tabindex="-1"></a>\frac{\partial \log \pi(a \mid s)}{\partial \theta_{s', a'}} \;=\; \big(\mathbf{1}<span class="co">[</span><span class="ot">a = a'</span><span class="co">]</span> - \pi(a' \mid s)\big) \cdot \mathbf{1}<span class="co">[</span><span class="ot">s = s'</span><span class="co">]</span>.</span>
-<span id="cb2-162"><a href="#cb2-162" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-163"><a href="#cb2-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-164"><a href="#cb2-164" aria-hidden="true" tabindex="-1"></a>The gradient is sparse: only the row of $\theta$ at the visited state has nonzero gradient. In code:</span>
-<span id="cb2-165"><a href="#cb2-165" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-166"><a href="#cb2-166" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
-<span id="cb2-167"><a href="#cb2-167" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> reinforce_step(policy, traj, returns, lr):</span>
-<span id="cb2-168"><a href="#cb2-168" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t, (s, a, _) <span class="kw">in</span> <span class="bu">enumerate</span>(traj):</span>
-<span id="cb2-169"><a href="#cb2-169" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> policy.probs(s)</span>
-<span id="cb2-170"><a href="#cb2-170" aria-hidden="true" tabindex="-1"></a>        policy.theta[s] <span class="op">+=</span> lr <span class="op">*</span> returns[t] <span class="op">*</span> (<span class="op">-</span>p)</span>
-<span id="cb2-171"><a href="#cb2-171" aria-hidden="true" tabindex="-1"></a>        policy.theta[s, a] <span class="op">+=</span> lr <span class="op">*</span> returns[t]</span>
-<span id="cb2-172"><a href="#cb2-172" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb2-173"><a href="#cb2-173" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-174"><a href="#cb2-174" aria-hidden="true" tabindex="-1"></a>That's it. Six lines, including the closed-form softmax gradient. Compare to value iteration (a ~30-line algorithm with the contraction analysis) and Q-learning (~25 lines with the convergence theorem). Policy gradient is simpler than both — at the cost of higher variance.</span>
-<span id="cb2-175"><a href="#cb2-175" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-176"><a href="#cb2-176" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb2-177"><a href="#cb2-177" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-178"><a href="#cb2-178" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Baselines and variance reduction</span></span>
-<span id="cb2-179"><a href="#cb2-179" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-180"><a href="#cb2-180" aria-hidden="true" tabindex="-1"></a>The big practical issue with REINFORCE: **the gradient estimator has high variance**. Different trajectories can yield wildly different returns; the gradient direction jitters from update to update; convergence is slow and unreliable.</span>
-<span id="cb2-181"><a href="#cb2-181" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-182"><a href="#cb2-182" aria-hidden="true" tabindex="-1"></a>The key variance-reduction trick: **subtract a baseline** from the return.</span>
-<span id="cb2-183"><a href="#cb2-183" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-184"><a href="#cb2-184" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 The unbiased baseline trick</span></span>
-<span id="cb2-185"><a href="#cb2-185" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-186"><a href="#cb2-186" aria-hidden="true" tabindex="-1"></a>For any function $b(s)$ that depends only on the state (not the action),</span>
-<span id="cb2-187"><a href="#cb2-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-188"><a href="#cb2-188" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-189"><a href="#cb2-189" aria-hidden="true" tabindex="-1"></a>\mathbb{E}_{a \sim \pi(\cdot \mid s)}\!\big[b(s) \,\nabla_\theta \log \pi_\theta(a \mid s)\big] \;=\; b(s) \, \mathbb{E}_a\!\big[\nabla_\theta \log \pi(a \mid s)\big] \;=\; b(s) \cdot 0 \;=\; 0.</span>
-<span id="cb2-190"><a href="#cb2-190" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-191"><a href="#cb2-191" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-192"><a href="#cb2-192" aria-hidden="true" tabindex="-1"></a>The middle equality uses $\mathbb{E}_a[\nabla \log \pi(a \mid s)] = \nabla_\theta \mathbb{E}_a[1] = \nabla_\theta 1 = 0$. So we can subtract $b(s_t)$ from $G_t$ in the gradient without introducing bias:</span>
-<span id="cb2-193"><a href="#cb2-193" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-194"><a href="#cb2-194" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-195"><a href="#cb2-195" aria-hidden="true" tabindex="-1"></a>\boxed{\;</span>
-<span id="cb2-196"><a href="#cb2-196" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> \sum_t (G_t - b(s_t)) \, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right</span><span class="co">]</span>.</span>
-<span id="cb2-197"><a href="#cb2-197" aria-hidden="true" tabindex="-1"></a>\;}</span>
-<span id="cb2-198"><a href="#cb2-198" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-141"><a href="#cb2-141" aria-hidden="true" tabindex="-1"></a>because a log-probability at time $t$ contributes to the objective only through the discounted rewards from $t$ onward. Many implementations (including the one here, and most practical codebases) **drop the outer $\gamma^t$**, which corresponds to optimizing the *undiscounted* sum of per-step objectives — a different but standard convention that tends to work better in practice because it doesn't down-weight late-trajectory updates. We use the dropped-$\gamma^t$ form throughout; just know the convention is a deliberate choice, not an oversight.</span>
+<span id="cb2-142"><a href="#cb2-142" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-143"><a href="#cb2-143" aria-hidden="true" tabindex="-1"></a><span class="fu">### 2.4 Visualizing the gradient in 1D</span></span>
+<span id="cb2-144"><a href="#cb2-144" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-145"><a href="#cb2-145" aria-hidden="true" tabindex="-1"></a><span class="al">![Policy gradient on a 1D continuous bandit. Left: a Gaussian policy at μ=0 and the reward function r(a) = 1 - (a-2)². Center: the integrand π(a)·r(a)·(a-μ)/σ², split into positive (green) and negative (red) contributions. Right: gradient ascent trajectory of μ converging to the optimum at 2.](../figures/02a_log_derivative_trick.png)</span></span>
+<span id="cb2-146"><a href="#cb2-146" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-147"><a href="#cb2-147" aria-hidden="true" tabindex="-1"></a>Concretely: take a 1D Gaussian policy $\pi(a; \mu) = \mathcal{N}(\mu, \sigma^2)$ and a reward $r(a)$. The policy gradient is</span>
+<span id="cb2-148"><a href="#cb2-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-149"><a href="#cb2-149" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-150"><a href="#cb2-150" aria-hidden="true" tabindex="-1"></a>\nabla_\mu J(\mu) \;=\; \mathbb{E}_{a \sim \pi}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> r(a) \cdot \frac{a - \mu}{\sigma^2} \right</span><span class="co">]</span>.</span>
+<span id="cb2-151"><a href="#cb2-151" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-152"><a href="#cb2-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-153"><a href="#cb2-153" aria-hidden="true" tabindex="-1"></a>The factor $(a - \mu)/\sigma^2$ is the **score function** — the gradient of the log-density w.r.t. $\mu$. It points in the direction "if you want to make this action more likely, increase $\mu$ in this direction." Sampled actions contribute to the gradient in proportion to $r(a)$ times the score: good actions far from $\mu$ pull the mean toward them; bad actions far from $\mu$ push it away.</span>
+<span id="cb2-154"><a href="#cb2-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-155"><a href="#cb2-155" aria-hidden="true" tabindex="-1"></a>The right panel shows REINFORCE in action: starting from $\mu = 0$, gradient ascent moves the policy mean toward the reward peak at $a = 2$ in ~30 steps.</span>
+<span id="cb2-156"><a href="#cb2-156" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-157"><a href="#cb2-157" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-158"><a href="#cb2-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-159"><a href="#cb2-159" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. The REINFORCE algorithm</span></span>
+<span id="cb2-160"><a href="#cb2-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-161"><a href="#cb2-161" aria-hidden="true" tabindex="-1"></a>Williams' (1992) Monte Carlo algorithm is just the policy gradient theorem applied with stochastic gradient ascent. Each iteration:</span>
+<span id="cb2-162"><a href="#cb2-162" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-163"><a href="#cb2-163" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Sample one trajectory $\tau$ by rolling out under $\pi_\theta$.</span>
+<span id="cb2-164"><a href="#cb2-164" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Compute returns $G_t$ for each timestep.</span>
+<span id="cb2-165"><a href="#cb2-165" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Update $\theta \leftarrow \theta + \alpha \sum_t G_t \, \nabla_\theta \log \pi_\theta(a_t \mid s_t)$.</span>
+<span id="cb2-166"><a href="#cb2-166" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-167"><a href="#cb2-167" aria-hidden="true" tabindex="-1"></a>For a softmax policy $\pi_\theta(a \mid s) = \text{softmax}(\theta_{s, \cdot})_a$, the score has a closed form:</span>
+<span id="cb2-168"><a href="#cb2-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-169"><a href="#cb2-169" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-170"><a href="#cb2-170" aria-hidden="true" tabindex="-1"></a>\frac{\partial \log \pi(a \mid s)}{\partial \theta_{s', a'}} \;=\; \big(\mathbf{1}<span class="co">[</span><span class="ot">a = a'</span><span class="co">]</span> - \pi(a' \mid s)\big) \cdot \mathbf{1}<span class="co">[</span><span class="ot">s = s'</span><span class="co">]</span>.</span>
+<span id="cb2-171"><a href="#cb2-171" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-172"><a href="#cb2-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-173"><a href="#cb2-173" aria-hidden="true" tabindex="-1"></a>The gradient is sparse: only the row of $\theta$ at the visited state has nonzero gradient. In code:</span>
+<span id="cb2-174"><a href="#cb2-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-175"><a href="#cb2-175" aria-hidden="true" tabindex="-1"></a><span class="in">```python</span></span>
+<span id="cb2-176"><a href="#cb2-176" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> reinforce_step(policy, traj, returns, lr):</span>
+<span id="cb2-177"><a href="#cb2-177" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t, (s, a, _) <span class="kw">in</span> <span class="bu">enumerate</span>(traj):</span>
+<span id="cb2-178"><a href="#cb2-178" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> policy.probs(s)</span>
+<span id="cb2-179"><a href="#cb2-179" aria-hidden="true" tabindex="-1"></a>        policy.theta[s] <span class="op">+=</span> lr <span class="op">*</span> returns[t] <span class="op">*</span> (<span class="op">-</span>p)</span>
+<span id="cb2-180"><a href="#cb2-180" aria-hidden="true" tabindex="-1"></a>        policy.theta[s, a] <span class="op">+=</span> lr <span class="op">*</span> returns[t]</span>
+<span id="cb2-181"><a href="#cb2-181" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb2-182"><a href="#cb2-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-183"><a href="#cb2-183" aria-hidden="true" tabindex="-1"></a>That's it. Six lines, including the closed-form softmax gradient. Compare to value iteration (a ~30-line algorithm with the contraction analysis) and Q-learning (~25 lines with the convergence theorem). Policy gradient is simpler than both — at the cost of higher variance.</span>
+<span id="cb2-184"><a href="#cb2-184" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-185"><a href="#cb2-185" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-186"><a href="#cb2-186" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-187"><a href="#cb2-187" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Baselines and variance reduction</span></span>
+<span id="cb2-188"><a href="#cb2-188" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-189"><a href="#cb2-189" aria-hidden="true" tabindex="-1"></a>The big practical issue with REINFORCE: **the gradient estimator has high variance**. Different trajectories can yield wildly different returns; the gradient direction jitters from update to update; convergence is slow and unreliable.</span>
+<span id="cb2-190"><a href="#cb2-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-191"><a href="#cb2-191" aria-hidden="true" tabindex="-1"></a>It is worth collecting REINFORCE's limitations in one place, because the rest of Topic 2 is essentially a campaign against them:</span>
+<span id="cb2-192"><a href="#cb2-192" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-193"><a href="#cb2-193" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**High variance.** A single trajectory's return is a noisy estimate of the expected return; the gradient inherits that noise. (Baselines, §4, and learned critics, Post 2b, attack this.)</span>
+<span id="cb2-194"><a href="#cb2-194" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**On-policy only.** The expectation is over trajectories from the *current* $\pi_\theta$, so every gradient step needs fresh samples from the latest policy — you cannot reuse old data. (Importance sampling and trust regions, Post 2c, relax this.)</span>
+<span id="cb2-195"><a href="#cb2-195" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Weak credit assignment.** The whole return-from-$t$ multiplies every action equally; REINFORCE has no fine-grained sense of *which* action in a long trajectory deserves the credit. (Advantage estimation and GAE, Post 2b, sharpen this.)</span>
+<span id="cb2-196"><a href="#cb2-196" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Unstable under large updates.** A big step can collapse the policy to something degenerate from which it never recovers, because the data distribution shifts with the policy. (Clipped surrogates in PPO, Post 2c, guard against this.)</span>
+<span id="cb2-197"><a href="#cb2-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-198"><a href="#cb2-198" aria-hidden="true" tabindex="-1"></a>Keep this list in mind; each later method in Topic 2 is best understood as fixing one or more of these four.</span>
 <span id="cb2-199"><a href="#cb2-199" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-200"><a href="#cb2-200" aria-hidden="true" tabindex="-1"></a>The quantity $A_t \equiv G_t - b(s_t)$ is called the **advantage**.</span>
+<span id="cb2-200"><a href="#cb2-200" aria-hidden="true" tabindex="-1"></a>The key variance-reduction trick: **subtract a baseline** from the return.</span>
 <span id="cb2-201"><a href="#cb2-201" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-202"><a href="#cb2-202" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 The variance-minimizing baseline</span></span>
+<span id="cb2-202"><a href="#cb2-202" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.1 The unbiased baseline trick</span></span>
 <span id="cb2-203"><a href="#cb2-203" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-204"><a href="#cb2-204" aria-hidden="true" tabindex="-1"></a>What's the best $b(s)$? The choice that minimizes the variance of the gradient estimator is</span>
+<span id="cb2-204"><a href="#cb2-204" aria-hidden="true" tabindex="-1"></a>For any function $b(s)$ that depends only on the state (not the action),</span>
 <span id="cb2-205"><a href="#cb2-205" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-206"><a href="#cb2-206" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-207"><a href="#cb2-207" aria-hidden="true" tabindex="-1"></a>b^\star(s) \;=\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(s).</span>
+<span id="cb2-207"><a href="#cb2-207" aria-hidden="true" tabindex="-1"></a>\mathbb{E}_{a \sim \pi(\cdot \mid s)}\!\big[b(s) \,\nabla_\theta \log \pi_\theta(a \mid s)\big] \;=\; b(s) \, \mathbb{E}_a\!\big[\nabla_\theta \log \pi(a \mid s)\big] \;=\; b(s) \cdot 0 \;=\; 0.</span>
 <span id="cb2-208"><a href="#cb2-208" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb2-209"><a href="#cb2-209" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-210"><a href="#cb2-210" aria-hidden="true" tabindex="-1"></a>The optimal baseline is the **current policy's value function**. This is intuitive: $A_t = G_t - V^{\pi_\theta}(s_t)$ measures how much *better* the actual return was than what the agent expects on average from state $s_t$. Subtracting the expected return centers the advantage around zero.</span>
+<span id="cb2-210"><a href="#cb2-210" aria-hidden="true" tabindex="-1"></a>The middle equality uses $\mathbb{E}_a[\nabla \log \pi(a \mid s)] = \nabla_\theta \mathbb{E}_a[1] = \nabla_\theta 1 = 0$. So we can subtract $b(s_t)$ from $G_t$ in the gradient without introducing bias:</span>
 <span id="cb2-211"><a href="#cb2-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-212"><a href="#cb2-212" aria-hidden="true" tabindex="-1"></a>In practice we don't know $V^{\pi_\theta}$ either; it's the same chicken-and-egg as $Q^\star$. There are several practical approximations:</span>
-<span id="cb2-213"><a href="#cb2-213" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-214"><a href="#cb2-214" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Running mean of returns**: a single constant, updated online. Crude but free.</span>
-<span id="cb2-215"><a href="#cb2-215" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Learned baseline**: train a neural network $V_\phi(s)$ alongside the policy. This is the actor-critic family, the topic of Post 2b.</span>
-<span id="cb2-216"><a href="#cb2-216" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Empirical batch average**: in batched updates, subtract the mean return within the batch. Used in some implementations of PPO and GRPO.</span>
+<span id="cb2-212"><a href="#cb2-212" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-213"><a href="#cb2-213" aria-hidden="true" tabindex="-1"></a>\boxed{\;</span>
+<span id="cb2-214"><a href="#cb2-214" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}<span class="sc">\!</span>\left<span class="co">[</span><span class="ot"> \sum_t (G_t - b(s_t)) \, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \right</span><span class="co">]</span>.</span>
+<span id="cb2-215"><a href="#cb2-215" aria-hidden="true" tabindex="-1"></a>\;}</span>
+<span id="cb2-216"><a href="#cb2-216" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb2-217"><a href="#cb2-217" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-218"><a href="#cb2-218" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.3 Variance reduction in practice</span></span>
+<span id="cb2-218"><a href="#cb2-218" aria-hidden="true" tabindex="-1"></a>The quantity $A_t \equiv G_t - b(s_t)$ is called the **advantage**.</span>
 <span id="cb2-219"><a href="#cb2-219" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-220"><a href="#cb2-220" aria-hidden="true" tabindex="-1"></a><span class="al">![Histogram of single-trajectory gradient L2 norms with and without baseline. Left: at uniform initialization, the V* baseline actually *hurts* (over-corrects). Right: for a partially-trained policy, V* baseline reduces variance ~3×.](../figures/02a_gradient_variance.png)</span></span>
+<span id="cb2-220"><a href="#cb2-220" aria-hidden="true" tabindex="-1"></a>Why does this reduce variance when the expectation is unchanged? A small worked case makes it vivid. Suppose in some state both available actions are good, returning $G = 100$ and $G = 102$. Without a baseline, every update pushes *up* on whichever action was sampled, with a huge weight (~100) — the gradient is dominated by the large common offset, and the tiny difference that actually distinguishes the actions (2 out of 102) is buried in noise. Subtract a baseline of $b = 101$ (roughly $V^\pi$), and the weights become $-1$ and $+1$: now the update *pushes down* on the slightly-worse action and *up* on the slightly-better one. Same expected gradient (the offset was constant and integrates to zero), but the variance is slashed because the weights are now centered near zero and reflect only the *relative* merit of each action. The baseline turns "everything was great, do more of all of it" into "this was better than average, do more of *this*" — which is both lower-variance and a sharper learning signal. That centering is the entire point, and it is why the best baseline is the expected return $V^\pi(s)$: it makes the advantage measure deviation from the state's own average.</span>
 <span id="cb2-221"><a href="#cb2-221" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-222"><a href="#cb2-222" aria-hidden="true" tabindex="-1"></a>Two important wrinkles surface in practice.</span>
+<span id="cb2-222"><a href="#cb2-222" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.2 The variance-minimizing baseline</span></span>
 <span id="cb2-223"><a href="#cb2-223" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-224"><a href="#cb2-224" aria-hidden="true" tabindex="-1"></a>**First**, the optimal baseline is $V^{\pi_\theta}$ — for the *current* policy. Using $V^{\pi^\star}$ as a baseline (which I called "oracle" in the figure) is **wrong** when your policy is far from optimal. The histogram on the left shows the surprising result: at uniform initialization, the $V^\star$ "oracle" baseline actually *increases* the gradient variance. Why? Because the agent's actual returns are far below $V^\star$ (it's playing randomly), so $A_t = G_t - V^\star$ is mostly very negative. Big negative advantages → big-magnitude gradients → high variance.</span>
+<span id="cb2-224"><a href="#cb2-224" aria-hidden="true" tabindex="-1"></a>What's the best $b(s)$? Here we should be careful, because there are two different "best" baselines and they are often conflated. The *exact* variance-minimizing scalar baseline for the gradient estimator is **score-norm weighted**:</span>
 <span id="cb2-225"><a href="#cb2-225" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-226"><a href="#cb2-226" aria-hidden="true" tabindex="-1"></a>The right histogram shows the textbook story: once the policy is partially trained, $V^\star$ becomes a good approximation of $V^{\pi_\theta}$, and the variance drops 3×.</span>
-<span id="cb2-227"><a href="#cb2-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-228"><a href="#cb2-228" aria-hidden="true" tabindex="-1"></a>**Second**, the running-mean baseline is shockingly effective despite its simplicity — it captures most of the benefit at zero engineering cost. See §8.1 below for the empirical breakdown over training.</span>
+<span id="cb2-226"><a href="#cb2-226" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-227"><a href="#cb2-227" aria-hidden="true" tabindex="-1"></a>b^\star(s) \;=\; \frac{\mathbb{E}_{\pi_\theta}\!\big[\,G_t\,\lVert\nabla_\theta \log \pi_\theta(a_t\mid s_t)\rVert^2 \mid s_t = s\,\big]}{\mathbb{E}_{\pi_\theta}\!\big[\,\lVert\nabla_\theta \log \pi_\theta(a_t\mid s_t)\rVert^2 \mid s_t = s\,\big]},</span>
+<span id="cb2-228"><a href="#cb2-228" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb2-229"><a href="#cb2-229" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-230"><a href="#cb2-230" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-230"><a href="#cb2-230" aria-hidden="true" tabindex="-1"></a>a ratio that weights returns by the squared norm of the score function. Under the simplifying assumption that the score norm is uncorrelated with the return (or constant across actions), this collapses to the much more familiar</span>
 <span id="cb2-231"><a href="#cb2-231" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-232"><a href="#cb2-232" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. REINFORCE on a gridworld</span></span>
-<span id="cb2-233"><a href="#cb2-233" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-234"><a href="#cb2-234" aria-hidden="true" tabindex="-1"></a>Let's apply it. We use the TwoGoalGridWorld from <span class="co">[</span><span class="ot">Part 1c</span><span class="co">](01c-mdps-and-bellman.qmd)</span> and three baselines:</span>
+<span id="cb2-232"><a href="#cb2-232" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-233"><a href="#cb2-233" aria-hidden="true" tabindex="-1"></a>b^\star(s) \;\approx\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\theta}(s).</span>
+<span id="cb2-234"><a href="#cb2-234" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb2-235"><a href="#cb2-235" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-236"><a href="#cb2-236" aria-hidden="true" tabindex="-1"></a><span class="al">![REINFORCE on TwoGoalGridWorld with three baselines: none, running-mean, and V^π* (oracle). Surprisingly, V^π* converges *slower* than the others — using the optimal-policy value as baseline over-corrects when the current policy is far from optimal.](../figures/02a_reinforce_learning_curves.png)</span></span>
+<span id="cb2-236"><a href="#cb2-236" aria-hidden="true" tabindex="-1"></a>So the **current policy's value function** $V^{\pi_\theta}$ is the *practical* optimal baseline — it is what actor-critic methods learn and target, and it is correct under the simplifying assumption — but the truly variance-minimizing choice is the score-norm-weighted ratio above. We use $V^{\pi_\theta}$ throughout because it is the right engineering target; just know it is an approximation to the exact optimum. Intuitively, $A_t = G_t - V^{\pi_\theta}(s_t)$ measures how much *better* the actual return was than what the agent expects on average from state $s_t$, centering the advantage around zero.</span>
 <span id="cb2-237"><a href="#cb2-237" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-238"><a href="#cb2-238" aria-hidden="true" tabindex="-1"></a>The result is honest about a subtle point. The $V^{\pi^\star}$ "oracle" baseline isn't always better than no baseline — it depends critically on the current policy. The running-mean baseline (which dynamically tracks $V^{\pi_\theta}$ approximately) does better than both.</span>
+<span id="cb2-238"><a href="#cb2-238" aria-hidden="true" tabindex="-1"></a>In practice we don't know $V^{\pi_\theta}$ either; it's the same chicken-and-egg as $Q^\star$. There are several practical approximations:</span>
 <span id="cb2-239"><a href="#cb2-239" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-240"><a href="#cb2-240" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.1 The learned policy</span></span>
-<span id="cb2-241"><a href="#cb2-241" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-242"><a href="#cb2-242" aria-hidden="true" tabindex="-1"></a><span class="al">![REINFORCE-learned policy (right) vs value iteration's policy (left) on a slippery TwoGoalGridWorld. Policy matches on 17/19 non-terminal states — the two disagreements are at states with multiple near-optimal actions.](../figures/02a_reinforce_vs_vi.png)</span></span>
+<span id="cb2-240"><a href="#cb2-240" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Running mean of returns**: a single constant, updated online. Crude but free.</span>
+<span id="cb2-241"><a href="#cb2-241" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Learned baseline**: train a neural network $V_\phi(s)$ alongside the policy. This is the actor-critic family, the topic of Post 2b.</span>
+<span id="cb2-242"><a href="#cb2-242" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Empirical batch average**: in batched updates, subtract the mean return within the batch. Used in some implementations of PPO and GRPO.</span>
 <span id="cb2-243"><a href="#cb2-243" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-244"><a href="#cb2-244" aria-hidden="true" tabindex="-1"></a>Like Q-learning in <span class="co">[</span><span class="ot">Part 1d</span><span class="co">](01d-pomdps-and-q-learning.qmd)</span>, REINFORCE recovers essentially the optimal policy from samples alone. It never knew $P$ or $R$. The few disagreements occur at near-tied states.</span>
+<span id="cb2-244"><a href="#cb2-244" aria-hidden="true" tabindex="-1"></a><span class="fu">### 4.3 Variance reduction in practice</span></span>
 <span id="cb2-245"><a href="#cb2-245" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-246"><a href="#cb2-246" aria-hidden="true" tabindex="-1"></a>The conceptual jump from Q-learning to REINFORCE is small in algorithm but large in implication. Q-learning updates one Q-value per transition; REINFORCE updates the full $\theta$ for every trajectory. Q-learning's argmax breaks under continuous actions; REINFORCE doesn't care.</span>
+<span id="cb2-246"><a href="#cb2-246" aria-hidden="true" tabindex="-1"></a><span class="al">![Histogram of single-trajectory gradient L2 norms with and without baseline. Left: at uniform initialization, the V* baseline actually *hurts* (over-corrects). Right: for a partially-trained policy, V* baseline reduces variance ~3×.](../figures/02a_gradient_variance.png)</span></span>
 <span id="cb2-247"><a href="#cb2-247" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-248"><a href="#cb2-248" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-248"><a href="#cb2-248" aria-hidden="true" tabindex="-1"></a>Two important wrinkles surface in practice.</span>
 <span id="cb2-249"><a href="#cb2-249" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-250"><a href="#cb2-250" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Forward connections</span></span>
+<span id="cb2-250"><a href="#cb2-250" aria-hidden="true" tabindex="-1"></a>**First**, the optimal baseline is $V^{\pi_\theta}$ — for the *current* policy. Using $V^{\pi^\star}$ as a baseline (which I called "oracle" in the figure) is **wrong** when your policy is far from optimal. The histogram on the left shows the surprising result: at uniform initialization, the $V^\star$ "oracle" baseline actually *increases* the gradient variance. Why? Because the agent's actual returns are far below $V^\star$ (it's playing randomly), so $A_t = G_t - V^\star$ is mostly very negative. Big negative advantages → big-magnitude gradients → high variance.</span>
 <span id="cb2-251"><a href="#cb2-251" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-252"><a href="#cb2-252" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 REINFORCE is the gradient of RLHF</span></span>
+<span id="cb2-252"><a href="#cb2-252" aria-hidden="true" tabindex="-1"></a>The right histogram shows the textbook story: once the policy is partially trained, $V^\star$ becomes a good approximation of $V^{\pi_\theta}$, and the variance drops 3×.</span>
 <span id="cb2-253"><a href="#cb2-253" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-254"><a href="#cb2-254" aria-hidden="true" tabindex="-1"></a>In modern RLHF, the policy is an LLM, and the "reward" comes from a learned reward model trained on human preferences. The gradient is</span>
+<span id="cb2-254"><a href="#cb2-254" aria-hidden="true" tabindex="-1"></a>**Second**, the running-mean baseline is shockingly effective despite its simplicity — it captures most of the benefit at zero engineering cost. See §8.1 below for the empirical breakdown over training.</span>
 <span id="cb2-255"><a href="#cb2-255" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-256"><a href="#cb2-256" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-257"><a href="#cb2-257" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta(\cdot \mid x)}\!\left[ r_\phi(x, y) \, \nabla_\theta \log \pi_\theta(y \mid x) \right]</span>
-<span id="cb2-258"><a href="#cb2-258" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-256"><a href="#cb2-256" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-257"><a href="#cb2-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-258"><a href="#cb2-258" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. REINFORCE on a gridworld</span></span>
 <span id="cb2-259"><a href="#cb2-259" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-260"><a href="#cb2-260" aria-hidden="true" tabindex="-1"></a>— exactly the REINFORCE estimator, with prompts $x$ as states and responses $y$ as actions. The only addition in practice is a KL penalty against a reference policy to prevent collapse to degenerate distributions.</span>
+<span id="cb2-260"><a href="#cb2-260" aria-hidden="true" tabindex="-1"></a>Let's apply it. We use the TwoGoalGridWorld from <span class="co">[</span><span class="ot">Part 1c</span><span class="co">](01c-mdps-and-bellman.qmd)</span> and three baselines:</span>
 <span id="cb2-261"><a href="#cb2-261" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-262"><a href="#cb2-262" aria-hidden="true" tabindex="-1"></a>If you understand the REINFORCE gradient, you understand the gradient of RLHF. Everything else is engineering: PPO clips the update size, GRPO uses group-relative advantages, RLOO uses leave-one-out, but the underlying gradient structure is what we just derived.</span>
+<span id="cb2-262"><a href="#cb2-262" aria-hidden="true" tabindex="-1"></a><span class="al">![REINFORCE on TwoGoalGridWorld with three baselines: none, running-mean, and V^π* (oracle). Surprisingly, V^π* converges *slower* than the others — using the optimal-policy value as baseline over-corrects when the current policy is far from optimal.](../figures/02a_reinforce_learning_curves.png)</span></span>
 <span id="cb2-263"><a href="#cb2-263" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-264"><a href="#cb2-264" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 The variance reduction is the actor-critic family</span></span>
+<span id="cb2-264"><a href="#cb2-264" aria-hidden="true" tabindex="-1"></a>The result is honest about a subtle point. The $V^{\pi^\star}$ "oracle" baseline isn't always better than no baseline — it depends critically on the current policy. The running-mean baseline (which dynamically tracks $V^{\pi_\theta}$ approximately) does better than both.</span>
 <span id="cb2-265"><a href="#cb2-265" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-266"><a href="#cb2-266" aria-hidden="true" tabindex="-1"></a>The natural extension of "use a baseline" is "learn the baseline." Actor-critic methods do exactly this: maintain two networks, $\pi_\theta$ (the actor) and $V_\phi$ (the critic). The actor is updated by policy gradient with the critic's $V_\phi$ as baseline; the critic is updated by TD learning (Part 1d) toward its own bootstrap target.</span>
+<span id="cb2-266"><a href="#cb2-266" aria-hidden="true" tabindex="-1"></a><span class="fu">### 5.1 The learned policy</span></span>
 <span id="cb2-267"><a href="#cb2-267" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-268"><a href="#cb2-268" aria-hidden="true" tabindex="-1"></a>A2C, A3C, PPO, SAC — all are actor-critic variants. They're the workhorse of modern policy gradient practice. Post 2b builds them.</span>
+<span id="cb2-268"><a href="#cb2-268" aria-hidden="true" tabindex="-1"></a><span class="al">![REINFORCE-learned policy (right) vs value iteration's policy (left) on a slippery TwoGoalGridWorld. Policy matches on 17/19 non-terminal states — the two disagreements are at states with multiple near-optimal actions.](../figures/02a_reinforce_vs_vi.png)</span></span>
 <span id="cb2-269"><a href="#cb2-269" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-270"><a href="#cb2-270" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 The constraint reduction is the trust-region family</span></span>
+<span id="cb2-270"><a href="#cb2-270" aria-hidden="true" tabindex="-1"></a>Like Q-learning in <span class="co">[</span><span class="ot">Part 1d</span><span class="co">](01d-pomdps-and-q-learning.qmd)</span>, REINFORCE recovers essentially the optimal policy from samples alone. It never knew $P$ or $R$. The few disagreements occur at near-tied states.</span>
 <span id="cb2-271"><a href="#cb2-271" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-272"><a href="#cb2-272" aria-hidden="true" tabindex="-1"></a>The other massive issue with REINFORCE: **the gradient update can be too large**, knocking the policy into bad regions. We saw this in §8.4 below: large learning rates cause catastrophic collapse.</span>
+<span id="cb2-272"><a href="#cb2-272" aria-hidden="true" tabindex="-1"></a>The conceptual jump from Q-learning to REINFORCE is small in algorithm but large in implication. Q-learning updates one Q-value per transition; REINFORCE updates the full $\theta$ for every trajectory. Q-learning's argmax breaks under continuous actions; REINFORCE doesn't care.</span>
 <span id="cb2-273"><a href="#cb2-273" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-274"><a href="#cb2-274" aria-hidden="true" tabindex="-1"></a>The fix is to constrain how much the policy can change per update. **TRPO** (Schulman et al. 2015) uses a KL-divergence trust region; **PPO** (Schulman et al. 2017) uses a clipped ratio surrogate. Both restrict $\pi_{\text{new}}$ to stay close to $\pi_{\text{old}}$.</span>
+<span id="cb2-274"><a href="#cb2-274" aria-hidden="true" tabindex="-1"></a>---</span>
 <span id="cb2-275"><a href="#cb2-275" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-276"><a href="#cb2-276" aria-hidden="true" tabindex="-1"></a>This is what makes modern RL training stable enough to work on LLMs. Post 2c covers it.</span>
+<span id="cb2-276"><a href="#cb2-276" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Forward connections</span></span>
 <span id="cb2-277"><a href="#cb2-277" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-278"><a href="#cb2-278" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.4 DPO and the bypass</span></span>
+<span id="cb2-278"><a href="#cb2-278" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 REINFORCE is the gradient of RLHF</span></span>
 <span id="cb2-279"><a href="#cb2-279" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-280"><a href="#cb2-280" aria-hidden="true" tabindex="-1"></a>The most surprising recent development: **you can sometimes skip the policy gradient entirely.** Direct Preference Optimization (Rafailov et al. 2023) uses an algebraic identity to convert RLHF's policy-gradient objective into a closed-form supervised loss. The data is pairs $(y^+, y^-)$ of preferred and dispreferred responses; the loss is</span>
+<span id="cb2-280"><a href="#cb2-280" aria-hidden="true" tabindex="-1"></a>In modern RLHF, the policy is an LLM, and the "reward" comes from a learned reward model trained on human preferences. The *simplest* policy-gradient form of the objective is</span>
 <span id="cb2-281"><a href="#cb2-281" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-282"><a href="#cb2-282" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-283"><a href="#cb2-283" aria-hidden="true" tabindex="-1"></a>\mathcal{L}_{\text{DPO}} \;=\; -\log \sigma\!\left[ \beta \log \frac{\pi_\theta(y^+ \mid x)}{\pi_{\text{ref}}(y^+ \mid x)} - \beta \log \frac{\pi_\theta(y^- \mid x)}{\pi_{\text{ref}}(y^- \mid x)} \right].</span>
+<span id="cb2-283"><a href="#cb2-283" aria-hidden="true" tabindex="-1"></a>\nabla_\theta J(\theta) \;=\; \mathbb{E}_{x \sim \mathcal{D}, \, y \sim \pi_\theta(\cdot \mid x)}\!\left[ r_\phi(x, y) \, \nabla_\theta \log \pi_\theta(y \mid x) \right]</span>
 <span id="cb2-284"><a href="#cb2-284" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb2-285"><a href="#cb2-285" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-286"><a href="#cb2-286" aria-hidden="true" tabindex="-1"></a>No sampling, no reward model, no policy gradient. It's the same problem, reframed as binary classification. DPO works because the optimal policy under the RLHF objective has a closed-form solution in terms of the reward, and you can solve for the policy directly given preference pairs.</span>
+<span id="cb2-286"><a href="#cb2-286" aria-hidden="true" tabindex="-1"></a>— exactly the REINFORCE estimator, with prompts $x$ as states and responses $y$ as actions. Production RLHF is more than this bare estimator: it adds a KL penalty against a reference policy to prevent collapse to degenerate distributions, and it almost always uses a PPO-style clipped update (Post 2c) rather than vanilla REINFORCE for stability. The point here is just that the *core* gradient signal — reward times score function — is the one we derived.</span>
 <span id="cb2-287"><a href="#cb2-287" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-288"><a href="#cb2-288" aria-hidden="true" tabindex="-1"></a>This is one of the cleanest examples of "rederiving an algorithm from the gradient structure" — a topic for Post 2d.</span>
+<span id="cb2-288"><a href="#cb2-288" aria-hidden="true" tabindex="-1"></a>If you understand the REINFORCE gradient, you understand the gradient of RLHF. Everything else is engineering: PPO clips the update size, GRPO uses group-relative advantages, RLOO uses leave-one-out, but the underlying gradient structure is what we just derived.</span>
 <span id="cb2-289"><a href="#cb2-289" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-290"><a href="#cb2-290" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-290"><a href="#cb2-290" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 The variance reduction is the actor-critic family</span></span>
 <span id="cb2-291"><a href="#cb2-291" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-292"><a href="#cb2-292" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Experiments to actually run</span></span>
+<span id="cb2-292"><a href="#cb2-292" aria-hidden="true" tabindex="-1"></a>The natural extension of "use a baseline" is "learn the baseline." Actor-critic methods do exactly this: maintain two networks, $\pi_\theta$ (the actor) and $V_\phi$ (the critic). The actor is updated by policy gradient with the critic's $V_\phi$ as baseline; the critic is updated by TD learning (Part 1d) toward its own bootstrap target.</span>
 <span id="cb2-293"><a href="#cb2-293" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-294"><a href="#cb2-294" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 Gradient variance throughout training</span></span>
+<span id="cb2-294"><a href="#cb2-294" aria-hidden="true" tabindex="-1"></a>A2C, A3C, PPO, SAC — all are actor-critic variants. They're the workhorse of modern policy gradient practice. Post 2b builds them.</span>
 <span id="cb2-295"><a href="#cb2-295" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-296"><a href="#cb2-296" aria-hidden="true" tabindex="-1"></a>Track the empirical gradient variance over training episodes for vanilla REINFORCE and REINFORCE with a running-mean baseline. The claim "baselines reduce variance" is theoretical — does it show up in practice over the whole training trajectory, or only late?</span>
+<span id="cb2-296"><a href="#cb2-296" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 The constraint reduction is the trust-region family</span></span>
 <span id="cb2-297"><a href="#cb2-297" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-298"><a href="#cb2-298" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 REINFORCE vs Q-learning sample efficiency</span></span>
+<span id="cb2-298"><a href="#cb2-298" aria-hidden="true" tabindex="-1"></a>The other massive issue with REINFORCE: **the gradient update can be too large**, knocking the policy into bad regions. We saw this in §8.4 below: large learning rates cause catastrophic collapse.</span>
 <span id="cb2-299"><a href="#cb2-299" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-300"><a href="#cb2-300" aria-hidden="true" tabindex="-1"></a>Both are model-free. On the same gridworld and the same number of transitions, which converges faster? Why?</span>
+<span id="cb2-300"><a href="#cb2-300" aria-hidden="true" tabindex="-1"></a>The fix is to constrain how much the policy can change per update. **TRPO** (Schulman et al. 2015) uses a KL-divergence trust region; **PPO** (Schulman et al. 2017) uses a clipped ratio surrogate. Both restrict $\pi_{\text{new}}$ to stay close to $\pi_{\text{old}}$.</span>
 <span id="cb2-301"><a href="#cb2-301" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-302"><a href="#cb2-302" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Continuous action space</span></span>
+<span id="cb2-302"><a href="#cb2-302" aria-hidden="true" tabindex="-1"></a>This is what makes modern RL training stable enough to work on LLMs. Post 2c covers it.</span>
 <span id="cb2-303"><a href="#cb2-303" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-304"><a href="#cb2-304" aria-hidden="true" tabindex="-1"></a>Implement REINFORCE for a 1D Gaussian policy on a continuous bandit. Learn both the mean *and* the standard deviation. Show that the policy "tightens" around the optimum as it discovers it.</span>
+<span id="cb2-304"><a href="#cb2-304" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.4 DPO and the bypass</span></span>
 <span id="cb2-305"><a href="#cb2-305" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-306"><a href="#cb2-306" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 Learning rate sensitivity</span></span>
+<span id="cb2-306"><a href="#cb2-306" aria-hidden="true" tabindex="-1"></a>The most surprising recent development: **you can sometimes skip the policy gradient entirely.** Direct Preference Optimization (Rafailov et al. 2023) uses an algebraic identity to convert RLHF's policy-gradient objective into a closed-form supervised loss. The data is pairs $(y^+, y^-)$ of preferred and dispreferred responses; the loss is</span>
 <span id="cb2-307"><a href="#cb2-307" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-308"><a href="#cb2-308" aria-hidden="true" tabindex="-1"></a>Sweep the learning rate over two orders of magnitude. Plot final return vs lr. What does the curve look like? (Hint: it's not symmetric.)</span>
-<span id="cb2-309"><a href="#cb2-309" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-310"><a href="#cb2-310" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-308"><a href="#cb2-308" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-309"><a href="#cb2-309" aria-hidden="true" tabindex="-1"></a>\mathcal{L}_{\text{DPO}} \;=\; -\log \sigma\!\left[ \beta \log \frac{\pi_\theta(y^+ \mid x)}{\pi_{\text{ref}}(y^+ \mid x)} - \beta \log \frac{\pi_\theta(y^- \mid x)}{\pi_{\text{ref}}(y^- \mid x)} \right].</span>
+<span id="cb2-310"><a href="#cb2-310" aria-hidden="true" tabindex="-1"></a>$$</span>
 <span id="cb2-311"><a href="#cb2-311" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-312"><a href="#cb2-312" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Solutions</span></span>
+<span id="cb2-312"><a href="#cb2-312" aria-hidden="true" tabindex="-1"></a>No sampling, no reward model, no policy gradient. It's the same problem, reframed as binary classification. DPO works because the optimal policy under the RLHF objective has a closed-form solution in terms of the reward, and you can solve for the policy directly given preference pairs.</span>
 <span id="cb2-313"><a href="#cb2-313" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-314"><a href="#cb2-314" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Gradient variance throughout training — `experiments/02a_sol1_gradient_variance_over_training.py`</span></span>
+<span id="cb2-314"><a href="#cb2-314" aria-hidden="true" tabindex="-1"></a>This is one of the cleanest examples of "rederiving an algorithm from the gradient structure" — a topic for Post 2d.</span>
 <span id="cb2-315"><a href="#cb2-315" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-316"><a href="#cb2-316" aria-hidden="true" tabindex="-1"></a><span class="al">![Gradient-estimator standard deviation over training, with and without running-mean baseline. The running-mean cuts variance 3-5× throughout, with no extra implementation cost.](../figures/02a_sol1_gradient_variance_over_training.png)</span></span>
+<span id="cb2-316"><a href="#cb2-316" aria-hidden="true" tabindex="-1"></a>---</span>
 <span id="cb2-317"><a href="#cb2-317" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-318"><a href="#cb2-318" aria-hidden="true" tabindex="-1"></a>**What you should see.** Both curves start at $\sim 10$ (the variance of the gradient at uniform initialization). Without a baseline, variance drops to ~3-5 over training but never reaches lower than ~3. With a running-mean baseline, variance drops to 1-2 by episode ~500 — about a 3× improvement.</span>
+<span id="cb2-318"><a href="#cb2-318" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Experiments to actually run</span></span>
 <span id="cb2-319"><a href="#cb2-319" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-320"><a href="#cb2-320" aria-hidden="true" tabindex="-1"></a>**Why this happens.** The running mean rapidly converges to approximately $V^{\pi_\theta}(\text{average over starts})$, which is a good *constant* approximation to the policy's value function. Subtracting it from each $G_t$ gives advantages centered around zero, which is exactly what makes the gradient estimator low-variance.</span>
+<span id="cb2-320"><a href="#cb2-320" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 Gradient variance throughout training</span></span>
 <span id="cb2-321"><a href="#cb2-321" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-322"><a href="#cb2-322" aria-hidden="true" tabindex="-1"></a>The early variance is the same because the running mean hasn't converged yet — at episode 0 the baseline is 0, so we're back to vanilla REINFORCE.</span>
+<span id="cb2-322"><a href="#cb2-322" aria-hidden="true" tabindex="-1"></a>Track the empirical gradient variance over training episodes for vanilla REINFORCE and REINFORCE with a running-mean baseline. The claim "baselines reduce variance" is theoretical — does it show up in practice over the whole training trajectory, or only late?</span>
 <span id="cb2-323"><a href="#cb2-323" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-324"><a href="#cb2-324" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Adding a baseline is the cheapest, easiest improvement to REINFORCE. It costs nothing — one scalar to maintain — and consistently cuts variance several-fold. It is also unbiased: the expected gradient is unchanged. There is no downside.</span>
+<span id="cb2-324"><a href="#cb2-324" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 REINFORCE vs Q-learning sample efficiency</span></span>
 <span id="cb2-325"><a href="#cb2-325" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-326"><a href="#cb2-326" aria-hidden="true" tabindex="-1"></a>This is the case for *every* variance-reduction trick in RL: control variates, advantages, normalized advantages, GAE (generalized advantage estimation). They're all "unbiased noise reduction." If you can identify a state-dependent quantity that correlates with the return, subtract it. It's free signal.</span>
+<span id="cb2-326"><a href="#cb2-326" aria-hidden="true" tabindex="-1"></a>Both are model-free. On the same gridworld and the same number of transitions, which converges faster? Why?</span>
 <span id="cb2-327"><a href="#cb2-327" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-328"><a href="#cb2-328" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 REINFORCE vs Q-learning — `experiments/02a_sol2_reinforce_vs_qlearning.py`</span></span>
+<span id="cb2-328"><a href="#cb2-328" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Continuous action space</span></span>
 <span id="cb2-329"><a href="#cb2-329" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-330"><a href="#cb2-330" aria-hidden="true" tabindex="-1"></a><span class="al">![Sample-efficiency comparison at equal "transitions seen" budgets. Q-learning (blue) converges by ~3000 transitions with low variance; REINFORCE (red) needs ~10000 with higher variance. Both eventually reach near-optimal.](../figures/02a_sol2_reinforce_vs_qlearning.png)</span></span>
+<span id="cb2-330"><a href="#cb2-330" aria-hidden="true" tabindex="-1"></a>Implement REINFORCE for a 1D Gaussian policy on a continuous bandit. Learn both the mean *and* the standard deviation. Show that the policy "tightens" around the optimum as it discovers it.</span>
 <span id="cb2-331"><a href="#cb2-331" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-332"><a href="#cb2-332" aria-hidden="true" tabindex="-1"></a>**What you should see.** Q-learning converges in 3-4× fewer transitions and with much smaller variance across seeds. REINFORCE catches up eventually but is noticeably slower throughout.</span>
+<span id="cb2-332"><a href="#cb2-332" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 Learning rate sensitivity</span></span>
 <span id="cb2-333"><a href="#cb2-333" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-334"><a href="#cb2-334" aria-hidden="true" tabindex="-1"></a>**Why Q-learning wins on small finite MDPs.** Q-learning extracts more information from each transition. After observing $(s, a, r, s')$, Q-learning does a one-step Bellman backup on that specific $(s, a)$ pair: "the value of doing $a$ from $s$ should be approximately $r + \gamma \max Q(s', \cdot)$." Every transition produces an update.</span>
+<span id="cb2-334"><a href="#cb2-334" aria-hidden="true" tabindex="-1"></a>Sweep the learning rate over two orders of magnitude. Plot final return vs lr. What does the curve look like? (Hint: it's not symmetric.)</span>
 <span id="cb2-335"><a href="#cb2-335" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-336"><a href="#cb2-336" aria-hidden="true" tabindex="-1"></a>REINFORCE waits for full trajectory completion before updating. The credit assignment is "the entire return after $s_t$ is good/bad" — there's no per-step Bellman backup. The signal is weaker per transition.</span>
+<span id="cb2-336"><a href="#cb2-336" aria-hidden="true" tabindex="-1"></a>---</span>
 <span id="cb2-337"><a href="#cb2-337" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-338"><a href="#cb2-338" aria-hidden="true" tabindex="-1"></a>Quantitatively: on this gridworld with 23 non-terminal states and 4 actions, Q-learning has 92 Q-values to learn, each one updated about $N / 92$ times after $N$ transitions. REINFORCE has 92 logits but updates them based on full-trajectory returns, which is noisier.</span>
+<span id="cb2-338"><a href="#cb2-338" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Solutions</span></span>
 <span id="cb2-339"><a href="#cb2-339" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-340"><a href="#cb2-340" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — but the trade-off flips at scale.** On small finite MDPs, Q-learning is more sample-efficient. On large or continuous problems, REINFORCE and its descendants dominate because:</span>
+<span id="cb2-340"><a href="#cb2-340" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.1 Gradient variance throughout training — `experiments/02a_sol1_gradient_variance_over_training.py`</span></span>
 <span id="cb2-341"><a href="#cb2-341" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-342"><a href="#cb2-342" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Continuous actions**: REINFORCE handles them directly via Gaussian policies (next experiment); Q-learning needs discretization or fancy tricks (DDPG, SAC).</span>
-<span id="cb2-343"><a href="#cb2-343" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Neural network policies**: REINFORCE's gradient is well-defined regardless of network architecture; Q-learning's argmax is sensitive to the function class.</span>
-<span id="cb2-344"><a href="#cb2-344" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Structured outputs (tokens, plans, programs)**: only policy gradient methods naturally handle these.</span>
+<span id="cb2-342"><a href="#cb2-342" aria-hidden="true" tabindex="-1"></a><span class="al">![Gradient-estimator standard deviation over training, with and without running-mean baseline. The running-mean cuts variance 3-5× throughout, with no extra implementation cost.](../figures/02a_sol1_gradient_variance_over_training.png)</span></span>
+<span id="cb2-343"><a href="#cb2-343" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-344"><a href="#cb2-344" aria-hidden="true" tabindex="-1"></a>**What you should see.** Both curves start at $\sim 10$ (the variance of the gradient at uniform initialization). Without a baseline, variance drops to ~3-5 over training but never reaches lower than ~3. With a running-mean baseline, variance drops to 1-2 by episode ~500 — about a 3× improvement.</span>
 <span id="cb2-345"><a href="#cb2-345" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-346"><a href="#cb2-346" aria-hidden="true" tabindex="-1"></a>The bandits→MDPs→deep RL→LLM-RL pipeline lives mostly on the policy gradient side from the moment the action space stops being "small finite set."</span>
+<span id="cb2-346"><a href="#cb2-346" aria-hidden="true" tabindex="-1"></a>**Why this happens.** The running mean rapidly converges to approximately $V^{\pi_\theta}(\text{average over starts})$, which is a good *constant* approximation to the policy's value function. Subtracting it from each $G_t$ gives advantages centered around zero, which is exactly what makes the gradient estimator low-variance.</span>
 <span id="cb2-347"><a href="#cb2-347" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-348"><a href="#cb2-348" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Continuous action space — `experiments/02a_sol3_continuous_action.py`</span></span>
+<span id="cb2-348"><a href="#cb2-348" aria-hidden="true" tabindex="-1"></a>The early variance is the same because the running mean hasn't converged yet — at episode 0 the baseline is 0, so we're back to vanilla REINFORCE.</span>
 <span id="cb2-349"><a href="#cb2-349" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-350"><a href="#cb2-350" aria-hidden="true" tabindex="-1"></a><span class="al">![REINFORCE on a continuous bandit with reward exp(-(a-2)²). Left: policy mean μ rises from 0 to 2 (the optimum), std σ shrinks from 1.65 to 0.21. Middle: batch reward climbs from 0.2 to 1.0. Right: policy density at three snapshots — initial wide, mid-training shifted, final sharp peak at the optimum.](../figures/02a_sol3_continuous_action.png)</span></span>
+<span id="cb2-350"><a href="#cb2-350" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Adding a baseline is the cheapest, easiest improvement to REINFORCE. It costs nothing — one scalar to maintain — and consistently cuts variance several-fold. It is also unbiased: the expected gradient is unchanged. There is no downside.</span>
 <span id="cb2-351"><a href="#cb2-351" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-352"><a href="#cb2-352" aria-hidden="true" tabindex="-1"></a>**What you should see.** The 1D Gaussian policy with both $\mu$ and $\log \sigma$ as learnable parameters discovers the optimum and tightens around it. Final policy is $\mathcal{N}(1.96, 0.21^2)$ — essentially at the true optimum $a^\star = 2$.</span>
+<span id="cb2-352"><a href="#cb2-352" aria-hidden="true" tabindex="-1"></a>This is the case for *every* variance-reduction trick in RL: control variates, advantages, normalized advantages, GAE (generalized advantage estimation). They're all "unbiased noise reduction." If you can identify a state-dependent quantity that correlates with the return, subtract it. It's free signal.</span>
 <span id="cb2-353"><a href="#cb2-353" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-354"><a href="#cb2-354" aria-hidden="true" tabindex="-1"></a>**Why σ contracts naturally.** The score for $\log \sigma$ is</span>
+<span id="cb2-354"><a href="#cb2-354" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.2 REINFORCE vs Q-learning — `experiments/02a_sol2_reinforce_vs_qlearning.py`</span></span>
 <span id="cb2-355"><a href="#cb2-355" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-356"><a href="#cb2-356" aria-hidden="true" tabindex="-1"></a>$$</span>
-<span id="cb2-357"><a href="#cb2-357" aria-hidden="true" tabindex="-1"></a>\frac{\partial \log \pi(a \mid \mu, \sigma)}{\partial \log \sigma} \;=\; \frac{(a - \mu)^2}{\sigma^2} - 1.</span>
-<span id="cb2-358"><a href="#cb2-358" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-356"><a href="#cb2-356" aria-hidden="true" tabindex="-1"></a><span class="al">![Sample-efficiency comparison at equal "transitions seen" budgets. Q-learning (blue) converges by ~3000 transitions with low variance; REINFORCE (red) needs ~10000 with higher variance. Both eventually reach near-optimal.](../figures/02a_sol2_reinforce_vs_qlearning.png)</span></span>
+<span id="cb2-357"><a href="#cb2-357" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-358"><a href="#cb2-358" aria-hidden="true" tabindex="-1"></a>**What you should see.** Q-learning converges in 3-4× fewer transitions and with much smaller variance across seeds. REINFORCE catches up eventually but is noticeably slower throughout.</span>
 <span id="cb2-359"><a href="#cb2-359" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-360"><a href="#cb2-360" aria-hidden="true" tabindex="-1"></a>When advantages are positive on average for actions near $\mu$ (the policy has found a peak), the expected gradient on $\log \sigma$ becomes *negative* — actions far from $\mu$ contribute large $(a - \mu)^2 / \sigma^2 - 1$ but get negative advantages there, pulling $\log \sigma$ down. The policy concentrates.</span>
+<span id="cb2-360"><a href="#cb2-360" aria-hidden="true" tabindex="-1"></a>**Why Q-learning wins on small finite MDPs.** Q-learning extracts more information from each transition. After observing $(s, a, r, s')$, Q-learning does a one-step Bellman backup on that specific $(s, a)$ pair: "the value of doing $a$ from $s$ should be approximately $r + \gamma \max Q(s', \cdot)$." Every transition produces an update.</span>
 <span id="cb2-361"><a href="#cb2-361" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-362"><a href="#cb2-362" aria-hidden="true" tabindex="-1"></a>The opposite happens when the policy is still searching: high $\sigma$ is good for exploration, and the gradient naturally keeps it large. Only once you've found a reliable reward peak does the variance shrink.</span>
+<span id="cb2-362"><a href="#cb2-362" aria-hidden="true" tabindex="-1"></a>REINFORCE waits for full trajectory completion before updating. The credit assignment is "the entire return after $s_t$ is good/bad" — there's no per-step Bellman backup. The signal is weaker per transition.</span>
 <span id="cb2-363"><a href="#cb2-363" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-364"><a href="#cb2-364" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — exploration and exploitation are encoded in the policy itself.** In Q-learning, exploration is a separate mechanism (ε-greedy). In Gaussian policy gradient, exploration is *built into the policy* as its variance, and the variance is itself a learnable parameter. The algorithm naturally explores broadly early, then narrows in.</span>
+<span id="cb2-364"><a href="#cb2-364" aria-hidden="true" tabindex="-1"></a>Quantitatively: on this gridworld with 23 non-terminal states and 4 actions, Q-learning has 92 Q-values to learn, each one updated about $N / 92$ times after $N$ transitions. REINFORCE has 92 logits but updates them based on full-trajectory returns, which is noisier.</span>
 <span id="cb2-365"><a href="#cb2-365" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-366"><a href="#cb2-366" aria-hidden="true" tabindex="-1"></a>This is the conceptual basis for SAC (Soft Actor-Critic), where the policy explicitly trades off reward and entropy via a temperature parameter. It's also why language models can be sampled at different temperatures — the policy itself controls the exploration-exploitation balance.</span>
+<span id="cb2-366"><a href="#cb2-366" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — but the trade-off flips at scale.** On small finite MDPs, Q-learning is more sample-efficient. On large or continuous problems, REINFORCE and its descendants dominate because:</span>
 <span id="cb2-367"><a href="#cb2-367" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-368"><a href="#cb2-368" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 Learning rate sensitivity — `experiments/02a_sol4_lr_sensitivity.py`</span></span>
-<span id="cb2-369"><a href="#cb2-369" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-370"><a href="#cb2-370" aria-hidden="true" tabindex="-1"></a><span class="al">![Final return vs learning rate (log scale). Returns are nearly identical for lr ≤ 0.1 (saturating at ~9.85), then collapse catastrophically at lr ≥ 0.2 — large lr destabilizes training. Optimum at lr = 0.1.](../figures/02a_sol4_lr_sensitivity.png)</span></span>
+<span id="cb2-368"><a href="#cb2-368" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>**Continuous actions**: REINFORCE handles them directly via Gaussian policies (next experiment); Q-learning needs discretization or fancy tricks (DDPG, SAC).</span>
+<span id="cb2-369"><a href="#cb2-369" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>**Neural network policies**: REINFORCE's gradient is well-defined regardless of network architecture; Q-learning's argmax is sensitive to the function class.</span>
+<span id="cb2-370"><a href="#cb2-370" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>**Structured outputs (tokens, plans, programs)**: only policy gradient methods naturally handle these.</span>
 <span id="cb2-371"><a href="#cb2-371" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-372"><a href="#cb2-372" aria-hidden="true" tabindex="-1"></a>**What you should see.** Returns are nearly constant across the low-lr range (0.005 to 0.1) — small lr is just slower, not worse for the final policy. At lr = 0.2, returns drop to ~8.1. At lr = 0.5, ~7.5. At lr = 1.0, the policy collapses to ~2.8.</span>
+<span id="cb2-372"><a href="#cb2-372" aria-hidden="true" tabindex="-1"></a>The bandits→MDPs→deep RL→LLM-RL pipeline lives mostly on the policy gradient side from the moment the action space stops being "small finite set."</span>
 <span id="cb2-373"><a href="#cb2-373" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-374"><a href="#cb2-374" aria-hidden="true" tabindex="-1"></a>The curve is **asymmetric**: low lr is suboptimal but stable; high lr is catastrophic. Error bars also explode at high lr — across seeds, you get very different outcomes (some succeed, others collapse).</span>
+<span id="cb2-374"><a href="#cb2-374" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.3 Continuous action space — `experiments/02a_sol3_continuous_action.py`</span></span>
 <span id="cb2-375"><a href="#cb2-375" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-376"><a href="#cb2-376" aria-hidden="true" tabindex="-1"></a>**Why high lr destroys REINFORCE.** Each REINFORCE update is $\theta \leftarrow \theta + \alpha A_t \nabla \log \pi(a_t \mid s_t)$. The advantage $A_t$ can be large (on the order of total return), and the score gradient can be large too. The combined update size $\alpha A_t <span class="sc">\|</span>\nabla \log \pi<span class="sc">\|</span>$ can move $\theta$ by a lot.</span>
+<span id="cb2-376"><a href="#cb2-376" aria-hidden="true" tabindex="-1"></a><span class="al">![REINFORCE on a continuous bandit with reward exp(-(a-2)²). Left: policy mean μ rises from 0 to 2 (the optimum), std σ shrinks from 1.65 to 0.21. Middle: batch reward climbs from 0.2 to 1.0. Right: policy density at three snapshots — initial wide, mid-training shifted, final sharp peak at the optimum.](../figures/02a_sol3_continuous_action.png)</span></span>
 <span id="cb2-377"><a href="#cb2-377" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-378"><a href="#cb2-378" aria-hidden="true" tabindex="-1"></a>When $\theta$ changes a lot, the policy changes a lot. The policy is now *different from the policy that generated the data we just used to update it*. The gradient was an unbiased estimate of $\nabla J(\pi_\text{old})$, not $\nabla J(\pi_\text{new})$. With a moderate change, this approximation is fine. With a huge change, the next batch of samples may come from a very different distribution, and the next gradient estimate can push $\theta$ in a wild direction. The process is unstable.</span>
+<span id="cb2-378"><a href="#cb2-378" aria-hidden="true" tabindex="-1"></a>**What you should see.** The 1D Gaussian policy with both $\mu$ and $\log \sigma$ as learnable parameters discovers the optimum and tightens around it. Final policy is $\mathcal{N}(1.96, 0.21^2)$ — essentially at the true optimum $a^\star = 2$.</span>
 <span id="cb2-379"><a href="#cb2-379" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-380"><a href="#cb2-380" aria-hidden="true" tabindex="-1"></a>This is the **off-policy distribution shift** problem: REINFORCE is on-policy, meaning each update must be small enough that the next batch of trajectories is "similar enough" to the previous one. With a large lr, the on-policy assumption breaks within a single update.</span>
+<span id="cb2-380"><a href="#cb2-380" aria-hidden="true" tabindex="-1"></a>**Why σ contracts naturally.** The score for $\log \sigma$ is</span>
 <span id="cb2-381"><a href="#cb2-381" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-382"><a href="#cb2-382" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — this is exactly what trust-region methods solve.** TRPO and PPO directly constrain the policy update size:</span>
-<span id="cb2-383"><a href="#cb2-383" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-384"><a href="#cb2-384" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**TRPO**: solve $\max_\theta J(\theta)$ subject to $D_{\mathrm{KL}}(\pi_{\text{new}} \| \pi_{\text{old}}) \leq \delta$.</span>
-<span id="cb2-385"><a href="#cb2-385" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**PPO**: clip the policy ratio $\pi_{\text{new}}/\pi_{\text{old}}$ to be in $<span class="co">[</span><span class="ot">1 - \epsilon, 1 + \epsilon</span><span class="co">]</span>$, which approximates the KL constraint cheaply.</span>
-<span id="cb2-386"><a href="#cb2-386" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-387"><a href="#cb2-387" aria-hidden="true" tabindex="-1"></a>Both work by ensuring the gradient update doesn't move the policy too far from the policy that generated the data. The U-shape you see in this experiment goes away with PPO — you can use a much larger effective learning rate without collapse, because the clipping prevents the worst updates.</span>
-<span id="cb2-388"><a href="#cb2-388" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-389"><a href="#cb2-389" aria-hidden="true" tabindex="-1"></a>**This is the central practical reason PPO dominates plain REINFORCE in modern RL training.** Not because the gradient is better; it's the same gradient. Because the constraint makes the update stable. The next post (Part 2c) builds PPO from this insight.</span>
-<span id="cb2-390"><a href="#cb2-390" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-391"><a href="#cb2-391" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb2-392"><a href="#cb2-392" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-393"><a href="#cb2-393" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Further reading</span></span>
-<span id="cb2-394"><a href="#cb2-394" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-395"><a href="#cb2-395" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sutton &amp; Barto, *Reinforcement Learning: An Introduction* (2018), Chapter 13.** The canonical treatment of policy gradient methods, including the policy gradient theorem.</span>
-<span id="cb2-396"><a href="#cb2-396" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Williams, "Simple statistical gradient-following algorithms for connectionist reinforcement learning" (1992).** The original REINFORCE paper.</span>
-<span id="cb2-397"><a href="#cb2-397" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sutton, McAllester, Singh &amp; Mansour, "Policy Gradient Methods for Reinforcement Learning with Function Approximation" (NeurIPS 1999).** The modern version of the policy gradient theorem.</span>
-<span id="cb2-398"><a href="#cb2-398" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schulman, Levine, Abbeel, Jordan &amp; Moritz, "Trust Region Policy Optimization" (ICML 2015).** TRPO.</span>
-<span id="cb2-399"><a href="#cb2-399" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schulman, Wolski, Dhariwal, Radford &amp; Klimov, "Proximal Policy Optimization Algorithms" (2017).** PPO.</span>
-<span id="cb2-400"><a href="#cb2-400" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Rafailov, Sharma, Mitchell, Manning, Ermon &amp; Finn, "Direct Preference Optimization: Your Language Model is Secretly a Reward Model" (NeurIPS 2023).** DPO.</span>
-<span id="cb2-401"><a href="#cb2-401" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**OpenAI Spinning Up — Policy Gradient.** A clear modern engineering treatment.</span>
-<span id="cb2-402"><a href="#cb2-402" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-403"><a href="#cb2-403" aria-hidden="true" tabindex="-1"></a>---</span>
-<span id="cb2-404"><a href="#cb2-404" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-405"><a href="#cb2-405" aria-hidden="true" tabindex="-1"></a>**Next up — Part 2b: Actor-Critic and Variance Reduction.** We make the baseline learnable. The actor is a policy network updated by policy gradient; the critic is a value network updated by TD learning. The result is the algorithmic chassis for A2C, A3C, PPO, SAC, and almost every modern policy gradient method. The trick is the same as REINFORCE plus a baseline; the engineering is in making the baseline accurate enough to actually help.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+<span id="cb2-382"><a href="#cb2-382" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-383"><a href="#cb2-383" aria-hidden="true" tabindex="-1"></a>\frac{\partial \log \pi(a \mid \mu, \sigma)}{\partial \log \sigma} \;=\; \frac{(a - \mu)^2}{\sigma^2} - 1.</span>
+<span id="cb2-384"><a href="#cb2-384" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb2-385"><a href="#cb2-385" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-386"><a href="#cb2-386" aria-hidden="true" tabindex="-1"></a>When advantages are positive on average for actions near $\mu$ (the policy has found a peak), the expected gradient on $\log \sigma$ becomes *negative* — actions far from $\mu$ contribute large $(a - \mu)^2 / \sigma^2 - 1$ but get negative advantages there, pulling $\log \sigma$ down. The policy concentrates.</span>
+<span id="cb2-387"><a href="#cb2-387" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-388"><a href="#cb2-388" aria-hidden="true" tabindex="-1"></a>The opposite happens when the policy is still searching: high $\sigma$ is good for exploration, and the gradient naturally keeps it large. Only once you've found a reliable reward peak does the variance shrink.</span>
+<span id="cb2-389"><a href="#cb2-389" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-390"><a href="#cb2-390" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — exploration and exploitation are encoded in the policy itself.** In Q-learning, exploration is a separate mechanism (ε-greedy). In Gaussian policy gradient, exploration is *built into the policy* as its variance, and the variance is itself a learnable parameter. The algorithm naturally explores broadly early, then narrows in.</span>
+<span id="cb2-391"><a href="#cb2-391" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-392"><a href="#cb2-392" aria-hidden="true" tabindex="-1"></a>This is the conceptual basis for SAC (Soft Actor-Critic), where the policy explicitly trades off reward and entropy via a temperature parameter. It's also why language models can be sampled at different temperatures — the policy itself controls the exploration-exploitation balance.</span>
+<span id="cb2-393"><a href="#cb2-393" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-394"><a href="#cb2-394" aria-hidden="true" tabindex="-1"></a><span class="fu">### 8.4 Learning rate sensitivity — `experiments/02a_sol4_lr_sensitivity.py`</span></span>
+<span id="cb2-395"><a href="#cb2-395" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-396"><a href="#cb2-396" aria-hidden="true" tabindex="-1"></a><span class="al">![Final return vs learning rate (log scale). Returns are nearly identical for lr ≤ 0.1 (saturating at ~9.85), then collapse catastrophically at lr ≥ 0.2 — large lr destabilizes training. Optimum at lr = 0.1.](../figures/02a_sol4_lr_sensitivity.png)</span></span>
+<span id="cb2-397"><a href="#cb2-397" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-398"><a href="#cb2-398" aria-hidden="true" tabindex="-1"></a>**What you should see.** Returns are nearly constant across the low-lr range (0.005 to 0.1) — small lr is just slower, not worse for the final policy. At lr = 0.2, returns drop to ~8.1. At lr = 0.5, ~7.5. At lr = 1.0, the policy collapses to ~2.8.</span>
+<span id="cb2-399"><a href="#cb2-399" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-400"><a href="#cb2-400" aria-hidden="true" tabindex="-1"></a>The curve is **asymmetric**: low lr is suboptimal but stable; high lr is catastrophic. Error bars also explode at high lr — across seeds, you get very different outcomes (some succeed, others collapse).</span>
+<span id="cb2-401"><a href="#cb2-401" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-402"><a href="#cb2-402" aria-hidden="true" tabindex="-1"></a>**Why high lr destroys REINFORCE.** Each REINFORCE update is $\theta \leftarrow \theta + \alpha A_t \nabla \log \pi(a_t \mid s_t)$. The advantage $A_t$ can be large (on the order of total return), and the score gradient can be large too. The combined update size $\alpha A_t <span class="sc">\|</span>\nabla \log \pi<span class="sc">\|</span>$ can move $\theta$ by a lot.</span>
+<span id="cb2-403"><a href="#cb2-403" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-404"><a href="#cb2-404" aria-hidden="true" tabindex="-1"></a>When $\theta$ changes a lot, the policy changes a lot. The policy is now *different from the policy that generated the data we just used to update it*. The gradient was an unbiased estimate of $\nabla J(\pi_\text{old})$, not $\nabla J(\pi_\text{new})$. With a moderate change, this approximation is fine. With a huge change, the next batch of samples may come from a very different distribution, and the next gradient estimate can push $\theta$ in a wild direction. The process is unstable.</span>
+<span id="cb2-405"><a href="#cb2-405" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-406"><a href="#cb2-406" aria-hidden="true" tabindex="-1"></a>This is the **off-policy distribution shift** problem: REINFORCE is on-policy, meaning each update must be small enough that the next batch of trajectories is "similar enough" to the previous one. With a large lr, the on-policy assumption breaks within a single update.</span>
+<span id="cb2-407"><a href="#cb2-407" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-408"><a href="#cb2-408" aria-hidden="true" tabindex="-1"></a>**The deeper lesson — this is exactly what trust-region methods solve.** TRPO and PPO directly constrain the policy update size:</span>
+<span id="cb2-409"><a href="#cb2-409" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-410"><a href="#cb2-410" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**TRPO**: solve $\max_\theta J(\theta)$ subject to $D_{\mathrm{KL}}(\pi_{\text{new}} \| \pi_{\text{old}}) \leq \delta$.</span>
+<span id="cb2-411"><a href="#cb2-411" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**PPO**: clip the policy ratio $\pi_{\text{new}}/\pi_{\text{old}}$ to be in $<span class="co">[</span><span class="ot">1 - \epsilon, 1 + \epsilon</span><span class="co">]</span>$, which approximates the KL constraint cheaply.</span>
+<span id="cb2-412"><a href="#cb2-412" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-413"><a href="#cb2-413" aria-hidden="true" tabindex="-1"></a>Both work by ensuring the gradient update doesn't move the policy too far from the policy that generated the data. The U-shape you see in this experiment goes away with PPO — you can use a much larger effective learning rate without collapse, because the clipping prevents the worst updates.</span>
+<span id="cb2-414"><a href="#cb2-414" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-415"><a href="#cb2-415" aria-hidden="true" tabindex="-1"></a>**This is the central practical reason PPO dominates plain REINFORCE in modern RL training.** Not because the gradient is better; it's the same gradient. Because the constraint makes the update stable. The next post (Part 2c) builds PPO from this insight.</span>
+<span id="cb2-416"><a href="#cb2-416" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-417"><a href="#cb2-417" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-418"><a href="#cb2-418" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-419"><a href="#cb2-419" aria-hidden="true" tabindex="-1"></a><span class="fu">## 9. Further reading</span></span>
+<span id="cb2-420"><a href="#cb2-420" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-421"><a href="#cb2-421" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sutton &amp; Barto, *Reinforcement Learning: An Introduction* (2018), Chapter 13.** The canonical treatment of policy gradient methods, including the policy gradient theorem.</span>
+<span id="cb2-422"><a href="#cb2-422" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Williams, "Simple statistical gradient-following algorithms for connectionist reinforcement learning" (1992).** The original REINFORCE paper.</span>
+<span id="cb2-423"><a href="#cb2-423" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Sutton, McAllester, Singh &amp; Mansour, "Policy Gradient Methods for Reinforcement Learning with Function Approximation" (NeurIPS 1999).** The modern version of the policy gradient theorem.</span>
+<span id="cb2-424"><a href="#cb2-424" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schulman, Levine, Abbeel, Jordan &amp; Moritz, "Trust Region Policy Optimization" (ICML 2015).** TRPO.</span>
+<span id="cb2-425"><a href="#cb2-425" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Schulman, Wolski, Dhariwal, Radford &amp; Klimov, "Proximal Policy Optimization Algorithms" (2017).** PPO.</span>
+<span id="cb2-426"><a href="#cb2-426" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Rafailov, Sharma, Mitchell, Manning, Ermon &amp; Finn, "Direct Preference Optimization: Your Language Model is Secretly a Reward Model" (NeurIPS 2023).** DPO.</span>
+<span id="cb2-427"><a href="#cb2-427" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**OpenAI Spinning Up — Policy Gradient.** A clear modern engineering treatment.</span>
+<span id="cb2-428"><a href="#cb2-428" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-429"><a href="#cb2-429" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb2-430"><a href="#cb2-430" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-431"><a href="#cb2-431" aria-hidden="true" tabindex="-1"></a>**Next up — Part 2b: Actor-Critic and Variance Reduction.** We make the baseline learnable. The actor is a policy network updated by policy gradient; the critic is a value network updated by TD learning. The result is the algorithmic chassis for A2C, A3C, PPO, SAC, and almost every modern policy gradient method. The trick is the same as REINFORCE plus a baseline; the engineering is in making the baseline accurate enough to actually help.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
 <footer class="footer">
