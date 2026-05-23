@@ -3,9 +3,11 @@ title: "Actor-Critic and Variance Reduction"
 description: "Policy gradient methods, from scratch — 2 of 4. We make the baseline learnable. Two networks — an actor and a critic — learn together, with the critic providing a low-variance baseline for the policy gradient. We derive GAE (Generalized Advantage Estimation), implement A2C in NumPy, and trace the bias-variance trade-off that governs every modern policy-gradient method."
 date: "2026-05-23"
 categories: [actor-critic, gae, variance reduction, a2c]
-image: ../figures/02b_actor_critic_schematic.png
+image: ../assets/02b-actor-critic.png
 citation: true
 ---
+
+![](../assets/02b-actor-critic.png)
 
 > *Policy gradient methods, from scratch — 2 of 4.*
 

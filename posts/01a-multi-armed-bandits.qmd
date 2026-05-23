@@ -3,13 +3,13 @@ title: "Multi-Armed Bandits: The Atom of Decision-Making"
 description: "Decision-making under uncertainty, from scratch — 1 of 4. ε-greedy, UCB1, and Thompson Sampling derived from first principles, with intuition, worked examples, and all three implemented in ~80 lines of NumPy."
 date: "2026-05-19"
 categories: [bandits, bayesian, decision-making]
-image: ../figures/01a_regret_curves.png
+image: ../assets/01a-multi-armed-bandits.png
 citation: true
 ---
 
-> *Decision-making under uncertainty, from scratch — 1 of 4.*
+![](../assets/01a-multi-armed-bandits.png)
 
-![Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.](../figures/01a_regret_curves.png)
+> *Decision-making under uncertainty, from scratch — 1 of 4.*
 
 Before LLM agents, before MDPs, before policy gradients, there is the **bandit**. It is the smallest possible problem that contains the central tension of all sequential decision-making: **exploration vs. exploitation.** Every agentic AI algorithm I'll cover in this series — Q-learning, PPO, RLHF, tool use, planning over thoughts — is in some sense a bandit with more structure layered on top.
 
@@ -333,7 +333,7 @@ This figure tells the qualitative truth that the regret curves obscure.
 
 And here's the regret figure again, in case you forgot what we were optimizing:
 
-![](../figures/01a_regret_curves.png)
+![Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.](../figures/01a_regret_curves.png)
 
 **A small puzzle.** UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?
 

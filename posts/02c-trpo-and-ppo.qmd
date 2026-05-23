@@ -3,9 +3,11 @@ title: "TRPO and PPO: Trust Regions for Stable Policy Gradient"
 description: "Policy gradient methods, from scratch — 3 of 4. We add a trust-region constraint to fix the lr-sensitivity problem that wrecked vanilla policy gradient. From importance sampling to TRPO's KL constraint to PPO's clipped surrogate. The algorithm that made RL stable enough for LLM training."
 date: "2026-05-24"
 categories: [ppo, trpo, trust region, clipped surrogate]
-image: ../figures/02c_clipped_surrogate.png
+image: ../assets/02c-trpo-and-ppo.png
 citation: true
 ---
+
+![](../assets/02c-trpo-and-ppo.png)
 
 > *Policy gradient methods, from scratch — 3 of 4.*
 

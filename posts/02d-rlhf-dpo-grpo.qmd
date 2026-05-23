@@ -3,9 +3,11 @@ title: "RLHF, DPO, and GRPO: From Classical RL to LLM Post-Training"
 description: "Policy gradient methods, from scratch — 4 of 4. We connect everything to LLM post-training. RLHF as PPO with a reward model trained on preferences. DPO as the algebraic bypass that skips both. GRPO as PPO without a critic. The full bridge from log-derivative trick (Post 2a) to ChatGPT/Claude/DeepSeek-R1."
 date: "2026-05-25"
 categories: [rlhf, dpo, grpo, bradley-terry, reward model, kl penalty]
-image: ../figures/02d_rlhf_pipeline.png
+image: ../assets/02d-rlhf-dpo-grpo.png
 citation: true
 ---
+
+![](../assets/02d-rlhf-dpo-grpo.png)
 
 > *Policy gradient methods, from scratch — 4 of 4.*
 

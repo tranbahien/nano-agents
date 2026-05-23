@@ -3,9 +3,11 @@ title: "Tree of Thoughts and MCTS: Search Over Reasoning"
 description: "Topic 3, post 3 of 3. A ReAct path is a single trajectory; one bad step derails it. We turn reasoning into search over a tree — Tree of Thoughts (BFS/DFS) and MCTS with UCT — and use backtracking and exploration to recover from the errors that compound for a single path. Built from first principles, in the AlphaZero mould."
 date: "2026-05-28"
 categories: [tree of thoughts, mcts, uct, search, planning, alphazero]
-image: ../figures/03c_path_vs_tree.png
+image: ../assets/03c-tree-of-thoughts.png
 citation: true
 ---
+
+![](../assets/03c-tree-of-thoughts.png)
 
 > *Topic 3, post 3 of 3.*
 
@@ -13,7 +15,7 @@ citation: true
 
 This post is the antidote. The idea is simple to state and powerful in practice: **instead of committing to one reasoning path, search over a tree of them.** When a step goes wrong, don't carry the mistake to the end — backtrack and try a different branch. When several continuations look plausible, explore the promising ones in parallel and let evidence decide.
 
-This is **Tree of Thoughts** (Yao et al. 2023) and, in its most powerful form, **Monte Carlo Tree Search (MCTS)** — the search procedure at the heart of AlphaGo and AlphaZero, here applied to LLM reasoning. It is the natural culmination of Topic 3: we combine the action-space view from Post 3b with the classical tree search that descends from the value iteration of [Post 1c](01c-mdps-and-bellman.qmd) and the bandit exploration of [Post 1a](01a-multi-armed-bandits.qmd), and we attack error-compounding head-on. By the end we will have built, from scratch, every component of the search half of the AlphaZero template — and we will be honest about where search helps, where it doesn't, and what it costs.
+This is **Tree of Thoughts** (Yao et al. 2023) and, in its most powerful form, **Monte Carlo Tree Search (MCTS)** — the search procedure at the heart of AlphaGo and AlphaZero, here applied to LLM reasoning. It is the natural culmination of Topic 3: we combine the action-space view from Post 3b with the classical tree search that descends from the value iteration of [Post 1c](01c-mdps-and-bellman.qmd) and the bandit exploration of [Post 1a](03c-tree-of-thoughts.qmd), and we attack error-compounding head-on. By the end we will have built, from scratch, every component of the search half of the AlphaZero template — and we will be honest about where search helps, where it doesn't, and what it costs.
 
 ---
 
@@ -93,7 +95,7 @@ The key difference from greedy chain-of-thought is the same for both: they keep 
 
 ## 4. MCTS: search guided by exploration
 
-For large trees, exhaustive DFS is infeasible and a fixed beam is too rigid — you would either set $b$ too small and miss the solution, or too large and blow the budget on unpromising branches. **Monte Carlo Tree Search** allocates expansions *adaptively*, pouring compute into whichever part of the tree currently looks most worth investigating, using the exact exploration–exploitation logic of the bandit algorithms from [Post 1a](01a-multi-armed-bandits.qmd).
+For large trees, exhaustive DFS is infeasible and a fixed beam is too rigid — you would either set $b$ too small and miss the solution, or too large and blow the budget on unpromising branches. **Monte Carlo Tree Search** allocates expansions *adaptively*, pouring compute into whichever part of the tree currently looks most worth investigating, using the exact exploration–exploitation logic of the bandit algorithms from [Post 1a](03c-tree-of-thoughts.qmd).
 
 ### 4.1 Two values per node — keep them straight
 
@@ -116,7 +118,7 @@ Each MCTS iteration runs four phases:
 $$
 \text{UCT}(c) \;=\; \underbrace{Q(c)}_{\text{exploit}} \;+\; c_{\text{UCT}} \underbrace{\sqrt{\frac{\ln N(\text{parent})}{N(c)}}}_{\text{explore}}.
 $$
-The first term — the *backed-up empirical value* — favours children that have looked good on average so far. The second favours children that have been visited little (small $N(c)$), so their value is still uncertain. Unvisited children ($N(c)=0$) are taken first. This is precisely **UCB1** from [Post 1a §4](01a-multi-armed-bandits.qmd), now applied at every node of the tree.
+The first term — the *backed-up empirical value* — favours children that have looked good on average so far. The second favours children that have been visited little (small $N(c)$), so their value is still uncertain. Unvisited children ($N(c)=0$) are taken first. This is precisely **UCB1** from [Post 1a §4](03c-tree-of-thoughts.qmd), now applied at every node of the tree.
 2. **Expansion.** On reaching a node whose children have not yet been generated, expand it: generate its children (one round of "propose" calls to the LLM).
 3. **Evaluation.** Estimate the value of the newly reached node with the *heuristic* $\hat v$ — a learned-value query or a rollout (§1). If the node is a leaf, use its true reward instead. This single number is the iteration's fresh evidence.
 4. **Backpropagation.** Walk back from the evaluated node to the root; for every node on the path, increment $N$ by one and add the evaluation result to $W$. This is what turns a one-shot $\hat v$ into the backed-up $Q$ along the whole path.
