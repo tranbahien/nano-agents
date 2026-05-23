@@ -10,7 +10,544 @@
 <atom:link href="https://tranbahien.github.io/nano-agents/posts.xml" rel="self" type="application/rss+xml"/>
 <description>Agentic AI from scratch, with a Bayesian lens</description>
 <generator>quarto-1.9.37</generator>
-<lastBuildDate>Sat, 30 May 2026 00:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 10 Jun 2026 00:00:00 GMT</lastBuildDate>
+<item>
+  <title>Calibration: Does the Model Know What It Doesn’t Know?</title>
+  <dc:creator>Ba-Hien Tran</dc:creator>
+  <link>https://tranbahien.github.io/nano-agents/posts/04c-calibration.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<blockquote class="blockquote">
+<p><em>Topic 4, post 3 of 3 — and the close of the topic.</em></p>
+</blockquote>
+<p>Twice now a decision has come down to the model knowing when it is likely wrong. In <a href="../posts/04a-rag-as-bayesian-conditioning.html">Post 4a</a>, confidence-gated retrieval beat both always- and never-retrieving — <em>if</em> the model’s confidence tracked its accuracy. In <a href="../posts/04b-self-reflection.html">Post 4b</a>, “reflect on the hard problems, not the easy ones” needed the model to recognize which problems were hard. Both policies rest on a single property we kept deferring: <strong>calibration</strong>. Does “the model is 90% confident” actually mean it is right 90% of the time?</p>
+<p>This post pays off that debt and closes Topic 4. We will (§0) define calibration and meet its picture, the reliability diagram — which you already saw, unnamed, in <a href="../posts/01b-contextual-bandits.html">Post 1b</a>; (§1) explain why modern neural networks, and LLMs in particular, are <em>systematically overconfident</em>; (§2) measure miscalibration with Expected Calibration Error; (§3) fix it with <strong>temperature scaling</strong> — the very same temperature knob from decoding (<a href="../posts/03a-decoding-as-inference.html">Post 3a</a>), now turned to a different purpose; (§4) confront an honest subtlety that catches people out — <strong>calibration is not discrimination</strong>; and (§5) close the loop, showing precisely how calibration powers every confidence-gated decision an agent makes. The throughline of the whole curriculum lands here: an agent that acts under uncertainty must first know <em>how</em> uncertain it is.</p>
+<hr>
+<section id="what-calibration-is" class="level2">
+<h2 class="anchored" data-anchor-id="what-calibration-is">0. What calibration is</h2>
+<p>A model is <strong>calibrated</strong> if its confidence means what it says: among all the predictions it makes with confidence <img src="https://latex.codecogs.com/png.latex?p">, a fraction <img src="https://latex.codecogs.com/png.latex?p"> are correct. If you gather every answer the model was 70% sure of and 70% of them are right, the model is calibrated at 0.7. If it is calibrated at every confidence level, it is calibrated, full stop.</p>
+<p>Formally, writing <img src="https://latex.codecogs.com/png.latex?%5Chat%7Bp%7D"> for the model’s reported confidence in its answer and <img src="https://latex.codecogs.com/png.latex?Y"> for whether the answer is correct,</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathbb%7BP%7D%5Cbig(Y%20=%201%20%5C,%5Cbig%7C%5C,%20%5Chat%7Bp%7D%20=%20p%5Cbig)%20%5C;=%5C;%20p%20%5Cqquad%20%5Ctext%7Bfor%20all%20%7D%20p%20%5Cin%20%5B0,%201%5D.%0A"></p>
+<p>The picture is the <strong>reliability diagram</strong>: bin predictions by reported confidence, and for each bin plot the average confidence (x) against the observed accuracy (y). Perfect calibration is the diagonal <img src="https://latex.codecogs.com/png.latex?y%20=%20x">.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_reliability_diagram.png" class="img-fluid figure-img"></p>
+<figcaption>Reliability diagrams for three models with the same underlying skill. The calibrated model (β=1) lies on the diagonal. The overconfident model (β=2.5) sags below it at high confidence — its 0.9-confidence answers are right far less than 90% of the time — and the underconfident model bows above. The shaded band is the calibration gap.</figcaption>
+</figure>
+</div>
+<p>The reliability diagram is the same diagnostic we used in Post 1b to check whether Thompson Sampling’s posterior was honest — there we asked whether a bandit’s belief intervals had the right coverage; here we ask whether a classifier’s confidences have the right accuracy. Same idea, same plot: does the claimed probability match the observed frequency?</p>
+<p>Two failure modes sit on either side of the diagonal:</p>
+<ul>
+<li><strong>Overconfidence</strong> (curve below the diagonal at high confidence): the model says 0.9 but is right 0.7 of the time. This is the dominant failure of modern neural networks, and the one that matters most for agents — an overconfident model <em>fails to seek help when it should</em>.</li>
+<li><strong>Underconfidence</strong> (curve above): the model says 0.6 but is right 0.8 of the time. Rarer in deep nets, but it wastes effort — an underconfident agent retrieves, reflects, and defers when it didn’t need to.</li>
+</ul>
+<p>Calibration is a property of the <em>confidence numbers</em>, not of the accuracy. A model can be highly accurate and badly calibrated (a great classifier that always says 0.99), or inaccurate but well calibrated (a coin-flipper that always says 0.5 on a balanced task is perfectly calibrated). Keep that separation in mind — §4 shows it has teeth.</p>
+<p>This also means calibration alone is not the goal. The constant-0.5 coin-flipper is perfectly calibrated and perfectly useless: its confidence never <em>distinguishes</em> the questions it will get right from the ones it won’t. What we actually want is calibration <em>plus</em> <strong>sharpness</strong> — confidence that is both honest and <em>decisive</em>, near 1 when the model really is reliable and near 0 when it isn’t. A model that says 0.5 on everything has thrown away all its information to achieve calibration; a model whose confidences spread out to match its true per-item accuracy has kept it. The proper scoring rules of §2 (Brier, NLL) reward exactly this combination, and the discrimination/calibration split of §4 makes the two ingredients precise. For an agent, sharpness is what makes the confidence signal <em>worth</em> gating on, and calibration is what makes the gate’s threshold <em>mean</em> something — you need both.</p>
+<hr>
+</section>
+<section id="why-neural-networks-are-overconfident" class="level2">
+<h2 class="anchored" data-anchor-id="why-neural-networks-are-overconfident">1. Why neural networks are overconfident</h2>
+<p>If you train a modern neural network and look at its reliability diagram, it almost always sags below the diagonal: it is overconfident, often badly. This was documented sharply by Guo et al.&nbsp;(2017), who showed that as networks got deeper, wider, and better-regularized through the 2010s, their <em>accuracy</em> improved while their <em>calibration</em> got worse. Why?</p>
+<p>The root cause is the training objective. Networks are trained to minimize <strong>negative log-likelihood</strong> (cross-entropy): for each example, push the probability of the correct class toward 1. Crucially, this loss keeps rewarding higher confidence on already-correct training examples <em>even after they are classified correctly</em> — driving the predicted probability from 0.9 toward 0.99 toward 0.999 lowers the loss further, so a high-capacity network that has already fit the training labels keeps sharpening its confidence to squeeze out the last of the loss. The network learns to be <em>emphatic</em>, not <em>honest</em>. On held-out data, that emphasis becomes overconfidence: the same sharp probabilities, now attached to answers that are sometimes wrong.</p>
+<p>The asymmetry is worth seeing in the loss itself. The per-example loss on a correct-class probability <img src="https://latex.codecogs.com/png.latex?p"> is <img src="https://latex.codecogs.com/png.latex?-%5Clog%20p">, which keeps <em>decreasing</em> as <img src="https://latex.codecogs.com/png.latex?p%20%5Cto%201"> — there is always a gradient pulling confidence higher on training examples. But the marginal <em>accuracy</em> gain from <img src="https://latex.codecogs.com/png.latex?p%20=%200.9"> to <img src="https://latex.codecogs.com/png.latex?p%20=%200.999"> is zero (the argmax was already right). So once a model can fit its training set, gradient descent spends its remaining capacity inflating confidence rather than improving decisions, because that is the only direction left that lowers the loss. The model arrives at test time fluent in certainty and untrained in doubt.</p>
+<p>Three forces compound it:</p>
+<ul>
+<li><strong>Capacity.</strong> A network with enough parameters to fit the training set with near-certainty will report near-certainty at test time too, because nothing in the objective penalizes confident-and-wrong on data it never saw.</li>
+<li><strong>The softmax saturates.</strong> Class probabilities come from a softmax over logits; large logit gaps produce probabilities astronomically close to 1. Once the logits are big, confidence is pinned near the ceiling regardless of whether this particular input is actually easy.</li>
+<li><strong>No incentive to express doubt.</strong> The training signal never says “you should have been less sure here” unless the answer was wrong <em>and</em> in the training set. Genuine epistemic uncertainty — “this input is unlike what I trained on” — is not something maximum-likelihood classification training teaches.</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_confidence_histograms.png" class="img-fluid figure-img"></p>
+<figcaption>The signature of overconfidence: probability mass piles up near 1.0. With the same underlying accuracy, the calibrated model’s confidence spreads to match its accuracy, while the overconfident model is sure about almost everything, so its mean confidence drifts well above its accuracy.</figcaption>
+</figure>
+</div>
+<p>For <strong>LLMs</strong> specifically, there is an extra twist that runs straight through this curriculum: the alignment stage degrades calibration. Base language models, pretrained purely on next-token prediction, tend to be remarkably well-calibrated on multiple-choice questions — next-token likelihood <em>is</em> a calibrated probability when the training objective is honest. But the RLHF of <a href="../posts/02d-rlhf-dpo-grpo.html">Post 2d</a> optimizes the model toward outputs a reward model prefers, and a sharpened, confident, assertive tone is one such preference. OpenAI’s GPT-4 technical report showed exactly this: the pretrained model was well-calibrated, and post-RLHF calibration was substantially worse. The very process that makes a model helpful and agreeable also makes its stated confidence less trustworthy — which is precisely why an agent built on an aligned model cannot assume its confidence is meaningful without checking.</p>
+<hr>
+</section>
+<section id="measuring-miscalibration" class="level2">
+<h2 class="anchored" data-anchor-id="measuring-miscalibration">2. Measuring miscalibration</h2>
+<p>To fix calibration we first have to score it. The reliability diagram is the visual; we need a number.</p>
+<p>The standard scalar is <strong>Expected Calibration Error (ECE)</strong>: bin the predictions by confidence, measure the gap between accuracy and confidence within each bin, and average those gaps weighted by how many predictions fall in each bin:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7BECE%7D%20%5C;=%5C;%20%5Csum_%7Bb=1%7D%5E%7BB%7D%20%5Cfrac%7Bn_b%7D%7BN%7D%20%5C,%5Cbig%7C%5C,%20%5Ctext%7Bacc%7D(b)%20-%20%5Ctext%7Bconf%7D(b)%20%5C,%5Cbig%7C,%0A"></p>
+<p>where bin <img src="https://latex.codecogs.com/png.latex?b"> holds <img src="https://latex.codecogs.com/png.latex?n_b"> of the <img src="https://latex.codecogs.com/png.latex?N"> predictions, <img src="https://latex.codecogs.com/png.latex?%5Ctext%7Bacc%7D(b)"> is the fraction correct in the bin, and <img src="https://latex.codecogs.com/png.latex?%5Ctext%7Bconf%7D(b)"> is the bin’s average confidence. ECE is the average vertical distance from the reliability curve to the diagonal — zero for a perfectly calibrated model, growing as the curve pulls away.</p>
+<p>A tiny worked example makes the formula concrete. Suppose 100 predictions fall into three confidence bins: 50 predictions averaging 0.95 confidence of which 40 are correct (accuracy 0.80); 30 predictions averaging 0.70 confidence of which 21 are correct (accuracy 0.70); and 20 predictions averaging 0.55 confidence of which 13 are correct (accuracy 0.65). The per-bin gaps are <img src="https://latex.codecogs.com/png.latex?%7C0.80-0.95%7C%20=%200.15">, <img src="https://latex.codecogs.com/png.latex?%7C0.70-0.70%7C%20=%200.00">, and <img src="https://latex.codecogs.com/png.latex?%7C0.65-0.55%7C%20=%200.10">. Weighting by bin size: <img src="https://latex.codecogs.com/png.latex?%5Ctext%7BECE%7D%20=%200.50(0.15)%20+%200.30(0.00)%20+%200.20(0.10)%20=%200.095">. The model is about 9.5 points miscalibrated on average — driven almost entirely by the big, overconfident high-confidence bin, which is exactly the bin an agent leans on most when deciding to act without checking.</p>
+<p>A close relative, <strong>Maximum Calibration Error (MCE)</strong>, takes the worst bin instead of the average (here <img src="https://latex.codecogs.com/png.latex?0.15">), which matters when any single confidence band feeds a high-stakes decision.</p>
+<p>ECE is intuitive but has a measurement wrinkle worth flagging now and quantifying in §8.3: it depends on the binning. Too few bins average opposite errors together and <em>understate</em> miscalibration; too many bins make each bin’s accuracy estimate noisy. Equal-width bins also behave badly when confidence piles up near 1 (as overconfident models do), leaving most bins nearly empty — equal-mass bins, which put the same count in each bin, are steadier.</p>
+<p>Two <strong>proper scoring rules</strong> complement ECE by folding calibration together with sharpness (how decisively the model commits):</p>
+<ul>
+<li><strong>Brier score</strong>: mean squared error between confidence and outcome, <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7BN%7D%5Csum%20(%5Chat%7Bp%7D_i%20-%20y_i)%5E2">. Lower is better; it decomposes exactly into calibration, sharpness, and irreducible uncertainty.</li>
+<li><strong>Negative log-likelihood</strong>: <img src="https://latex.codecogs.com/png.latex?-%5Cfrac%7B1%7D%7BN%7D%5Csum%20%5By_i%20%5Clog%20%5Chat%20p_i%20+%20(1-y_i)%5Clog(1-%5Chat%20p_i)%5D">. The training loss itself, and — importantly for the next section — the smooth objective that temperature scaling minimizes.</li>
+</ul>
+<p>Unlike ECE, both are differentiable and binning-free, which is why we optimize NLL to <em>fix</em> calibration even though we report ECE to <em>measure</em> it.</p>
+<hr>
+</section>
+<section id="the-fix-temperature-scaling" class="level2">
+<h2 class="anchored" data-anchor-id="the-fix-temperature-scaling">3. The fix: temperature scaling</h2>
+<p>The most useful fact about neural-network miscalibration is that it is mostly a <em>scaling</em> problem, not a <em>shape</em> problem: the logits point in the right direction (the ranking of answers is fine), they are just too big, so the softmax is too sharp. That suggests an almost embarrassingly simple fix — divide the logits by a constant before the softmax.</p>
+<p>This is <strong>temperature scaling</strong> (Guo et al.&nbsp;2017). Take the model’s logit vector <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bz%7D"> and a single scalar <img src="https://latex.codecogs.com/png.latex?T%20%3E%200">, and compute calibrated probabilities from <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bz%7D/T"> instead of <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bz%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7Bp%7D_%7B%5Ctext%7Bcal%7D%7D%20%5C;=%5C;%20%5Ctext%7Bsoftmax%7D%5C!%5Cleft(%5Cfrac%7B%5Cmathbf%7Bz%7D%7D%7BT%7D%5Cright).%0A"></p>
+<p>A temperature <img src="https://latex.codecogs.com/png.latex?T%20%3E%201"> softens the distribution (pulls confidence toward uniform, fixing overconfidence); <img src="https://latex.codecogs.com/png.latex?T%20%3C%201"> sharpens it; <img src="https://latex.codecogs.com/png.latex?T%20=%201"> leaves the model untouched. The single parameter <img src="https://latex.codecogs.com/png.latex?T"> is fit <em>after</em> training, on a held-out calibration set, by minimizing NLL. That is the entire method: one number, no retraining, fit in seconds.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_temperature_scaling.png" class="img-fluid figure-img"></p>
+<figcaption>Temperature scaling in action. One scalar T, fit on held-out data by minimizing NLL, pulls the overconfident reliability curve back onto the diagonal — ECE drops from 0.12 to 0.01. No retraining, no change to which answer the model picks.</figcaption>
+</figure>
+</div>
+<p>The fitted temperature lands right where it should. Because our synthetic model’s miscalibration is <em>exactly</em> a logit rescaling by a factor <img src="https://latex.codecogs.com/png.latex?%5Cbeta">, the optimal temperature is <img src="https://latex.codecogs.com/png.latex?T%20=%20%5Cbeta">, and sweeping <img src="https://latex.codecogs.com/png.latex?T"> shows NLL and ECE bottoming out together at that value:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_ece_vs_temperature.png" class="img-fluid figure-img"></p>
+<figcaption>ECE and NLL as functions of the applied temperature. Both bottom out near T = β (the true sharpness). Temperature scaling minimizes the smooth NLL; the calibration error follows it down. Below the optimum the model stays overconfident; above it, it tips into underconfidence.</figcaption>
+</figure>
+</div>
+<p>Three things make temperature scaling the default:</p>
+<ul>
+<li><strong>It cannot change accuracy.</strong> Dividing every logit by the same positive <img src="https://latex.codecogs.com/png.latex?T"> leaves the argmax untouched, so the model’s predictions — and its accuracy — are exactly preserved. You are recalibrating confidence, never trading away correctness. (This is also the seed of §4’s subtlety.)</li>
+<li><strong>One parameter can’t overfit.</strong> A single scalar fit on held-out data generalizes about as reliably as anything in machine learning.</li>
+<li><strong>It is the same operation as decoding temperature.</strong> In <a href="../posts/03a-decoding-as-inference.html">Post 3a</a>, temperature <img src="https://latex.codecogs.com/png.latex?T"> reshaped the <em>sampling</em> distribution: <img src="https://latex.codecogs.com/png.latex?T%20%5Cto%200"> for greedy/argmax decoding, <img src="https://latex.codecogs.com/png.latex?T%20=%201"> for the raw distribution, <img src="https://latex.codecogs.com/png.latex?T%20%3E%201"> for more diverse samples. Here the identical operation <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bz%7D/T"> reshapes the <em>confidence</em> distribution. One knob, two readings: in 3a we tuned it to control how adventurously we <em>sample</em>; here we fit it to control how honestly we <em>report</em>. That a single transformation governs both sampling diversity and probabilistic honesty is one of the small unifications that makes the softmax such a load-bearing object.</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_overconfidence_growth.png" class="img-fluid figure-img"></p>
+<figcaption>How bad miscalibration gets, and how completely one temperature absorbs it. As sharpness β sweeps from underconfident to badly overconfident, raw ECE climbs steeply; after fitting a single temperature on held-out data, ECE stays near zero across the whole range — because the miscalibration is, by construction, a one-parameter logit rescaling.</figcaption>
+</figure>
+</div>
+<p>In reality miscalibration is not <em>purely</em> a single global scaling, so temperature scaling does not zero out ECE on real models — but it removes most of it, which is why it remains the first thing to reach for. Richer fixes (Platt scaling, vector/matrix scaling, isotonic regression, histogram binning) trade the one-parameter safety for more flexibility, and we will not need them here.</p>
+<p>One detail about the multi-class case explains why a <em>single</em> scalar suffices. A model over <img src="https://latex.codecogs.com/png.latex?K"> classes has a whole logit vector per input, and one could imagine learning a separate temperature per class, or a full matrix transform <img src="https://latex.codecogs.com/png.latex?W%5Cmathbf%7Bz%7D%20+%20%5Cmathbf%7Bb%7D"> (this is “matrix scaling”). Guo et al.&nbsp;found that the single shared scalar almost always wins: the richer transforms have enough parameters to overfit the calibration set and can even <em>change</em> the predictions (a matrix transform alters the argmax), reintroducing the accuracy risk that the scalar version is immune to. The empirical lesson is that modern-network miscalibration really is, to first order, one number — the logits are collectively too large — so one number fixes it, and reaching for more flexibility usually costs more than it returns. This is a recurring theme in the curriculum: the simplest intervention that matches the structure of the problem (here, a global over-sharpening) beats a more expressive one that can model noise.</p>
+<hr>
+</section>
+<section id="calibration-is-not-discrimination" class="level2">
+<h2 class="anchored" data-anchor-id="calibration-is-not-discrimination">4. Calibration is not discrimination</h2>
+<p>Here is the subtlety that trips people up, and it falls straight out of “temperature scaling can’t change accuracy.” Because dividing logits by <img src="https://latex.codecogs.com/png.latex?T"> is a <em>monotonic</em> transformation, it never changes the <em>order</em> of items by confidence. The most-confident prediction before scaling is the most-confident after; the ranking is identical. And everything that depends only on the ranking is therefore untouched: the ROC curve, the AUC, and — critically for agents — the best achievable accuracy of any single-threshold “answer if confident, else defer” policy.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_sol2_calibration_vs_discrimination.png" class="img-fluid figure-img"></p>
+<figcaption>Calibration is not discrimination. Temperature scaling collapses ECE from 0.12 to 0.01, but the risk–coverage curve — accuracy on the most-confident fraction of items — is exactly identical before and after. Recalibration changes what the confidence numbers mean, not how well they separate right answers from wrong ones.</figcaption>
+</figure>
+</div>
+<p>The risk–coverage curves lie exactly on top of each other. This forces a clean distinction between two different virtues of a confidence score:</p>
+<ul>
+<li><strong>Discrimination</strong> (ranking): can the model put its correct answers <em>above</em> its wrong ones, whatever the absolute numbers? Measured by AUC or the risk–coverage curve. This is what determines the <em>best possible</em> selective-prediction accuracy.</li>
+<li><strong>Calibration</strong> (levels): do the absolute numbers match the observed frequencies? Measured by ECE. This is what determines whether a <em>fixed, face-value</em> threshold does what you intend.</li>
+</ul>
+<p>Temperature scaling improves only the second. It is genuinely useful — but if your model ranks its answers badly (poor discrimination), no amount of recalibration will make confidence-gating work, because the wrong answers are mixed in with the right ones at every confidence level. Calibration makes a threshold <em>interpretable</em>; discrimination makes it <em>effective</em>. An agent needs both, and they come from different places: discrimination from a capable model, calibration from honest (or recalibrated) probabilities.</p>
+<p>So why does calibration matter for agents at all, if it can’t improve the best-threshold accuracy? Because in practice you do not get to tune the threshold per-deployment with oracle knowledge of the outcomes. You set it by what it <em>means</em> — “retrieve when the model is less than 80% likely to be right” — and ship it. That rule only behaves as intended if 80%-confidence means 80%-accurate. The next section makes the cost of getting this wrong concrete.</p>
+<hr>
+</section>
+<section id="closing-the-agentic-loop" class="level2">
+<h2 class="anchored" data-anchor-id="closing-the-agentic-loop">5. Closing the agentic loop</h2>
+<p>We can now state precisely why calibration has shadowed every decision in this series. An agent acting under uncertainty repeatedly faces the same shape of choice: <em>trust my own answer, or pay for a fallback action</em> — retrieve a document (4a), run a reflection round (4b), call a tool (3b), ask a human, or abstain. The optimal policy is a confidence threshold: act on your own answer when confident, take the fallback when not. And that threshold is set by its meaning.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_sol1_confidence_gated.png" class="img-fluid figure-img"></p>
+<figcaption>The agentic payoff. Gating on a fixed, face-value threshold of 0.80 (“keep my answer if ≥80% sure, else fall back”): the overconfident model keeps many wrong answers it is falsely sure of, while the same model after temperature scaling routes those to the better fallback — lifting accuracy and making the operating point predictable.</figcaption>
+</figure>
+</div>
+<p>The overconfident model sabotages the gate in exactly the way that matters most: it is <em>confidently wrong</em>, so its wrong answers clear the threshold and never get sent to the fallback that would have rescued them. Recalibration does not make the model smarter — recall it cannot change accuracy or ranking — but it makes the threshold honest, so the items that <em>should</em> be deferred actually are. This is the mechanism behind 4a’s confidence-gated retrieval and 4b’s “reflect on the hard ones”: both are threshold policies, and both silently assumed the calibration we have now made explicit.</p>
+<p>It is worth seeing <em>where</em> the threshold should sit, because calibration is precisely what makes the calculation valid. Suppose acting on the model’s own answer is worth its probability of being correct, <img src="https://latex.codecogs.com/png.latex?%5Chat%20p">, while the fallback (retrieve, reflect, defer) succeeds with probability <img src="https://latex.codecogs.com/png.latex?q"> at some extra cost <img src="https://latex.codecogs.com/png.latex?c"> (latency, tokens, a tool call). The agent should keep its own answer when its expected value exceeds the fallback’s, <img src="https://latex.codecogs.com/png.latex?%5Chat%20p%20%3E%20q%20-%20c">, giving the threshold</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%20p%5E%5Cstar%20=%20q%20-%20c.%0A"></p>
+<p>If the fallback is a strong retriever (<img src="https://latex.codecogs.com/png.latex?q%20=%200.9">) costing a little (<img src="https://latex.codecogs.com/png.latex?c%20=%200.05">), defer whenever confidence drops below <img src="https://latex.codecogs.com/png.latex?0.85">. This rule is only correct when <img src="https://latex.codecogs.com/png.latex?%5Chat%20p"> is a <em>real probability of correctness</em> — i.e.&nbsp;when the model is calibrated. Feed it an overconfident model’s inflated <img src="https://latex.codecogs.com/png.latex?%5Chat%20p"> and the comparison <img src="https://latex.codecogs.com/png.latex?%5Chat%20p%20%3E%20q%20-%20c"> fires on answers that are not actually that likely to be right, and the agent keeps them instead of deferring. Calibration is the precondition that turns this clean decision rule from wishful arithmetic into a policy that behaves as derived.</p>
+<p>The synthesis for Topic 4: an agent’s competence is bounded not only by what it knows (parametric memory), what it can look up (retrieval, 4a), and what it can reconsider (reflection, 4b), but by <strong>whether it knows which of those it needs</strong> — and that meta-knowledge is calibration. A perfectly knowledgeable model with broken calibration makes the same catastrophic move as an ignorant one: it acts when it should have checked. Knowing what you don’t know is not a nicety on top of agency; it is the control signal that makes agency work.</p>
+<hr>
+</section>
+<section id="a-practical-guide-to-calibration-for-agents" class="level2">
+<h2 class="anchored" data-anchor-id="a-practical-guide-to-calibration-for-agents">6. A practical guide to calibration for agents</h2>
+<p>Pulling it together into what to actually do:</p>
+<ul>
+<li><strong>Measure before you trust.</strong> Compute ECE and draw the reliability diagram on a representative held-out set before relying on any confidence-gated policy. Overconfidence is the default, not the exception — assume your model has it until you’ve checked.</li>
+<li><strong>Temperature-scale as the cheap first fix.</strong> One parameter, fit on held-out data, no retraining, no accuracy cost. It removes most miscalibration and makes thresholds interpretable.</li>
+<li><strong>Separate discrimination from calibration.</strong> If gating works poorly, diagnose which is failing: a bad reliability diagram means recalibrate; a flat risk–coverage curve means the model can’t rank its answers and no recalibration will help — you need a better model or a better confidence signal (e.g.&nbsp;self-consistency agreement, which often discriminates better than raw token probability).</li>
+<li><strong>Distrust confidence under distribution shift.</strong> Calibration is fit on one distribution and degrades on inputs unlike it — exactly the out-of-distribution cases where an agent most needs to know it’s uncertain. A model calibrated on its training distribution can be wildly overconfident off it.</li>
+<li><strong>Beware verbalized confidence.</strong> An LLM <em>saying</em> “I’m 90% sure” is not the same as its token probabilities being calibrated; stated confidence is shaped by RLHF toward what sounds helpful and is often even less reliable than the underlying probabilities. Prefer measurable signals.</li>
+<li><strong>Calibrate the signal you’ll actually gate on.</strong> If you gate on self-consistency agreement or a reward-model score rather than token probability, calibrate <em>that</em> quantity — calibration is a property of a specific score against a specific outcome, not a global trait of the model.</li>
+</ul>
+<hr>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">7. Experiments to actually run</h2>
+<section id="confidence-gated-decisions" class="level3">
+<h3 class="anchored" data-anchor-id="confidence-gated-decisions">7.1 Confidence-gated decisions</h3>
+<p>Gate on a fixed face-value threshold and sweep it, for an overconfident model and the same model after temperature scaling. How much does recalibration improve the gated policy, and how does the best threshold move?</p>
+</section>
+<section id="calibration-vs-discrimination" class="level3">
+<h3 class="anchored" data-anchor-id="calibration-vs-discrimination">7.2 Calibration vs discrimination</h3>
+<p>Plot the risk–coverage curve before and after temperature scaling. Confirm it is unchanged, and reconcile that with the large drop in ECE.</p>
+</section>
+<section id="ece-and-the-bins" class="level3">
+<h3 class="anchored" data-anchor-id="ece-and-the-bins">7.3 ECE and the bins</h3>
+<p>Sweep the number of bins and compare equal-width against equal-mass binning on an overconfident model. How much does the reported ECE depend on the choice?</p>
+</section>
+<section id="ensembles-vs-temperature-scaling" class="level3">
+<h3 class="anchored" data-anchor-id="ensembles-vs-temperature-scaling">7.4 Ensembles vs temperature scaling</h3>
+<p>Grow an ensemble of independent predictors and track ECE. How far does averaging alone recalibrate, and how does it compare to a fitted temperature?</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">8. Solutions</h2>
+<section id="confidence-gated-decisions-experiments04c_sol1_confidence_gated.py" class="level3">
+<h3 class="anchored" data-anchor-id="confidence-gated-decisions-experiments04c_sol1_confidence_gated.py">8.1 Confidence-gated decisions — <code>experiments/04c_sol1_confidence_gated.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_sol1_confidence_gated.png" class="img-fluid figure-img"></p>
+<figcaption>Gated-policy accuracy vs threshold for an overconfident model and the same model after temperature scaling, with a fallback action of accuracy 0.88. At the face-value threshold 0.80 the recalibrated model is clearly more accurate.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> At a face-value threshold of 0.80, the raw overconfident model scores about 0.85 while the temperature-scaled model scores about 0.88 — because the overconfident model keeps wrong answers it rates above 0.80, whereas the calibrated one sends them to the better fallback. The overconfident curve also peaks at a <em>higher</em> threshold, because you’d have to crank the threshold up to compensate for its inflated confidences.</p>
+<p><strong>The deeper lesson.</strong> This is the entire reason the post exists. Recalibration doesn’t make the model know more — same accuracy, same ranking — but it makes the <em>gate</em> behave as designed, which is what converts raw accuracy into good decisions. In a real agent the fallback is retrieval, reflection, or a tool call, each with its own cost and success rate; the calibrated threshold is what lets you trade them off sanely instead of guessing.</p>
+</section>
+<section id="calibration-vs-discrimination-experiments04c_sol2_calibration_vs_discrimination.py" class="level3">
+<h3 class="anchored" data-anchor-id="calibration-vs-discrimination-experiments04c_sol2_calibration_vs_discrimination.py">8.2 Calibration vs discrimination — <code>experiments/04c_sol2_calibration_vs_discrimination.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_sol2_calibration_vs_discrimination.png" class="img-fluid figure-img"></p>
+<figcaption>Risk–coverage curves before and after temperature scaling lie exactly on top of each other, while ECE drops from 0.12 to 0.01.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The two risk–coverage curves are identical to the pixel, even though ECE fell by more than 10×. Temperature scaling moved every confidence number but preserved their order, so the accuracy-on-most-confident-<img src="https://latex.codecogs.com/png.latex?k">% is untouched.</p>
+<p><strong>The deeper lesson.</strong> Calibration and discrimination are different axes, and conflating them leads to two opposite mistakes: believing recalibration will fix a model that simply can’t rank its answers (it won’t), or dismissing recalibration because “it doesn’t improve selective accuracy” (it doesn’t need to — it makes the threshold mean something). Diagnose which axis is failing before reaching for a fix. ECE for levels, AUC / risk–coverage for ranking.</p>
+</section>
+<section id="ece-and-the-bins-experiments04c_sol3_ece_bins.py" class="level3">
+<h3 class="anchored" data-anchor-id="ece-and-the-bins-experiments04c_sol3_ece_bins.py">8.3 ECE and the bins — <code>experiments/04c_sol3_ece_bins.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_sol3_ece_bins.png" class="img-fluid figure-img"></p>
+<figcaption>Estimated ECE vs number of bins, equal-width vs equal-mass, on a fixed overconfident model. Too few bins understate the error; equal-mass bins are steadier than equal-width as the count grows.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> With very few bins ECE is understated — wide bins average overconfident and underconfident regions together and cancel them. As the bin count grows the estimate rises and then wobbles with sampling noise; equal-mass binning stays steadier than equal-width because it doesn’t leave near-empty bins where confidence is sparse.</p>
+<p><strong>The deeper lesson.</strong> ECE is an <em>estimate</em> with a knob, not a ground truth, and the knob can be gamed — reporting a flattering ECE by quietly choosing a favorable bin count is a real failure of rigor. Fix the binning scheme in advance, prefer equal-mass bins, and report the reliability diagram alongside the scalar so the shape of the miscalibration is visible, not just one summary number.</p>
+</section>
+<section id="ensembles-vs-temperature-scaling-experiments04c_sol4_ensembles.py" class="level3">
+<h3 class="anchored" data-anchor-id="ensembles-vs-temperature-scaling-experiments04c_sol4_ensembles.py">8.4 Ensembles vs temperature scaling — <code>experiments/04c_sol4_ensembles.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04c_sol4_ensembles.png" class="img-fluid figure-img"></p>
+<figcaption>ECE vs ensemble size. Averaging independent predictors softens overconfidence with no held-out fit, lowering ECE from 0.12 toward the temperature-scaling floor; it complements, rather than replaces, a fitted temperature.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Averaging the probabilities of independent ensemble members lowers ECE substantially as the ensemble grows — from ~0.12 toward ~0.07 here — without fitting anything, because the mean of several extreme-but-noisy probabilities is pulled toward the middle. It doesn’t reach the temperature-scaling floor (~0.01) in this toy, but in practice ensembles bring a bonus temperature scaling can’t: they also raise <em>accuracy</em>, by averaging out each member’s independent errors.</p>
+<p><strong>The deeper lesson.</strong> Calibration has more than one lever. Temperature scaling is the cheapest and most precise <em>post-hoc</em> fix but only recalibrates; ensembles (and their cheap cousin, MC-dropout) improve calibration <em>and</em> accuracy at the cost of running the model several times; self-consistency from Post 3a is secretly an ensemble too, which is part of why agreement among samples is often a better-discriminating confidence signal than any single sample’s probability. The methods compose: ensemble for accuracy and rough calibration, then temperature-scale the ensemble’s output for the final polish.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">9. Further reading</h2>
+<ul>
+<li><strong>Guo et al., “On Calibration of Modern Neural Networks” (ICML 2017).</strong> The paper that documented modern-network overconfidence and established temperature scaling as the default fix. The reference for this whole post.</li>
+<li><strong>Naeini et al., “Obtaining Well Calibrated Probabilities Using Bayesian Binning” (AAAI 2015).</strong> The origin of binned ECE and its estimation pitfalls.</li>
+<li><strong>Kadavath et al., “Language Models (Mostly) Know What They Know” (2022).</strong> LLMs can be reasonably calibrated about their own correctness — and where they can’t. Directly relevant to self-reflection (Post 4b).</li>
+<li><strong>OpenAI, “GPT-4 Technical Report” (2023), calibration section.</strong> The pretrained model is well-calibrated on multiple choice; RLHF makes it worse. The empirical basis for §1’s LLM twist.</li>
+<li><strong>Lakshminarayanan et al., “Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles” (NeurIPS 2017).</strong> Ensembles as a calibration-and-accuracy method; the basis for §8.4.</li>
+<li><strong>Ovadia et al., “Can You Trust Your Model’s Uncertainty?” (NeurIPS 2019).</strong> How calibration degrades under distribution shift — the §6 caveat, measured.</li>
+</ul>
+<hr>
+<p><strong>Topic 4 in one line.</strong> An agent’s competence is bounded by what it knows, what it can retrieve (<a href="../posts/04a-rag-as-bayesian-conditioning.html">4a</a>), what it can reconsider (<a href="../posts/04b-self-reflection.html">4b</a>), and — the control signal tying those together — whether it knows which it needs, which is calibration. Memory, retrieval, reflection, and uncertainty are four faces of the same question: how should an agent marshal evidence, internal and external, to act well under uncertainty?</p>
+<p><strong>Next up — Topic 5: Putting it together.</strong> We have built every piece from the ground up: bandits and exploration, MDPs and value, policy gradients and RLHF, decoding and search, tools, retrieval, reflection, and calibration. Topic 5 assembles them into complete agents — first the design of <strong>multi-agent systems</strong>, where several models cooperate, debate, and divide labor, and then a from-scratch <strong>nanoAgent</strong> reference implementation that wires the whole curriculum into something you can run.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Calibration: {Does} the {Model} {Know} {What} {It} {Doesn’t}
+    {Know?}},
+  date = {2026-06-10},
+  url = {https://tranbahien.github.io/nano-agents/posts/04c-calibration.html},
+  langid = {en}
+}
+</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
+Tran, Ba-Hien. 2026. <span>“Calibration: Does the Model Know What It
+Doesn’t Know?”</span> June 10. <a href="https://tranbahien.github.io/nano-agents/posts/04c-calibration.html">https://tranbahien.github.io/nano-agents/posts/04c-calibration.html</a>.
+</div></div></section></div> ]]></description>
+  <category>calibration</category>
+  <category>uncertainty</category>
+  <category>temperature scaling</category>
+  <category>reliability diagram</category>
+  <category>agents</category>
+  <guid>https://tranbahien.github.io/nano-agents/posts/04c-calibration.html</guid>
+  <pubDate>Wed, 10 Jun 2026 00:00:00 GMT</pubDate>
+  <media:content url="https://tranbahien.github.io/nano-agents/figures/04c_reliability_diagram.png" medium="image" type="image/png" height="148" width="144"/>
+</item>
+<item>
+  <title>Self-Reflection as Monte Carlo: When Thinking Twice Helps</title>
+  <dc:creator>Ba-Hien Tran</dc:creator>
+  <link>https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<blockquote class="blockquote">
+<p><em>Topic 4, post 2 of 3.</em></p>
+</blockquote>
+<p><a href="../posts/04a-rag-as-bayesian-conditioning.html">Post 4a</a> gave an agent a way to bring in <em>external</em> evidence: retrieve documents and condition on them. This post is about the other source of new information an agent can tap — <em>internal</em> evidence. The model generates an answer, then looks back at its own work, critiques it, and revises. This is <strong>self-reflection</strong>, the loop behind Reflexion (Shinn et al.&nbsp;2023), Self-Refine (Madaan et al.&nbsp;2023), and the “wait, let me reconsider” behavior you see in reasoning models.</p>
+<p>The intuition is seductive: surely a model that checks its work does better than one that answers off the cuff. Sometimes. But self-reflection has a sharp failure mode that the intuition hides, and getting it wrong is one of the most common ways agentic systems waste compute or actively degrade. So this post does two things. First, §0 nails the mechanism — what “the model critiques itself” concretely means, and why it is just another way to spend inference compute. Then the frame that makes its behavior predictable: <strong>self-reflection is sequential, adaptive Monte Carlo.</strong> It is the one-at-a-time, stop-when-satisfied sibling of the best-of-N and self-consistency methods from <a href="../posts/03a-decoding-as-inference.html">Post 3a</a>. Seeing it that way lets us derive, in two lines of algebra, exactly when reflection improves an answer and when it just launders the model’s own mistakes into more confident mistakes. The punchline, which connects straight to calibration (<a href="../posts/04c-calibration.html">Post 4c</a>): <strong>reflection only pays off across the generation–verification gap — when the model can judge an answer better than it can produce one.</strong></p>
+<hr>
+<section id="what-self-reflection-actually-is" class="level2">
+<h2 class="anchored" data-anchor-id="what-self-reflection-actually-is">0. What self-reflection actually is</h2>
+<p>Strip away the framing and self-reflection is a loop over three operations, all run by the <em>same</em> language model:</p>
+<ol type="1">
+<li><strong>Generate.</strong> Produce a candidate answer to the problem, the ordinary forward pass of Topic 3.</li>
+<li><strong>Critique.</strong> Feed the candidate back to the model with a prompt like <em>“Review the answer above. Is it correct? Identify any errors.”</em> The model emits a verdict — accept, or reject-with-reasons.</li>
+<li><strong>Revise.</strong> If the critique found fault, prompt the model again — now with the original problem, its first answer, and the critique — to produce a corrected answer.</li>
+</ol>
+<p>Repeat until the critique is satisfied or a budget runs out. That is the entire mechanism. Reflexion, Self-Refine, and “self-consistency with self-evaluation” are all variations on this generate–critique–revise loop; they differ mainly in what the critique is allowed to see (just the answer? a tool result? a memory of past attempts?) and how the revision is prompted.</p>
+<p>The single most important fact about this loop — the fact the whole post turns on — is that <strong>the critic is the same model as the generator.</strong> There is no second, wiser system grading the first. The network that produced a flawed answer is the network asked whether the answer is flawed. This is why self-reflection is not free improvement: a model that cannot tell its answer is wrong will, on critique, declare it right and stop; a model that is unsure of a correct answer may, on critique, “fix” it into a wrong one. Reflection can only surface judgement the model already has but did not use on the first pass. Whether it has that judgement is an empirical property — the generation–verification gap — and most of this post is about measuring its consequences.</p>
+<p>It helps to be concrete about why a gap could exist at all. Generating a correct multi-step proof is hard: you must get every step right in sequence. <em>Checking</em> a given proof can be easier: a single invalid step is often locally visible even when producing the whole valid chain was not. The same asymmetry shows up in code (writing a correct function vs.&nbsp;noticing it crashes on an edge case) and in arithmetic (computing vs.&nbsp;plugging the answer back in). When verification is genuinely easier than generation, a second look adds real information. When it isn’t — when the model’s errors are <em>invisible to itself</em> because the same blind spot produced and then evaluated the answer — a second look adds nothing, or worse.</p>
+<section id="reflection-is-a-way-to-spend-inference-compute" class="level3">
+<h3 class="anchored" data-anchor-id="reflection-is-a-way-to-spend-inference-compute">0.1 Reflection is a way to spend inference compute</h3>
+<p><a href="../posts/03a-decoding-as-inference.html">Post 3a</a> introduced test-time compute: spend more inference to raise accuracy. It gave two parallel recipes — <strong>best-of-N</strong> (sample <img src="https://latex.codecogs.com/png.latex?N"> candidates, let a verifier pick the best) and <strong>self-consistency</strong> (sample <img src="https://latex.codecogs.com/png.latex?N">, take the majority answer). Self-reflection is a third recipe, and the cleanest way to understand it is by contrast.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_reflection_loop.png" class="img-fluid figure-img"></p>
+<figcaption>Three ways to spend extra inference compute. Single-shot generates once. Best-of-N samples in parallel and a verifier picks the winner. Self-reflection generates, then critiques and revises sequentially until its own critic accepts — the adaptive sibling of best-of-N.</figcaption>
+</figure>
+</div>
+<p>Best-of-N and self-consistency are <strong>parallel and non-adaptive</strong>: fire off <img src="https://latex.codecogs.com/png.latex?N"> independent samples, then aggregate. Self-reflection is <strong>sequential and adaptive</strong>: produce one answer, evaluate it, and decide <em>based on that evaluation</em> whether to spend more compute. Easy problems get accepted on the first try and cost one call; hard ones trigger revision after revision. That adaptivity is reflection’s promise — compute is spent where the model itself thinks it is needed — and its peril, because the spending decision is made by the same fallible judge. The next section makes the Monte Carlo connection precise.</p>
+<hr>
+</section>
+</section>
+<section id="reflection-as-sequential-adaptive-sampling" class="level2">
+<h2 class="anchored" data-anchor-id="reflection-as-sequential-adaptive-sampling">1. Reflection as sequential, adaptive sampling</h2>
+<p>Here is the frame. The model can draw samples (candidate answers) from its generator. It cannot see which samples are correct — but it has a noisy test, the self-critic, that labels each sample “looks right” or “looks wrong.” Reflection is then exactly <strong>rejection sampling with a noisy acceptance test</strong>: draw a candidate; if the test rejects it, draw another; stop when the test accepts (or you run out of budget).</p>
+<p>Compare the three Post-3a-and-this strategies as sampling schemes over the same generator:</p>
+<ul>
+<li><strong>Self-consistency:</strong> draw <img src="https://latex.codecogs.com/png.latex?N">, return the most common <em>answer</em>. A Monte Carlo estimate of the answer marginal’s mode — no critic needed (Post 3a §4).</li>
+<li><strong>Best-of-N:</strong> draw <img src="https://latex.codecogs.com/png.latex?N">, return the one the <em>verifier</em> scores highest. Uses the critic to rank, once, in parallel.</li>
+<li><strong>Self-reflection:</strong> draw one at a time; the critic’s accept/reject decides whether to draw again. Uses the critic <em>sequentially and adaptively</em> to decide how many samples to take.</li>
+</ul>
+<p>This unifies the topic: all three are ways of turning extra samples into accuracy, differing in whether they aggregate by <strong>voting</strong> (self-consistency, robust to a bad critic because it ignores it), <strong>ranking</strong> (best-of-N, one critic judgement per candidate), or <strong>sequential acceptance</strong> (reflection, one critic judgement that also controls the budget). The sequential structure is what makes reflection efficient — it stops early on easy problems — and what makes it fragile — a single bad accept/reject can end the search at a wrong answer or throw away a right one. We will see both effects.</p>
+<p>With a <em>perfect</em> critic, reflection is beautiful: it is rejection sampling that returns a correct answer whenever the generator can produce one, so after <img src="https://latex.codecogs.com/png.latex?r"> rounds its accuracy is <img src="https://latex.codecogs.com/png.latex?1-(1-a)%5E%7Br+1%7D"> where <img src="https://latex.codecogs.com/png.latex?a"> is the generator’s per-sample accuracy — it drives error to zero geometrically. The entire question is what happens when the critic is <em>not</em> perfect, which is always.</p>
+<p>There is one more lens worth holding, because it explains reflection’s <em>adaptive</em> spending. The accept/reject decision at each round is an <strong>optimal-stopping problem</strong>: at every step the agent holds a candidate and must decide “accept this and stop, or pay for another draw?” With a trustworthy critic, the optimal policy is exactly what the loop does — stop when the critic is satisfied, because the critic’s “looks right” is good evidence the answer is right and further draws are unlikely to improve it. This is why reflection naturally spends <em>little</em> compute on easy problems (accepted immediately) and <em>more</em> on hard ones (repeatedly rejected) — the budget allocation is automatic, driven by the critic’s verdicts. The catch is that an optimal-stopping rule is only as good as the signal it stops on: if the critic’s “looks right” doesn’t track “is right,” the agent stops at the wrong times — accepting confident wrong answers and rejecting unrecognized correct ones. Adaptivity is a multiplier on critic quality, for better and worse.</p>
+<hr>
+</section>
+<section id="when-does-reflection-help-the-two-line-answer" class="level2">
+<h2 class="anchored" data-anchor-id="when-does-reflection-help-the-two-line-answer">2. When does reflection help? The two-line answer</h2>
+<p>We can compute reflection’s effect in closed form for one round, and the result is so clean it is worth carrying in your head. Let</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?a"> = the generator’s accuracy (probability a fresh answer is correct),</li>
+<li><img src="https://latex.codecogs.com/png.latex?d"> = the critic’s <strong>detection rate</strong>: <img src="https://latex.codecogs.com/png.latex?P(%5Ctext%7Bflag%20as%20wrong%7D%20%5Cmid%20%5Ctext%7Banswer%20is%20wrong%7D)">,</li>
+<li><img src="https://latex.codecogs.com/png.latex?f"> = the critic’s <strong>false-alarm rate</strong>: <img src="https://latex.codecogs.com/png.latex?P(%5Ctext%7Bflag%20as%20wrong%7D%20%5Cmid%20%5Ctext%7Banswer%20is%20correct%7D)">,</li>
+<li><img src="https://latex.codecogs.com/png.latex?a'"> = the accuracy of a <em>revised</em> answer.</li>
+</ul>
+<p>One round of “critique, and revise if flagged” gives a final answer that is correct with probability</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA_1%20%5C;=%5C;%20%5Cunderbrace%7Ba%5Cbig%5B(1-f)%20+%20f%5C,a'%5Cbig%5D%7D_%7B%5Ctext%7Bstarted%20correct%7D%7D%20%5C;+%5C;%20%5Cunderbrace%7B(1-a)%5C,d%5C,a'%7D_%7B%5Ctext%7Bstarted%20wrong,%20caught%7D%7D.%0A"></p>
+<p>Reading the terms: a correct answer survives if it isn’t false-alarmed (prob <img src="https://latex.codecogs.com/png.latex?1-f">); if it <em>is</em> false-alarmed it gets revised, landing correct with prob <img src="https://latex.codecogs.com/png.latex?a'">. A wrong answer is rescued only if the critic catches it (prob <img src="https://latex.codecogs.com/png.latex?d">) and the revision succeeds (prob <img src="https://latex.codecogs.com/png.latex?a'">). Subtracting the no-reflection baseline <img src="https://latex.codecogs.com/png.latex?A_0%20=%20a"> gives the <strong>net change</strong>:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboxed%7B%5C;%5CDelta%20%5C;=%5C;%20%5Cunderbrace%7B(1-a)%5C,d%5C,a'%7D_%7B%5Ctext%7BFIX:%20wrong%7D%5Cto%5Ctext%7Bright%7D%7D%20%5C;-%5C;%20%5Cunderbrace%7Ba%5C,f%5C,(1-a')%7D_%7B%5Ctext%7BBREAK:%20right%7D%5Cto%5Ctext%7Bwrong%7D%7D.%5C;%7D%0A"></p>
+<p>Reflection helps exactly when the <strong>fix term beats the break term</strong>. The structure is the whole story:</p>
+<ul>
+<li>The fix term rewards a high detection rate <img src="https://latex.codecogs.com/png.latex?d"> and a large pool of wrong answers to fix <img src="https://latex.codecogs.com/png.latex?(1-a)">.</li>
+<li>The break term punishes a high false-alarm rate <img src="https://latex.codecogs.com/png.latex?f"> and a large pool of right answers to ruin <img src="https://latex.codecogs.com/png.latex?a">.</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_fix_vs_break.png" class="img-fluid figure-img"></p>
+<figcaption>One round of reflection decomposes into fixing wrong answers minus breaking right ones (critic d=0.75, f=0.30). The fix rate dominates the break rate here, so the net change is positive; it is largest when the model is mostly wrong (a near ½) and shrinks toward zero as a → 1.</figcaption>
+</figure>
+</div>
+<p>For the cleanest case — <strong>blind revision</strong>, where a revision is just another independent draw so <img src="https://latex.codecogs.com/png.latex?a'%20=%20a"> — the boxed expression collapses to</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CDelta%20%5C;=%5C;%20a%5C,(1-a)%5C,(d%20-%20f).%0A"></p>
+<p>Three consequences fall straight out, and they are the spine of the post:</p>
+<ol type="1">
+<li><strong>Reflection helps if and only if the critic discriminates: <img src="https://latex.codecogs.com/png.latex?d%20%3E%20f">.</strong> The quantity <img src="https://latex.codecogs.com/png.latex?d%20-%20f"> is the critic’s <em>informedness</em> (Youden’s J), the standard measure of a binary classifier’s skill. If the model’s self-judgement is no better than chance at separating its right answers from its wrong ones, reflection is worthless on average — and if it is <em>anti</em>-discriminating (<img src="https://latex.codecogs.com/png.latex?f%20%3E%20d">), reflection actively destroys accuracy.</li>
+<li><strong>The benefit is largest when the model is moderately wrong</strong>, peaking at <img src="https://latex.codecogs.com/png.latex?a%20=%20%5Ctfrac12">. When the model is almost always right (<img src="https://latex.codecogs.com/png.latex?a%20%5Cto%201">) there is little to fix and much to break; when it is almost always wrong (<img src="https://latex.codecogs.com/png.latex?a%20%5Cto%200">) there is little a single revision can recover. The middle is where a second look pays.</li>
+<li><strong>The fix and break terms are weighted by how often you’re wrong vs.&nbsp;right.</strong> This is the same shape as Post 4a’s central result — retrieval helped most when the model knew least — for the same reason: the value of a corrective mechanism scales with how much there is to correct.</li>
+</ol>
+<p>A worked number makes the balance tangible. Take a model right half the time (<img src="https://latex.codecogs.com/png.latex?a%20=%200.5">) with a decent critic (<img src="https://latex.codecogs.com/png.latex?d%20=%200.8">, <img src="https://latex.codecogs.com/png.latex?f%20=%200.2">) and blind revision (<img src="https://latex.codecogs.com/png.latex?a'%20=%200.5">). The fix term is <img src="https://latex.codecogs.com/png.latex?(1-0.5)%5Ccdot%200.8%20%5Ccdot%200.5%20=%200.20"> — one round rescues 20% of all problems from wrong to right. The break term is <img src="https://latex.codecogs.com/png.latex?0.5%20%5Ccdot%200.2%20%5Ccdot%200.5%20=%200.05"> — it ruins 5%. Net <img src="https://latex.codecogs.com/png.latex?%5CDelta%20=%20+0.15">: accuracy climbs from 0.50 to 0.65 in a single round, and the boxed formula agrees (<img src="https://latex.codecogs.com/png.latex?0.5%5Ccdot0.5%5Ccdot(0.8-0.2)%20=%200.15">). Now keep everything but flip the critic to over-critical (<img src="https://latex.codecogs.com/png.latex?d=0.2">, <img src="https://latex.codecogs.com/png.latex?f=0.8">): fix <img src="https://latex.codecogs.com/png.latex?=%200.5%5Ccdot0.2%5Ccdot0.5%20=%200.05">, break <img src="https://latex.codecogs.com/png.latex?=%200.5%5Ccdot0.8%5Ccdot0.5%20=%200.20">, net <img src="https://latex.codecogs.com/png.latex?%5CDelta%20=%20-0.15"> — the <em>same magnitude</em>, but now accuracy falls to 0.35. The only thing that changed sign was the critic’s discrimination. Reflection is a lever that multiplies whatever judgement the model brings; point it the wrong way and it multiplies the model’s confusion just as efficiently.</p>
+<p>The condition <img src="https://latex.codecogs.com/png.latex?d%20%3E%20f"> is just the formal version of the generation–verification gap. We measure its consequences next.</p>
+<hr>
+</section>
+<section id="the-generationverification-gap" class="level2">
+<h2 class="anchored" data-anchor-id="the-generationverification-gap">3. The generation–verification gap</h2>
+<p>The whole edifice rests on the critic discriminating — on <img src="https://latex.codecogs.com/png.latex?d%20%3E%20f">. Where would such a critic come from, and how good can it be? This is the <strong>generation–verification gap</strong>: the difference between how well a model can <em>produce</em> a correct answer and how well it can <em>recognize</em> one.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_critic_quality.png" class="img-fluid figure-img"></p>
+<figcaption>Reflection’s accuracy change vs the critic’s discrimination d − f, with the analytic prediction a(1−a)(d−f) overlaid. The simulated points cross zero exactly at zero discrimination: below it (critic worse than chance) reflection loses accuracy; above it, reflection helps, and more so as discrimination grows.</figcaption>
+</figure>
+</div>
+<p>The figure is the cleanest statement of the principle: the accuracy change is a straight line through the origin in <img src="https://latex.codecogs.com/png.latex?d%20-%20f">, exactly as the algebra predicts, and the sign of the gap is the sign of the benefit. There is no amount of iterating, prompting, or cleverness that turns a sub-chance critic into a useful one — if self-judgement can’t beat a coin flip, reflection can’t help.</p>
+<p>For real LLMs, the gap is <strong>task-dependent</strong>, and this is the single most useful thing to internalize:</p>
+<ul>
+<li><strong>Verifiable tasks have large positive gaps.</strong> Code (does it pass the tests?), arithmetic (does it check out?), formal proofs (does each step type-check?), constraint satisfaction (are all constraints met?). Here verification can be near-perfect because it is mechanical, and reflection — <em>with that verification wired in</em> — is enormously effective.</li>
+<li><strong>Open-ended reasoning has a small or unreliable gap.</strong> For a hard word problem the model got wrong, the <em>same</em> reasoning blind spot that produced the wrong answer also evaluates it, so the critic inherits the generator’s errors. The model may even rate its wrong answer <em>more</em> confidently after “checking.” Here <img src="https://latex.codecogs.com/png.latex?d%20-%20f"> can be near zero or negative.</li>
+</ul>
+<p>This is exactly the distinction between an <strong>outcome reward model</strong> (judge the final answer) and a <strong>process reward model</strong> (judge each step) from Post 3c §1, now wearing different clothes. A PRM-style critic that checks intermediate steps tends to discriminate better than an ORM-style critic that stares at a final answer, because step-level errors are more locally visible — more verifiable. The art of building a reflective agent is largely the art of maximizing <img src="https://latex.codecogs.com/png.latex?d%20-%20f">: structuring the critique so the model’s verification skill, wherever it exceeds its generation skill, gets used.</p>
+<hr>
+</section>
+<section id="the-empirical-picture-helps-most-when-mostly-wrong" class="level2">
+<h2 class="anchored" data-anchor-id="the-empirical-picture-helps-most-when-mostly-wrong">4. The empirical picture: helps most when mostly wrong</h2>
+<p>Putting the simulation together reproduces the algebra and shows the failure modes side by side.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_when_reflection_helps.png" class="img-fluid figure-img"></p>
+<figcaption>Accuracy after three rounds of reflection vs the single-shot generator accuracy a, for three critics. A good critic (green) sits well above the no-reflection diagonal, with the largest absolute gains where the model is mostly wrong. A weak critic (orange, d−f small) barely beats the diagonal. An anti-discriminating critic (red, f &gt; d) sits below it everywhere — reflection makes the model worse.</figcaption>
+</figure>
+</div>
+<p>Read the three curves against the diagonal (the no-reflection baseline):</p>
+<ul>
+<li><strong>Good critic</strong> (<img src="https://latex.codecogs.com/png.latex?d=0.85">, <img src="https://latex.codecogs.com/png.latex?f=0.10">, gap <img src="https://latex.codecogs.com/png.latex?0.75">): a large, consistent lift, biggest in absolute terms in the low-to-middle accuracy range — exactly where there is the most to fix.</li>
+<li><strong>Weak critic</strong> (<img src="https://latex.codecogs.com/png.latex?d=0.55">, <img src="https://latex.codecogs.com/png.latex?f=0.45">, gap <img src="https://latex.codecogs.com/png.latex?0.10">): hugs the diagonal. A barely-discriminating critic produces barely any benefit, however many rounds you run.</li>
+<li><strong>Anti-discriminating critic</strong> (<img src="https://latex.codecogs.com/png.latex?d=0.30">, <img src="https://latex.codecogs.com/png.latex?f=0.60">, gap <img src="https://latex.codecogs.com/png.latex?-0.30">): <em>below</em> the diagonal everywhere. This is the dangerous regime — a model that is systematically more suspicious of its right answers than its wrong ones will reflect itself into lower accuracy. And it can happen for real: a model prompted to “find the error” may dutifully invent one, flagging correct answers to comply with the instruction.</li>
+</ul>
+<p>The lift is not symmetric in <img src="https://latex.codecogs.com/png.latex?a">: notice how the good critic’s curve and the diagonal converge as <img src="https://latex.codecogs.com/png.latex?a%20%5Cto%201">. When the model is already almost always right, even a good critic’s occasional false alarm costs about as much as its rare fix gains — so reflection on easy, high-accuracy tasks is mostly wasted motion and a little risk. <strong>Reflect on the hard problems, not the easy ones</strong> — which, done by confidence, is the gating idea of §6 and Post 4c.</p>
+<hr>
+</section>
+<section id="iterating-diminishing-returns-and-over-correction" class="level2">
+<h2 class="anchored" data-anchor-id="iterating-diminishing-returns-and-over-correction">5. Iterating: diminishing returns and over-correction</h2>
+<p>If one round helps, do ten rounds help ten times as much? No — and the two ways the answer is “no” matter.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_rounds.png" class="img-fluid figure-img"></p>
+<figcaption>Accuracy vs the number of critique–revise rounds for four critics. A good critic rises and plateaus (diminishing returns). A decent critic plateaus lower. An uninformative critic (d = f) stays flat at the baseline — fixes and breaks cancel. An over-critical critic (f &gt; d) declines below the baseline and stays there: over-correction.</figcaption>
+</figure>
+</div>
+<p><strong>Diminishing returns (the good cases).</strong> Each round only acts on the answers still flagged. With a good critic, the first round fixes most of the fixable wrong answers; later rounds have a shrinking pool to work on, so accuracy rises fast then plateaus. The plateau height is set by the critic’s discrimination and the revision quality, not by the round count — past a few rounds, more iteration buys almost nothing. This is the reflective analogue of self-consistency’s <img src="https://latex.codecogs.com/png.latex?1/%5Csqrt%20N"> diminishing returns from Post 3a: the easy gains come first.</p>
+<p><strong>Over-correction (the bad case).</strong> The over-critical critic (red, <img src="https://latex.codecogs.com/png.latex?f%20%3E%20d">) is the one to fear. Because it false-alarms correct answers more often than it catches wrong ones, every round erodes the stock of correct answers faster than it grows it, and accuracy <em>falls</em> below the single-shot baseline before stabilizing. The model is, quite literally, talking itself out of answers it had right. The uninformative critic (<img src="https://latex.codecogs.com/png.latex?d%20=%20f">, orange) shows the boundary case: fixes exactly balance breaks, and reflection is pure wasted compute — accuracy never moves off the baseline no matter how long you iterate.</p>
+<p>The practical rule: <strong>a round budget is not a “more is better” dial.</strong> It interacts with critic quality. With a verified critic, a small budget (2–4 rounds) captures nearly all the gain; with an unreliable one, <em>any</em> budget can hurt, and the safest budget is zero.</p>
+<hr>
+</section>
+<section id="the-honest-caveat-pure-self-correction-is-fragile" class="level2">
+<h2 class="anchored" data-anchor-id="the-honest-caveat-pure-self-correction-is-fragile">6. The honest caveat: pure self-correction is fragile</h2>
+<p>It is worth stating plainly, because the field learned it the hard way. A prominent line of work (Huang et al.&nbsp;2023, “Large Language Models Cannot Self-Correct Reasoning Yet”) found that on reasoning benchmarks, prompting a model to critique and revise its own answers <em>without any external signal</em> often <strong>did not help and sometimes hurt</strong> — for exactly the reason §2 makes precise: the self-critic’s discrimination on hard reasoning is too close to zero, so fixes and breaks roughly cancel, and any prompt that nudges the model toward “find a mistake” pushes <img src="https://latex.codecogs.com/png.latex?f"> up and tips the balance negative.</p>
+<p>The robust fix is to stop relying on pure self-judgement and <strong>wire in external verification</strong> — the bridge back to Post 3b’s tools.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_sol1_external_feedback.png" class="img-fluid figure-img"></p>
+<figcaption>Reflection accuracy vs round budget: an external verifier (a tool or unit test, detection 1 and false-alarm 0) versus pure self-critique. The external verifier tracks the theoretical ceiling 1 − (1−a)^(r+1) and climbs toward 1; pure self-critique plateaus far below, capped by its own discrimination.</figcaption>
+</figure>
+</div>
+<p>When the critic is an <em>external oracle</em> — a compiler, a test suite, a search query, a calculator — it has <img src="https://latex.codecogs.com/png.latex?d%20=%201"> and <img src="https://latex.codecogs.com/png.latex?f%20=%200"> by construction: it never mislabels. Reflection then becomes the geometric error-killer of §1, climbing toward perfect accuracy as the budget grows. This is why the convincing demonstrations of “self-improving” agents are almost always <em>tool-grounded</em>: AlphaProof checks proofs in Lean, coding agents run the tests, SWE-agents execute the code. The reflection loop is identical; what changed is that the critique is now a fact about the world rather than the model’s opinion of its own work. The lesson threads the whole topic together: an agent that needs to know whether it is right should, whenever possible, <em>check</em> rather than <em>introspect</em> — and where it must introspect, it had better be calibrated, which is Post 4c.</p>
+<hr>
+</section>
+<section id="a-practical-guide-to-reflective-agents" class="level2">
+<h2 class="anchored" data-anchor-id="a-practical-guide-to-reflective-agents">7. A practical guide to reflective agents</h2>
+<p>The analysis collapses into a short decision procedure for whether and how to add reflection, cheapest and safest first:</p>
+<ul>
+<li><strong>Ask first: is there an external verifier?</strong> If the task is checkable — code with tests, math you can re-evaluate, a claim you can look up — wire that verifier into the loop and largely stop worrying about the rest (§6). External feedback has <img src="https://latex.codecogs.com/png.latex?d=1,%20f=0"> and turns reflection into a reliable error-killer. This is the highest-value move by a wide margin.</li>
+<li><strong>If you must self-critique, measure <img src="https://latex.codecogs.com/png.latex?d"> and <img src="https://latex.codecogs.com/png.latex?f"> before trusting it.</strong> On a labeled held-out set, check how often the model flags its wrong answers (<img src="https://latex.codecogs.com/png.latex?d">) versus its right ones (<img src="https://latex.codecogs.com/png.latex?f">). If <img src="https://latex.codecogs.com/png.latex?d%20-%20f"> is not comfortably positive, do not deploy the loop — it will not help and may over-correct (§5). This single measurement separates useful reflection from expensive self-sabotage.</li>
+<li><strong>Reflect on hard inputs, not easy ones.</strong> Reflection’s benefit vanishes as accuracy approaches 1 (§4), so gate it on confidence: revise only when the model’s first-pass confidence is low. This is the same confidence-gating that beat always/never-retrieve in Post 4a, and it depends on calibration — Post 4c.</li>
+<li><strong>Invest in the critique, not the round count.</strong> A small budget (2–4 rounds) captures nearly all the available gain; what actually raises the ceiling is making each critique <em>informative</em> — localizing and explaining the error so the revision is targeted, not just a fresh guess (§9.4).</li>
+<li><strong>Prefer voting when the critic is noisy and the budget is generous.</strong> If you cannot get a discriminating critic, self-consistency (which ignores the critic) is more robust than sequential reflection (which trusts it); see §9.2.</li>
+</ul>
+<p>The meta-lesson mirrors the rest of the curriculum: a corrective procedure is only as good as the signal that drives it. Check the world when you can; introspect only when your introspection is calibrated.</p>
+<hr>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">8. Experiments to actually run</h2>
+<section id="external-feedback-vs-self-critique" class="level3">
+<h3 class="anchored" data-anchor-id="external-feedback-vs-self-critique">8.1 External feedback vs self-critique</h3>
+<p>Replace the noisy self-critic with a perfect external verifier and sweep the round budget. How far below the external-verifier ceiling does pure self-critique plateau?</p>
+</section>
+<section id="reflection-vs-best-of-n-vs-self-consistency" class="level3">
+<h3 class="anchored" data-anchor-id="reflection-vs-best-of-n-vs-self-consistency">8.2 Reflection vs best-of-N vs self-consistency</h3>
+<p>At a fixed budget of model calls, compare sequential reflection against parallel best-of-N and self-consistency. Which spends compute best, and how does the answer depend on critic quality?</p>
+</section>
+<section id="the-over-correction-trajectory" class="level3">
+<h3 class="anchored" data-anchor-id="the-over-correction-trajectory">8.3 The over-correction trajectory</h3>
+<p>With an over-critical critic, trace accuracy round by round, split by whether the first answer was correct. Watch the correct answers erode.</p>
+</section>
+<section id="does-the-critique-inform-the-revision" class="level3">
+<h3 class="anchored" data-anchor-id="does-the-critique-inform-the-revision">8.4 Does the critique inform the revision?</h3>
+<p>Sweep <code>revise_gain</code> — the boost a revision gets from an informative critique — and compare reflection against a best-of-N baseline that only reranks. Where does reflection’s advantage come from?</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">9. Solutions</h2>
+<section id="external-feedback-vs-self-critique-experiments04b_sol1_external_feedback.py" class="level3">
+<h3 class="anchored" data-anchor-id="external-feedback-vs-self-critique-experiments04b_sol1_external_feedback.py">9.1 External feedback vs self-critique — <code>experiments/04b_sol1_external_feedback.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_sol1_external_feedback.png" class="img-fluid figure-img"></p>
+<figcaption>External verifier vs pure self-critique vs round budget. The external verifier (blue) tracks 1 − (1−a)^(r+1) toward ~0.98; self-critique (red) plateaus near 0.58.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The external verifier drives accuracy from the single-shot 0.35 toward 0.98, matching the theoretical ceiling <img src="https://latex.codecogs.com/png.latex?1-(1-a)%5E%7Br+1%7D"> almost exactly — because a verifier that never false-alarms simply keeps resampling until a correct answer appears. Pure self-critique (the <em>same</em> generator, judged by itself at <img src="https://latex.codecogs.com/png.latex?d=0.70">, <img src="https://latex.codecogs.com/png.latex?f=0.25">) plateaus around 0.58: useful, but capped far below, because its false alarms keep costing it correct answers.</p>
+<p><strong>The deeper lesson.</strong> The gap between the two curves <em>is</em> the cost of using self-judgement instead of ground truth. It quantifies why “let the model check its own work” is a weak substitute for “let the model run the test.” Whenever a cheap external verifier exists — and for code, math, and structured outputs one usually does — wiring it into the reflection loop converts a fragile, plateauing process into a reliable, near-monotonic one. This is the same point as Post 3b’s tool-use threshold and Post 3c’s value-heuristic noise, in a third costume: an unreliable evaluator caps what any search or revision procedure can achieve.</p>
+</section>
+<section id="reflection-vs-best-of-n-vs-self-consistency-experiments04b_sol2_reflect_vs_bon.py" class="level3">
+<h3 class="anchored" data-anchor-id="reflection-vs-best-of-n-vs-self-consistency-experiments04b_sol2_reflect_vs_bon.py">9.2 Reflection vs best-of-N vs self-consistency — <code>experiments/04b_sol2_reflect_vs_bon.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_sol2_reflect_vs_bon.png" class="img-fluid figure-img"></p>
+<figcaption>Accuracy vs call budget for reflection, best-of-N, and self-consistency under a moderately noisy critic (d=0.70, f=0.25). Reflection and best-of-N rise together and plateau near 0.62; self-consistency starts lower but catches and edges past them by budget 8.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Reflection and best-of-N track each other closely and plateau around 0.62 — both lean on the same noisy critic, so they share its ceiling. Self-consistency starts behind at small budgets (a 2-sample vote is weak) but climbs steadily and overtakes by a budget of ~8, because it <strong>ignores the critic entirely</strong> and averages over independent samples instead.</p>
+<p><strong>The deeper lesson.</strong> This is the robustness-vs-efficiency trade from Post 3c’s “guided sampling vs search,” now between reflection and voting. When the critic is decent, reflection’s adaptivity is efficient — it stops early on easy problems and concentrates compute on hard ones, getting strong accuracy at small budgets. When the critic is noisy and the budget is generous, the method that <em>doesn’t trust the critic</em> (self-consistency) wins, because averaging launders noise that sequential acceptance amplifies. The design choice follows the critic: trust it sequentially when it is good, average past it when it is not.</p>
+</section>
+<section id="the-over-correction-trajectory-experiments04b_sol3_overcorrection.py" class="level3">
+<h3 class="anchored" data-anchor-id="the-over-correction-trajectory-experiments04b_sol3_overcorrection.py">9.3 The over-correction trajectory — <code>experiments/04b_sol3_overcorrection.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_sol3_overcorrection.png" class="img-fluid figure-img"></p>
+<figcaption>Correctness over rounds under an over-critical critic (d=0.40, f=0.55), split by initial state. “Started correct” (green) erodes from 1.0 to ~0.63; “started wrong” (red) rises only to ~0.13; overall accuracy (blue) falls from 0.40 to ~0.33.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The green curve — answers that started correct — falls steeply in the first round and keeps drifting down: the over-critical critic flags these correct answers (false-alarm 0.55) and the reviser replaces them, often with something worse. Meanwhile the red curve — answers that started wrong — barely rises, because this critic catches errors only 40% of the time. The net (blue) is a steady loss.</p>
+<p><strong>The deeper lesson.</strong> Over-correction is the concrete shape of <img src="https://latex.codecogs.com/png.latex?f%20%3E%20d">. It is dangerous precisely because it is <em>invisible from inside the loop</em>: every step looks like diligent self-improvement — the model is finding “errors” and fixing them — while accuracy quietly degrades. The only defense is to measure <img src="https://latex.codecogs.com/png.latex?d"> and <img src="https://latex.codecogs.com/png.latex?f"> against ground truth on a held-out set before trusting a reflection loop in production, and to cap or disable revision when the critic cannot be shown to discriminate. Activity is not progress; a model busily revising is not necessarily a model improving.</p>
+</section>
+<section id="does-the-critique-inform-the-revision-experiments04b_sol4_informative_critique.py" class="level3">
+<h3 class="anchored" data-anchor-id="does-the-critique-inform-the-revision-experiments04b_sol4_informative_critique.py">9.4 Does the critique inform the revision? — <code>experiments/04b_sol4_informative_critique.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/04b_sol4_informative_critique.png" class="img-fluid figure-img"></p>
+<figcaption>Accuracy vs revise_gain (how much an informative critique boosts the revision) for reflection vs a best-of-5 baseline that only reranks. At gain 0 (blind resampling) reflection ~0.61 barely beats best-of-N ~0.60; as gain rises to 0.5, reflection climbs to ~0.81 while best-of-N stays flat.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> At <code>revise_gain = 0</code> — where a “revision” is just another independent draw from the same generator — reflection barely outperforms best-of-N, because both are really just “try again and pick a good one.” As the critique becomes informative (the revision accuracy rises with the gain), reflection pulls clearly ahead, reaching ~0.81 while the rerank-only baseline stays put.</p>
+<p><strong>The deeper lesson.</strong> This isolates <em>where reflection’s value actually comes from</em>. It is not the mere act of trying again — best-of-N already does that, in parallel, more robustly. Reflection earns its keep only when the critique <strong>localizes the error well enough to make the next attempt better</strong>, not just different. “Your answer is wrong” is worth little; “your answer is wrong because step 3 divides by a quantity that can be zero” is worth a lot, because it steers the revision. When you build a reflective agent, the lever that matters is the <em>informativeness of the critique</em>, not the number of rounds — design the critique to pinpoint and explain, not merely to judge.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">10. Further reading</h2>
+<ul>
+<li><strong>Shinn et al., “Reflexion: Language Agents with Verbal Reinforcement Learning” (NeurIPS 2023).</strong> The reflection loop with a memory of past attempts; strongest when feedback is grounded (tests, environment signals).</li>
+<li><strong>Madaan et al., “Self-Refine: Iterative Refinement with Self-Feedback” (NeurIPS 2023).</strong> Generate–critique–revise with the same model; gains on tasks where self-feedback discriminates.</li>
+<li><strong>Huang et al., “Large Language Models Cannot Self-Correct Reasoning Yet” (ICLR 2024).</strong> The honest counterweight — pure self-correction often fails to help on reasoning without external signals. The empirical face of §2’s <img src="https://latex.codecogs.com/png.latex?d%20%3E%20f"> condition.</li>
+<li><strong>Cobbe et al., “Training Verifiers to Solve Math Word Problems” (2021).</strong> Learned verifiers and the generation–verification gap that makes verification-guided methods work.</li>
+<li><strong>Saunders et al., “Self-critiquing models for assisting human evaluators” (2022).</strong> Measures the critique–generation gap directly: models can often critique better than they generate, but not always.</li>
+</ul>
+<hr>
+<p><strong>Next up — Post 4c: Calibration and uncertainty.</strong> Twice now — confidence-gated retrieval in Post 4a, and “reflect on the hard problems” here — the right policy has hinged on the model <em>knowing when it is likely wrong</em>. That is calibration: does “the model is 90% sure” mean it is right 90% of the time? We will measure it, see why neural networks are systematically overconfident, build the fixes (temperature scaling, and the reliability diagram you already met in Post 1b), and close the loop on the agentic decisions — when to retrieve, when to reflect, when to act — that all depend on an agent that knows what it doesn’t know.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Self-Reflection as {Monte} {Carlo:} {When} {Thinking} {Twice}
+    {Helps}},
+  date = {2026-06-03},
+  url = {https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html},
+  langid = {en}
+}
+</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
+Tran, Ba-Hien. 2026. <span>“Self-Reflection as Monte Carlo: When
+Thinking Twice Helps.”</span> June 3. <a href="https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html">https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html</a>.
+</div></div></section></div> ]]></description>
+  <category>self-reflection</category>
+  <category>reflexion</category>
+  <category>monte carlo</category>
+  <category>verification</category>
+  <category>calibration</category>
+  <guid>https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html</guid>
+  <pubDate>Wed, 03 Jun 2026 00:00:00 GMT</pubDate>
+  <media:content url="https://tranbahien.github.io/nano-agents/figures/04b_when_reflection_helps.png" medium="image" type="image/png" height="83" width="144"/>
+</item>
 <item>
   <title>Retrieval as Bayesian Conditioning: When and How to Augment</title>
   <dc:creator>Ba-Hien Tran</dc:creator>
@@ -25,7 +562,7 @@
 <p><em>Topic 4, post 1 of 3.</em></p>
 </blockquote>
 <p>Topic 3 was about inference-time computation: how to decode, act, and search with a fixed policy. A single assumption ran underneath all of it — that the knowledge needed to answer was already <em>inside</em> the model, waiting for clever sampling or search to extract it. Often it isn’t. A language model’s knowledge is whatever got compressed into its weights during training, lossily, and frozen at the training cut-off. Ask it about a paper from last week, a fact it saw once in a trillion tokens, or the contents of your private codebase, and it has nothing to draw on but a blurry parametric average. The usual result is a fluent, confident, wrong answer — a hallucination.</p>
-<p>This post is about the standard fix, <strong>retrieval-augmented generation (RAG)</strong>, and the lens that makes its behavior predictable. We do two things. First, §0 explains what RAG concretely <em>is</em> — the machinery of embedding, search, and in-context reading — because the reframing only makes sense once the mechanism is clear. Then the central claim, stated carefully: <strong>RAG can be usefully modeled as Bayesian conditioning.</strong> The model’s parametric memory plays the role of a <em>prior</em> over answers; retrieved documents act as <em>evidence</em>; the answer the model produces after reading them behaves like a <em>posterior</em>. Most real RAG systems do not literally compute a Bayesian posterior — this is a <em>normative</em> lens, one that predicts when retrieval should help or hurt, not a description of what the transformer does inside. But it is a remarkably predictive lens, and it turns the practical questions — when does retrieval help, how many documents to fetch, when does it backfire, when should the agent bother retrieving at all — into precise questions about priors, likelihoods, and posteriors. The frame connects directly back to the Bayesian linear regression of <a href="../posts/01b-contextual-bandits.html">Post 1b</a> and forward to calibration (<a href="04c-calibration.qmd">Post 4c</a>).</p>
+<p>This post is about the standard fix, <strong>retrieval-augmented generation (RAG)</strong>, and the lens that makes its behavior predictable. We do two things. First, §0 explains what RAG concretely <em>is</em> — the machinery of embedding, search, and in-context reading — because the reframing only makes sense once the mechanism is clear. Then the central claim, stated carefully: <strong>RAG can be usefully modeled as Bayesian conditioning.</strong> The model’s parametric memory plays the role of a <em>prior</em> over answers; retrieved documents act as <em>evidence</em>; the answer the model produces after reading them behaves like a <em>posterior</em>. Most real RAG systems do not literally compute a Bayesian posterior — this is a <em>normative</em> lens, one that predicts when retrieval should help or hurt, not a description of what the transformer does inside. But it is a remarkably predictive lens, and it turns the practical questions — when does retrieval help, how many documents to fetch, when does it backfire, when should the agent bother retrieving at all — into precise questions about priors, likelihoods, and posteriors. The frame connects directly back to the Bayesian linear regression of <a href="../posts/01b-contextual-bandits.html">Post 1b</a> and forward to calibration (<a href="../posts/04c-calibration.html">Post 4c</a>).</p>
 <hr>
 <section id="what-retrieval-augmented-generation-actually-is" class="level2">
 <h2 class="anchored" data-anchor-id="what-retrieval-augmented-generation-actually-is">0. What retrieval-augmented generation actually is</h2>
@@ -153,7 +690,7 @@
 <h2 class="anchored" data-anchor-id="the-decision-when-should-the-agent-retrieve-at-all">7. The decision: when should the agent retrieve at all?</h2>
 <p>If retrieval helps an ignorant model and hurts a knowledgeable one paired with a bad retriever, the move is obvious: <strong>retrieve selectively</strong> — only when the model is uncertain. This is the RAG analogue of the tool-use threshold from <a href="../posts/03b-tool-use.html">Post 3b §4</a>: reach for the external resource exactly when your own answer is unreliable, and not otherwise.</p>
 <p>The policy is simple to state. Compute the prior, measure its confidence — say, the maximum probability it assigns to any single answer — and retrieve only if that confidence falls below a threshold. Confident queries are answered from memory; uncertain ones trigger retrieval.</p>
-<p>But the policy has a precondition that turns out to be the whole story of the next two posts: it is only as good as the model’s <strong>calibration</strong> — its ability to know when it doesn’t know. A model that is confidently wrong will <em>skip</em> retrieval exactly when it most needs it. A model that is uncertain about things it actually knows will retrieve needlessly and risk corruption by a mediocre retriever. Confidence-gating works if and only if confidence tracks correctness, which is the definition of calibration and the subject of <a href="04c-calibration.qmd">Post 4c</a>. We measure the payoff of this policy — and it is large — in §9.3.</p>
+<p>But the policy has a precondition that turns out to be the whole story of the next two posts: it is only as good as the model’s <strong>calibration</strong> — its ability to know when it doesn’t know. A model that is confidently wrong will <em>skip</em> retrieval exactly when it most needs it. A model that is uncertain about things it actually knows will retrieve needlessly and risk corruption by a mediocre retriever. Confidence-gating works if and only if confidence tracks correctness, which is the definition of calibration and the subject of <a href="../posts/04c-calibration.html">Post 4c</a>. We measure the payoff of this policy — and it is large — in §9.3.</p>
 <hr>
 </section>
 <section id="experiments-to-actually-run" class="level2">
