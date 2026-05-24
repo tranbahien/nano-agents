@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ba-Hien Tran">
+<meta name="dcterms.date" content="2026-06-17">
+<meta name="description" content="Topic 5, post 1 of 2. Several agents can vote, debate, specialize, or be orchestrated — but more agents means more cost and more ways for errors to compound. We frame multi-agent systems as the problem of combining noisy estimators, prove with the Condorcet jury theorem when voting works, show how correlated errors (shared base models, shared blind spots) cap the gains, and find the honest limits: diversity is the resource, debate can herd, and pipelines compound errors multiplicatively.">
+
+<title>Multi-Agent Systems: When Do More Agents Help? – nano-agents</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-23bbe8b5e4efc1e257f6d59dce478b08.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-acf12a64177840b8d86f2d4f01b2e9fb.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-df4e96bc8c3facb458d6222fd420fecc.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-594151e316c2de578e12f3bfa980945d.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">nano-agents</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../posts.html"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../posts.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#four-ways-to-wire-agents-together" id="toc-four-ways-to-wire-agents-together" class="nav-link active" data-scroll-target="#four-ways-to-wire-agents-together">0. Four ways to wire agents together</a></li>
+  <li><a href="#the-wisdom-of-crowds-the-condorcet-jury-theorem" id="toc-the-wisdom-of-crowds-the-condorcet-jury-theorem" class="nav-link" data-scroll-target="#the-wisdom-of-crowds-the-condorcet-jury-theorem">1. The wisdom of crowds: the Condorcet jury theorem</a></li>
+  <li><a href="#diversity-is-the-resource" id="toc-diversity-is-the-resource" class="nav-link" data-scroll-target="#diversity-is-the-resource">2. Diversity is the resource</a></li>
+  <li><a href="#debate-reflection-with-peer-critics" id="toc-debate-reflection-with-peer-critics" class="nav-link" data-scroll-target="#debate-reflection-with-peer-critics">3. Debate: reflection with peer critics</a></li>
+  <li><a href="#pipelines-and-specialization-when-labor-division-pays" id="toc-pipelines-and-specialization-when-labor-division-pays" class="nav-link" data-scroll-target="#pipelines-and-specialization-when-labor-division-pays">4. Pipelines and specialization: when labor division pays</a></li>
+  <li><a href="#a-practical-guide-to-multi-agent-design" id="toc-a-practical-guide-to-multi-agent-design" class="nav-link" data-scroll-target="#a-practical-guide-to-multi-agent-design">5. A practical guide to multi-agent design</a></li>
+  <li><a href="#experiments-to-actually-run" id="toc-experiments-to-actually-run" class="nav-link" data-scroll-target="#experiments-to-actually-run">6. Experiments to actually run</a>
+  <ul class="collapse">
+  <li><a href="#effective-votes-under-correlation" id="toc-effective-votes-under-correlation" class="nav-link" data-scroll-target="#effective-votes-under-correlation">6.1 Effective votes under correlation</a></li>
+  <li><a href="#herding-in-debate" id="toc-herding-in-debate" class="nav-link" data-scroll-target="#herding-in-debate">6.2 Herding in debate</a></li>
+  <li><a href="#specialization-vs-generalist" id="toc-specialization-vs-generalist" class="nav-link" data-scroll-target="#specialization-vs-generalist">6.3 Specialization vs generalist</a></li>
+  <li><a href="#the-costaccuracy-frontier" id="toc-the-costaccuracy-frontier" class="nav-link" data-scroll-target="#the-costaccuracy-frontier">6.4 The cost–accuracy frontier</a></li>
+  </ul></li>
+  <li><a href="#solutions" id="toc-solutions" class="nav-link" data-scroll-target="#solutions">7. Solutions</a>
+  <ul class="collapse">
+  <li><a href="#effective-votes-under-correlation-experiments05a_sol1_effective_votes.py" id="toc-effective-votes-under-correlation-experiments05a_sol1_effective_votes.py" class="nav-link" data-scroll-target="#effective-votes-under-correlation-experiments05a_sol1_effective_votes.py">7.1 Effective votes under correlation — <code>experiments/05a_sol1_effective_votes.py</code></a></li>
+  <li><a href="#herding-in-debate-experiments05a_sol2_herding.py" id="toc-herding-in-debate-experiments05a_sol2_herding.py" class="nav-link" data-scroll-target="#herding-in-debate-experiments05a_sol2_herding.py">7.2 Herding in debate — <code>experiments/05a_sol2_herding.py</code></a></li>
+  <li><a href="#specialization-vs-generalist-experiments05a_sol3_specialization.py" id="toc-specialization-vs-generalist-experiments05a_sol3_specialization.py" class="nav-link" data-scroll-target="#specialization-vs-generalist-experiments05a_sol3_specialization.py">7.3 Specialization vs generalist — <code>experiments/05a_sol3_specialization.py</code></a></li>
+  <li><a href="#the-costaccuracy-frontier-experiments05a_sol4_cost_accuracy.py" id="toc-the-costaccuracy-frontier-experiments05a_sol4_cost_accuracy.py" class="nav-link" data-scroll-target="#the-costaccuracy-frontier-experiments05a_sol4_cost_accuracy.py">7.4 The cost–accuracy frontier — <code>experiments/05a_sol4_cost_accuracy.py</code></a></li>
+  </ul></li>
+  <li><a href="#further-reading" id="toc-further-reading" class="nav-link" data-scroll-target="#further-reading">8. Further reading</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/05a-multi-agent-systems.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Multi-Agent Systems: When Do More Agents Help?</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+  <div class="quarto-categories">
+    <div class="quarto-category">multi-agent</div>
+    <div class="quarto-category">debate</div>
+    <div class="quarto-category">voting</div>
+    <div class="quarto-category">condorcet</div>
+    <div class="quarto-category">coordination</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    Topic 5, post 1 of 2. Several agents can vote, debate, specialize, or be orchestrated — but more agents means more cost and more ways for errors to compound. We frame multi-agent systems as the problem of combining noisy estimators, prove with the Condorcet jury theorem when voting works, show how correlated errors (shared base models, shared blind spots) cap the gains, and find the honest limits: diversity is the resource, debate can herd, and pipelines compound errors multiplicatively.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Ba-Hien Tran </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 17, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p><img src="../assets/05a-multi-agent-systems.png" class="img-fluid"></p>
+<blockquote class="blockquote">
+<p><em>Topic 5, post 1 of 2.</em></p>
+</blockquote>
+<p>Every post so far has concerned a <em>single</em> agent: how it explores, decides, learns, decodes, searches, calls tools, retrieves, reflects, and knows what it doesn’t know. The obvious next move — the one every framework markets — is to use <em>several</em> agents: a committee that votes, a panel that debates, a pipeline of specialists, a manager that delegates to workers. The promise is that many heads are better than one.</p>
+<p>Sometimes. The honest question this post asks is the one the marketing skips: <strong>when does adding agents actually help, and when does it just multiply cost and compound errors?</strong> The answer turns out to be sharp and largely classical, because a committee of LLMs is an instance of a problem statisticians have studied for two centuries — <em>combining many noisy estimators of the same truth</em>. That framing connects multi-agent systems straight back through this series: voting is <a href="../posts/03a-decoding-as-inference.html">self-consistency</a> across agents, debate is <a href="../posts/04b-self-reflection.html">reflection</a> with peer critics instead of self-critique, and a loud miscalibrated agent is a <a href="../posts/04c-calibration.html">calibration</a> failure that poisons the group.</p>
+<p>We will (§0) lay out the four patterns; (§1) prove the upside with the <strong>Condorcet jury theorem</strong>; (§2) find the catch — <strong>correlated errors</strong> cap everything, so diversity is the real resource; (§3) examine <strong>debate</strong> and when peer pressure helps versus herds; (§4) examine <strong>pipelines and specialization</strong>, where errors compound multiplicatively; and (§5) pull it into design guidance. The recurring lesson: multi-agent systems are not magic, they are variance reduction and labor division, and both have precise conditions under which they pay.</p>
+<hr>
+<section id="four-ways-to-wire-agents-together" class="level2">
+<h2 class="anchored" data-anchor-id="four-ways-to-wire-agents-together">0. Four ways to wire agents together</h2>
+<p>“Multi-agent system” covers several distinct architectures, and conflating them is the first mistake. Four patterns cover most of the space:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_patterns.png" class="img-fluid figure-img"></p>
+<figcaption>Four ways to wire agents together. Ensemble aggregates independent votes; debate has agents revise toward each other over rounds; a pipeline chains specialists in series; an orchestrator decomposes a task and delegates to workers, then integrates.</figcaption>
+</figure>
+</div>
+<ul>
+<li><strong>Ensemble / vote.</strong> Several agents answer the same question independently; aggregate by majority vote (or averaging). This is the multi-agent face of self-consistency from <a href="../posts/03a-decoding-as-inference.html">Post 3a</a> — there the “agents” were independent samples from one model; here they may be different models or differently-prompted instances.</li>
+<li><strong>Debate.</strong> Agents see each other’s answers and revise over several rounds, critiquing and responding. This is <a href="../posts/04b-self-reflection.html">reflection</a> with <em>peer</em> critics rather than self-critique — and, as we will see, that change of critic is exactly what 4b predicted would matter.</li>
+<li><strong>Pipeline (specialists).</strong> Agents work in series, each a specialist for one stage: a planner, then a researcher, then a writer, then a checker. Output flows down the chain.</li>
+<li><strong>Orchestrator–workers.</strong> A manager agent decomposes a task, delegates subtasks to workers (often in parallel), and integrates their results. The hierarchical generalization of the pipeline.</li>
+</ul>
+<p>The first two <strong>aggregate</strong> redundant attempts at the <em>same</em> task (variance reduction); the last two <strong>decompose</strong> a task into <em>different</em> subtasks (labor division). These are fundamentally different value propositions with different failure modes, and the rest of the post takes them in turn.</p>
+<p>The distinction is worth dwelling on because it determines which mathematics applies. Aggregation patterns are governed by the statistics of <strong>combining estimators</strong>: their benefit comes from averaging away independent noise, so they help most when individual agents are decent-but-noisy and their errors are uncorrelated, and they fail when errors correlate (§2). Decomposition patterns are governed by the arithmetic of <strong>reliability in series</strong>: their benefit comes from letting each agent specialize, but they pay a multiplicative reliability tax because every stage must work (§4). A useful diagnostic before reaching for any multi-agent design is to ask which kind of leverage you actually need — <em>“I want a more reliable answer to one hard question”</em> points to aggregation; <em>“I want to accomplish a multi-step task”</em> points to decomposition — because the two need opposite things from their members (diverse redundancy vs.&nbsp;reliable specialization) and degrade in opposite ways.</p>
+<hr>
+</section>
+<section id="the-wisdom-of-crowds-the-condorcet-jury-theorem" class="level2">
+<h2 class="anchored" data-anchor-id="the-wisdom-of-crowds-the-condorcet-jury-theorem">1. The wisdom of crowds: the Condorcet jury theorem</h2>
+<p>Start with voting, because it has a clean and old answer. In 1785 the Marquis de Condorcet proved a result about juries that turns out to govern LLM committees exactly. Suppose <span class="math inline">n</span> agents each answer independently and each is correct with probability <span class="math inline">p</span>. Take the majority vote. Then:</p>
+<ul>
+<li>if <span class="math inline">p &gt; \tfrac12</span> (each agent better than chance), majority-vote accuracy <strong>increases</strong> with <span class="math inline">n</span> and tends to <strong>1</strong> as <span class="math inline">n \to \infty</span>;</li>
+<li>if <span class="math inline">p &lt; \tfrac12</span>, it <strong>decreases</strong> to <strong>0</strong>;</li>
+<li>if <span class="math inline">p = \tfrac12</span>, it stays at <span class="math inline">\tfrac12</span>.</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_condorcet.png" class="img-fluid figure-img"></p>
+<figcaption>The Condorcet jury theorem: majority-vote accuracy versus committee size, for agents of different individual accuracy. Above chance, independent agents vote their way to near-certainty; below chance, to near-certain failure; at exactly chance, nothing changes.</figcaption>
+</figure>
+</div>
+<p>The mechanism is the law of large numbers. Each agent’s answer is a noisy vote for the truth; averaging many independent noisy votes concentrates on the majority tendency, and if that tendency leans even slightly correct (<span class="math inline">p&gt;\tfrac12</span>), enough votes make the correct answer win almost surely. It is the same <span class="math inline">1/\sqrt{n}</span> variance reduction that made self-consistency work in Post 3a — a committee is a self-consistency ensemble whose samples come from different agents.</p>
+<p>A small calculation shows the lift concretely. With three independent agents each correct with probability <span class="math inline">p = 0.6</span>, the majority is correct if at least two are. That probability is <span class="math inline">\binom{3}{2}(0.6)^2(0.4) + (0.6)^3 = 3(0.36)(0.4) + 0.216 = 0.432 + 0.216 = 0.648</span> — a jump from 0.60 to 0.648 for two extra agents. Push to nine agents and the majority-correct probability climbs past 0.73; at 21 agents, past 0.80. The gains are real but <em>sublinear</em> — each doubling of the committee buys a shrinking increment, the same diminishing returns as drawing more Monte Carlo samples, which is why §7.4’s cost analysis matters. The closed form is <span class="math inline">\sum_{k &gt; n/2} \binom{n}{k} p^k (1-p)^{n-k}</span>, the upper tail of a binomial, and its march toward 1 for <span class="math inline">p&gt;\tfrac12</span> is the jury theorem in one line.</p>
+<p>Two consequences deserve emphasis because they are easy to forget in the excitement of “let’s add more agents”:</p>
+<ul>
+<li><strong>The knife-edge at <span class="math inline">p = \tfrac12</span> is unforgiving.</strong> The theorem amplifies whatever tendency exists. A committee of below-chance agents is <em>worse</em> than one agent — voting drives them confidently to the wrong answer. Adding agents is not a way to fix a bad base model; it sharpens whatever the base model already leans toward.</li>
+<li><strong>It assumes independence.</strong> Every word of the theorem rests on the votes being independent. That assumption is where LLM committees fall apart, and it is the subject of the next section.</li>
+</ul>
+<p>It is worth pausing on how strong the independence assumption is, because the theorem is often quoted as if “more voters help” were unconditional. The proof needs the votes to be independent <em>conditional on the truth</em> — agent A being wrong tells you nothing about whether agent B is wrong. For human juries deliberating separately that is roughly plausible; for LLM agents it is close to false by construction, because the thing that makes one instance wrong on a question (a gap in training data, a misleading surface pattern, a common misconception) is usually present for every instance built from the same model. The theorem is not wrong — it is just answering a question (“what if errors are independent?”) whose premise rarely holds for clones. Holding the premise up to the light is what the next section does, and it is the difference between the textbook promise of certainty and the disappointing plateau real committees hit.</p>
+<hr>
+</section>
+<section id="diversity-is-the-resource" class="level2">
+<h2 class="anchored" data-anchor-id="diversity-is-the-resource">2. Diversity is the resource</h2>
+<p>Real agents are not independent. If your “committee” is five copies of the same model with the same prompt, they will tend to be right together and — fatally — <em>wrong together</em>, making the same mistakes on the same inputs. The Condorcet magic evaporates when errors are correlated, and quantifying that is the most important practical result in this post.</p>
+<p>Model it with a single knob: let <span class="math inline">\rho</span> be the fraction of items on which the agents fail (or succeed) <strong>in lockstep</strong> — all giving the same answer — because they share blind spots, while on the remaining <span class="math inline">1-\rho</span> they answer independently. Then majority-vote accuracy is capped, no matter how many agents you add, at</p>
+<p><span class="math display">
+\text{accuracy}_{\infty} \;=\; 1 - \rho\,(1 - p).
+</span></p>
+<p>The lockstep items can only be answered as well as a single agent (<span class="math inline">p</span>); only the independent items get the Condorcet boost toward 1.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_correlation_kills_voting.png" class="img-fluid figure-img"></p>
+<figcaption>Correlated errors cap voting (individual accuracy p = 0.6). Independent committees (ρ = 0) climb toward 1; correlated ones plateau at 1 − ρ(1−p), shown dotted, however many agents you add. At ρ = 0.9 — near-clones — forty agents barely beat one.</figcaption>
+</figure>
+</div>
+<p>The plateau is brutal at high correlation: near-clone agents (<span class="math inline">\rho = 0.9</span>) get essentially nothing from a committee of forty. The right way to think about it is <strong>effective sample size</strong>. A committee of <span class="math inline">n</span> equicorrelated agents carries the information of only</p>
+<p><span class="math display">
+n_{\text{eff}} \;=\; \frac{n}{1 + (n-1)\rho}
+</span></p>
+<p>independent ones — the same formula that governs correlated measurements anywhere in statistics. It comes straight from variance: averaging <span class="math inline">n</span> unit-variance estimators with pairwise correlation <span class="math inline">\rho</span> gives variance <span class="math inline">\frac{1}{n} + \frac{n-1}{n}\rho</span> rather than the <span class="math inline">\frac{1}{n}</span> you’d get if they were independent, and <span class="math inline">n_{\text{eff}}</span> is just the independent count that would yield the same variance. Two limits make it memorable: at <span class="math inline">\rho = 0</span>, <span class="math inline">n_{\text{eff}} = n</span> (full credit for every agent); as <span class="math inline">n \to \infty</span> with <span class="math inline">\rho &gt; 0</span> fixed, <span class="math inline">n_{\text{eff}} \to 1/\rho</span> — a <em>hard ceiling</em> on effective votes no matter how many agents you recruit. At <span class="math inline">\rho = 0.1</span>, forty agents are worth about eight; at <span class="math inline">\rho = 0.5</span>, worth two; and you can never exceed ten effective votes at <span class="math inline">\rho = 0.1</span> even with a million agents. This is the quantitative heart of “<strong>diversity is the resource</strong>”: the value of a committee is set not by its size but by the independence of its members’ errors.</p>
+<p>For LLM agents specifically, correlation is the <em>default</em>, not the exception, because the usual sources of independence are absent: the agents often share a <strong>base model</strong> (identical weights, identical biases), share <strong>training data</strong> (so they are fooled by the same myths and the same adversarial phrasings), and share a <strong>prompt</strong> (so they are anchored the same way). Genuine diversity has to be engineered, and the levers are concrete: <strong>different base models</strong> (the strongest lever — different architectures and training data fail differently), <strong>different prompts or personas</strong> (a “skeptic” and an “optimist” make different errors), <strong>different tools or context</strong> (an agent with web search errs differently from one reasoning from memory), and <strong>different temperatures or decompositions</strong>. Every bit of shared machinery pushes <span class="math inline">\rho</span> back up, so a committee of GPT-clones answering with the same prompt is close to one agent wearing five hats. The practical takeaway inverts the naive intuition: <strong>past a handful of genuinely diverse agents, buy diversity, not headcount.</strong></p>
+<hr>
+</section>
+<section id="debate-reflection-with-peer-critics" class="level2">
+<h2 class="anchored" data-anchor-id="debate-reflection-with-peer-critics">3. Debate: reflection with peer critics</h2>
+<p>Voting is non-interactive — agents never see each other. <strong>Debate</strong> lets them: each agent reads the others’ current answers and revises, over several rounds. The hope is that exposing reasoning lets agents catch each other’s errors and converge on truth, and there is real evidence it can help (Du et al.&nbsp;2023). But notice what debate <em>is</em> in the vocabulary of this series: it is the reflection loop of <a href="../posts/04b-self-reflection.html">Post 4b</a>, with the critic being <em>other agents</em> instead of the model itself. And 4b’s central finding — reflection helps only when the critic discriminates better than the generator, and external feedback beats self-critique — tells us exactly what to expect. Peer critics are a step up from self-critique (a different model may catch what you can’t), but they are still fallible critics, and debate inherits reflection’s failure mode: <strong>herding</strong>.</p>
+<p>Herding is the conformity trap. When agents revise toward the current majority, they can converge on a <em>confident wrong</em> consensus, and — worse — the very act of converging destroys the diversity that voting relied on. A debate that reaches unanimity has an effective sample size of one.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_debate_vs_voting.png" class="img-fluid figure-img"></p>
+<figcaption>Debate versus one-shot voting (9 agents, individual accuracy 0.58), as the conformity rate grows. Moderate conformity combined with genuine reconsideration beats the one-shot vote; but as conformity rises toward 1 the committee herds onto whatever the early plurality was, and the advantage evaporates back to the single-agent level.</figcaption>
+</figure>
+</div>
+<p>The curve tells the whole story. With <em>moderate</em> conformity and genuine reconsideration each round, debate accumulates evidence and beats one-shot voting — the peer critique adds real information, just as 4b’s informative external feedback did. But as conformity climbs, the committee collapses to consensus before the evidence is in, freezing on the early plurality and throwing away the independence that made the crowd wise. There is a sweet spot, and it is not “agree as much as possible.”</p>
+<p>This is also where <a href="../posts/04c-calibration.html">calibration</a> re-enters with teeth. In a debate, a <em>confidently wrong</em> agent is maximally dangerous: its unwavering assertiveness pulls conformist peers toward its error, exactly the over-correction dynamic of 4b and the loud-miscalibrated-agent failure of 4c, now at the group level. A single stubborn, miscalibrated participant can drag a committee that started correct toward a wrong consensus — sycophancy and conformity are not just social foibles, they are mathematically how a debate loses information. The defenses mirror the single-agent lessons: keep critics diverse (lower <span class="math inline">\rho</span>), don’t over-weight confident assertions (calibration), and prefer external verification over persuasion (4b) — a debate grounded in a tool result or a runnable test cannot be herded by rhetoric.</p>
+<p>There is a clean way to see why debate is <em>strictly riskier</em> than voting on the diversity axis. Voting reads the agents’ independent opinions once, at maximum diversity, and aggregates. Debate lets the opinions <em>influence each other before</em> aggregation, which can only reduce their diversity — interaction is a force that drives <span class="math inline">\rho</span> up over rounds, toward the consensus limit where <span class="math inline">n_{\text{eff}} \to 1</span>. So debate is making a bet: that the information peers exchange (catching each other’s specific errors) outweighs the independence they spend by converging. When peers genuinely discriminate — different models catching different mistakes, or a debate anchored in verifiable evidence — the bet pays. When they merely conform, debate pays the diversity cost and gets nothing for it, landing below where a simple vote would have. This reframes the practitioner’s question from “should agents debate?” to “do my agents add more information by interacting than they lose in independence?” — and for clones sharing a base model and prompt, the answer is usually no.</p>
+<hr>
+</section>
+<section id="pipelines-and-specialization-when-labor-division-pays" class="level2">
+<h2 class="anchored" data-anchor-id="pipelines-and-specialization-when-labor-division-pays">4. Pipelines and specialization: when labor division pays</h2>
+<p>The aggregation patterns (vote, debate) attack the <em>same</em> task redundantly. Pipelines and orchestrators do something different: they <strong>decompose</strong> a task into different subtasks handled by different agents. The promise is specialization — a dedicated planner, researcher, writer, and checker, each better at its job than a generalist. The peril is that they are wired <em>in series</em>, and series wiring compounds errors.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_pipeline_compounding.png" class="img-fluid figure-img"></p>
+<figcaption>Pipeline reliability is the product of per-stage reliabilities, p^L. Even agents that succeed 95% of the time per stage fall below 60% end-to-end across a dozen stages — a chain of agents is only as strong as the product of its links.</figcaption>
+</figure>
+</div>
+<p>If every stage must succeed for the task to succeed, end-to-end reliability is <span class="math inline">p^L</span> for <span class="math inline">L</span> stages — the same multiplicative error-compounding cliff we met for long-horizon tool use in <a href="../posts/03b-tool-use.html">Post 3b</a>. The arithmetic is unforgiving: a pipeline of four 90%-reliable agents succeeds only <span class="math inline">0.9^4 \approx 66\%</span> of the time; ten stages at 95% each is still only <span class="math inline">0.95^{10} \approx 60\%</span>. <strong>Adding stages is adding risk</strong>, and the instinct to decompose a task into ever-finer specialist roles can quietly make the system <em>less</em> reliable than a single capable generalist that does the whole thing in one coherent pass.</p>
+<p>So when does specialization actually win? When the per-subtask skill gain from specializing outruns the <strong>coordination tax</strong> of handing off between stages. Modeling each of the <span class="math inline">L-1</span> handoffs as succeeding with probability <span class="math inline">h</span> (context gets lost, formats mismatch, the next agent misreads the last one’s output), a specialist pipeline achieves <span class="math inline">s^L h^{L-1}</span> against a generalist’s <span class="math inline">g^L</span>:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_sol3_specialization.png" class="img-fluid figure-img"></p>
+<figcaption>When specialization beats a generalist (4 subtasks). Specialists (per-subtask accuracy s) overtake the generalist (per-subtask g = 0.8) only when their skill edge is large enough to overcome the handoff tax h^(L−1). With lossy handoffs (h = 0.85) the specialists need to be much better just to break even.</figcaption>
+</figure>
+</div>
+<p>The crossover makes the condition concrete: specialists must be enough better at their narrow jobs to pay for the handoffs. When handoffs are clean (<span class="math inline">h \approx 1</span>) a modest skill edge suffices; when handoffs are lossy, specialists can be substantially better per-subtask and still lose end-to-end. A worked case sharpens it: with four subtasks, a generalist at <span class="math inline">g = 0.8</span> per subtask achieves <span class="math inline">0.8^4 \approx 0.41</span>. Specialists at <span class="math inline">s = 0.9</span> with perfect handoffs achieve <span class="math inline">0.9^4 \approx 0.66</span> — a clear win. But drop the handoff reliability to <span class="math inline">h = 0.85</span> and the same specialists get <span class="math inline">0.9^4 \cdot 0.85^3 \approx 0.40</span> — <em>below the generalist</em>, despite each being meaningfully better at its own subtask. The three lossy handoffs (<span class="math inline">0.85^3 \approx 0.61</span>) erased the entire specialization advantage. This is why the most reliable real systems keep pipelines <em>short</em>, invest heavily in clean handoff formats (structured outputs, shared scratchpads, explicit context passing), and add a verification stage — because the cheapest way to fight <span class="math inline">p^L</span> is to raise each <span class="math inline">p</span> toward 1, which usually means grounding stages in tools and checks rather than adding more agents.</p>
+<p>The <strong>orchestrator–workers</strong> pattern is the hierarchical generalization, and it inherits both properties. Parallel workers (an orchestrator fanning out independent subtasks) compound less than a serial pipeline — independent subtasks don’t multiply each other’s failure the same way — but the orchestrator’s decomposition and integration steps are themselves stages that can fail, and the orchestrator is a single point of failure for the whole plan. The design lesson is the same: every agent you add is a stage that must work, so add agents only when the decomposition genuinely buys more than the coordination it costs.</p>
+<p>It is worth being precise about the parallel-versus-serial distinction, because it is the one structural choice that most changes a multi-agent system’s reliability. In a <strong>serial</strong> pipeline of <span class="math inline">L</span> stages each reliable with probability <span class="math inline">p</span>, <em>every</em> stage must succeed, so end-to-end reliability is <span class="math inline">p^L</span> — failure compounds. In a <strong>parallel</strong> fan-out where <span class="math inline">L</span> independent subtasks are each attempted once and all must succeed, the reliability is also <span class="math inline">p^L</span> (all must work), but the failures are <em>independent rather than sequential</em>, which matters for a subtler reason: a parallel subtask can be <strong>retried or voted on in isolation</strong> without re-running the whole chain, whereas a serial pipeline often has to restart from the failed stage with all the downstream context invalidated. And when the parallel subtasks are <em>redundant</em> rather than <em>complementary</em> — several workers attempting the same subtask — you are back in aggregation territory and reliability <em>rises</em> with workers (<span class="math inline">1 - (1-p)^L</span> if any-success suffices) instead of falling. So “parallel” spans both the best case (redundant workers, reliability climbing toward 1) and a compounding case (complementary subtasks, all required), and a good orchestrator design pushes toward the former: decompose so that subtasks are independently checkable and, where it matters, redundantly attempted. The orchestrator’s own decomposition step, though, has no redundancy by default — a bad plan dooms every worker downstream — which is why the integration-and-verification step at the end (a checker that can reject and re-plan) is the highest-value agent to add to any orchestrator system. It converts a single-point-of-failure plan into a loop with a chance to recover, the multi-agent echo of the reflection loop from Post 4b.</p>
+<p>There is a unifying way to see what a good orchestrator is doing, and it ties this topic back to the Bayesian thread of the series. An orchestrator’s job — decide which worker or tool to invoke, with what subtask, and when to stop — is a sequence of decisions under uncertainty, and the principled version is the <strong>Bayesian control</strong> view that closed Post 4c: the orchestrator maintains a calibrated <em>belief</em> about the state of the task (which subgoals are done, how reliable each worker is, how likely the current draft is correct) and chooses each next action by <em>expected utility</em> — routing to the worker with the highest expected value, and spending another call (a worker, a vote, a verification pass) only when its expected improvement outweighs its cost. The voting, debate, and pipeline choices of this post are then not separate tricks but actions a Bayesian controller selects among: vote when independent evidence is cheap and beliefs are uncertain, verify when a stage’s reliability is in doubt, stop when the belief is confident enough that more compute isn’t worth it. A recent position paper (Papamarkou et al., 2026) argues exactly this — that the orchestration layer, not the LLM weights, is where Bayesian decision-making belongs, with the models and tools left as black-box predictors underneath. Our series reaches the same conclusion constructively: every “when should the agent do X?” rule we derived (call a tool in 3b, retrieve in 4a, reflect in 4b, defer in 4c) is one expected-utility decision, and an orchestrator is just the controller that makes all of them in sequence.</p>
+<hr>
+</section>
+<section id="a-practical-guide-to-multi-agent-design" class="level2">
+<h2 class="anchored" data-anchor-id="a-practical-guide-to-multi-agent-design">5. A practical guide to multi-agent design</h2>
+<p>The analysis collapses into a short set of rules, cheapest and most reliable first:</p>
+<ul>
+<li><strong>Default to one good agent.</strong> Multi-agent systems multiply cost and failure surface. Reach for them only when a single agent — with tools, retrieval, and reflection — is genuinely insufficient, and measure that it is.</li>
+<li><strong>For hard judgment calls, vote — but engineer diversity.</strong> Independent voting is the most robust multi-agent pattern (it cannot herd). Its value is set by <span class="math inline">\rho</span>, so spend on <em>diverse</em> members: different models, prompts, personas, tools. A few diverse agents beat many clones.</li>
+<li><strong>Use debate sparingly and ground it.</strong> Debate can beat voting when peers add genuine information, but it herds under conformity and is poisoned by confident wrong agents. Keep rounds few, keep participants diverse, and anchor the debate in external verification (a test, a tool, a retrieved fact) rather than persuasion.</li>
+<li><strong>Keep pipelines short and handoffs clean.</strong> Reliability is <span class="math inline">p^L</span>; every stage is risk. Minimize stages, use structured handoffs, raise each stage’s reliability with tools and checks before adding more specialists.</li>
+<li><strong>Specialize only when the skill edge beats the coordination tax.</strong> Division of labor pays when subtasks are genuinely separable and specialists are clearly better at their part — not as a reflex.</li>
+<li><strong>Watch the cost–accuracy frontier.</strong> Cost grows linearly with agents; accuracy saturates. The cost-effective committee is small.</li>
+</ul>
+<p>The meta-point ties the topic to everything before it: a multi-agent system is a way of <em>combining</em> the single-agent capabilities we spent four topics building, and the combination is governed by the same forces — variance reduction needs independence, sequential reliability compounds, and confident-but-wrong signals corrupt aggregation. More agents is a tool, not a goal.</p>
+<p>To see the rules in action, consider a concrete choice: <em>“Should I answer hard factual questions with a 7-agent debate?”</em> Walk it through. Is the need aggregation or decomposition? Aggregation — it’s one hard question, not a multi-step task — so the relevant math is §2’s correlation, not §4’s compounding. Are the agents diverse? If they are seven instances of one model with one prompt, <span class="math inline">\rho</span> is high and <span class="math inline">n_{\text{eff}}</span> is barely above 1, so seven agents will scarcely beat one — the answer is to spend the budget on <em>diversity</em> (different models, a skeptic/proponent split, one agent with retrieval) rather than count. Should they debate or vote? Debate spends diversity to exchange information (§3); for factual questions a <em>retrieval-grounded</em> exchange can genuinely help, but an ungrounded debate among clones will likely herd, so prefer voting unless the agents can cite external evidence. And is seven the right number? §7.4 says the marginal gain is near-dead past a handful, so three-to-five diverse, retrieval-grounded agents voting is almost certainly better than seven clones debating — at lower cost. Every step of that reasoning is one of the rules above; the value of the framework is that it turns “more agents sounds good” into a sequence of answerable questions.</p>
+<hr>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">6. Experiments to actually run</h2>
+<section id="effective-votes-under-correlation" class="level3">
+<h3 class="anchored" data-anchor-id="effective-votes-under-correlation">6.1 Effective votes under correlation</h3>
+<p>Compute <span class="math inline">n_{\text{eff}} = n/(1+(n-1)\rho)</span> across <span class="math inline">\rho</span> for several committee sizes. How fast does correlation collapse a large committee?</p>
+</section>
+<section id="herding-in-debate" class="level3">
+<h3 class="anchored" data-anchor-id="herding-in-debate">6.2 Herding in debate</h3>
+<p>Track majority-vote accuracy across debate rounds for moderate vs high conformity, with and without a stubborn faction. When does interaction help, and when does it freeze the committee?</p>
+</section>
+<section id="specialization-vs-generalist" class="level3">
+<h3 class="anchored" data-anchor-id="specialization-vs-generalist">6.3 Specialization vs generalist</h3>
+<p>Sweep specialist skill against a generalist baseline for several handoff reliabilities. Where is the crossover?</p>
+</section>
+<section id="the-costaccuracy-frontier" class="level3">
+<h3 class="anchored" data-anchor-id="the-costaccuracy-frontier">6.4 The cost–accuracy frontier</h3>
+<p>Plot accuracy and marginal accuracy-per-agent against committee size, for independent and correlated committees. Where do the returns die?</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">7. Solutions</h2>
+<section id="effective-votes-under-correlation-experiments05a_sol1_effective_votes.py" class="level3">
+<h3 class="anchored" data-anchor-id="effective-votes-under-correlation-experiments05a_sol1_effective_votes.py">7.1 Effective votes under correlation — <code>experiments/05a_sol1_effective_votes.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_sol1_effective_votes.png" class="img-fluid figure-img"></p>
+<figcaption>Effective number of independent votes n_eff = n/(1+(n−1)ρ) versus error correlation, for several committee sizes (log scale). Forty correlated agents at ρ = 0.1 are worth about eight independent ones; at ρ = 0.5, about two.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> <span class="math inline">n_{\text{eff}}</span> falls off a cliff in <span class="math inline">\rho</span>: even mild correlation slashes a large committee’s effective size, and by <span class="math inline">\rho = 0.5</span> almost all committees — whether 5 or 40 agents — are worth only one to two independent votes. The lines converge, meaning that under real correlation, <em>committee size stops mattering</em> and only diversity does.</p>
+<p><strong>The deeper lesson.</strong> This is the single number to internalize about multi-agent voting. The benefit of a committee is not <span class="math inline">n</span>, it is <span class="math inline">n_{\text{eff}}</span>, and <span class="math inline">n_{\text{eff}}</span> is governed by the correlation you usually can’t see. It is the same arithmetic as self-consistency’s diminishing returns (Post 3a) and deep ensembles’ calibration gains (Post 4c) — independent errors are a scarce resource, and shared base models spend it fast. Before scaling a committee, ask not “how many agents?” but “how independent are their mistakes?”</p>
+</section>
+<section id="herding-in-debate-experiments05a_sol2_herding.py" class="level3">
+<h3 class="anchored" data-anchor-id="herding-in-debate-experiments05a_sol2_herding.py">7.2 Herding in debate — <code>experiments/05a_sol2_herding.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_sol2_herding.png" class="img-fluid figure-img"></p>
+<figcaption>Majority-vote accuracy across debate rounds (9 agents, p = 0.6). With moderate conformity and no stubborn agents, accuracy climbs above the round-0 vote. With high conformity — with or without a stubborn faction — the committee freezes at its initial vote, forfeiting the gains genuine reconsideration would bring.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The moderate-conformity committee improves round over round — peers genuinely informing each other. The high-conformity committees flatline at the round-0 accuracy: everyone copies the early plurality immediately, so no new evidence enters and the debate is over before it began. The stubborn faction makes it no better.</p>
+<p><strong>The deeper lesson.</strong> Debate’s value comes from <em>reconsideration</em>, not <em>agreement</em> — the same distinction as 4b’s “the value is in the content of the critique, not the round count.” Conformity feels like progress (the committee is converging!) while actually destroying the independence that made the crowd worth consulting. The instinct to drive a multi-agent system toward consensus is often exactly wrong: a committee that agrees too fast has thrown away its own wisdom.</p>
+</section>
+<section id="specialization-vs-generalist-experiments05a_sol3_specialization.py" class="level3">
+<h3 class="anchored" data-anchor-id="specialization-vs-generalist-experiments05a_sol3_specialization.py">7.3 Specialization vs generalist — <code>experiments/05a_sol3_specialization.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_sol3_specialization.png" class="img-fluid figure-img"></p>
+<figcaption>End-to-end success of a 4-stage specialist pipeline versus a generalist (g = 0.8 per subtask), as specialist skill rises, for three handoff reliabilities. Specialists overtake the generalist only past a crossover that moves right as handoffs get lossier.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> With perfect handoffs (<span class="math inline">h = 1</span>), specialists need only a small per-subtask edge to beat the generalist. As handoffs degrade to <span class="math inline">h = 0.85</span>, the crossover shifts far right — specialists must be dramatically better just to break even, because the <span class="math inline">h^{L-1}</span> coordination tax eats their advantage.</p>
+<p><strong>The deeper lesson.</strong> Decomposition is not free. Every handoff is a lossy channel — context dropped, formats mismatched, the next agent misreading the last — and those losses compound exactly like the pipeline’s <span class="math inline">p^L</span>. This is why “just add a specialized agent for X” so often disappoints: the specialist may be better at X, but the wiring tax can swallow the gain. Specialize when subtasks are cleanly separable and the skill edge is large; otherwise a coherent generalist that never has to hand off wins.</p>
+</section>
+<section id="the-costaccuracy-frontier-experiments05a_sol4_cost_accuracy.py" class="level3">
+<h3 class="anchored" data-anchor-id="the-costaccuracy-frontier-experiments05a_sol4_cost_accuracy.py">7.4 The cost–accuracy frontier — <code>experiments/05a_sol4_cost_accuracy.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="../figures/05a_sol4_cost_accuracy.png" class="img-fluid figure-img"></p>
+<figcaption>Left: majority-vote accuracy versus committee size for independent (ρ=0) and correlated (ρ=0.3) committees — both saturating while cost grows linearly. Right: marginal accuracy per added agent, which collapses toward zero within a handful of agents.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Accuracy rises steeply for the first few agents then flattens, while cost (committee size) grows linearly forever. The marginal-gain panel makes the verdict explicit: the accuracy added by each new agent collapses fast, and faster still when errors are correlated — the correlated committee’s marginal gain is near zero almost immediately.</p>
+<p><strong>The deeper lesson.</strong> The economically right committee is small. Because benefit saturates (<span class="math inline">1/\sqrt{n}</span>-ish) while cost is linear, the cost-effectiveness peaks at a handful of agents and declines from there; a 40-agent committee pays 40× for accuracy a 5-agent committee nearly matched. Combined with §7.1, the guidance is unambiguous: a few genuinely diverse agents capture almost all the available benefit, and everything past that is mostly burning compute.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">8. Further reading</h2>
+<ul>
+<li><strong>Condorcet, “Essai sur l’application de l’analyse à la probabilité des décisions” (1785).</strong> The jury theorem, two centuries before LLMs made it newly relevant.</li>
+<li><strong>Du et al., “Improving Factuality and Reasoning in Language Models through Multiagent Debate” (2023).</strong> Debate improves answers — the upside of §3, with the caveats this post quantifies.</li>
+<li><strong>Wang et al., “Self-Consistency Improves Chain of Thought Reasoning” (2022).</strong> Voting over samples; the single-model ancestor of the committee (Post 3a).</li>
+<li><strong>Du Bois / Lakshminarayanan et al.&nbsp;on ensembles (NeurIPS 2017).</strong> Why diversity drives ensemble gains — the correlation story of §2, from the ML side.</li>
+<li><strong>Hong et al., “MetaGPT” (2023) and Wu et al., “AutoGen” (2023).</strong> Orchestrator–worker and role-specialized frameworks; the engineering face of §4, including the handoff-format problem.</li>
+<li><strong>Anthropic, “Building effective agents” (2024).</strong> A practitioner’s argument for preferring simple, single-agent designs until multi-agent complexity is demonstrably warranted — the §5 default, in practice.</li>
+<li><strong>Papamarkou et al., “Position: Agentic AI Orchestration Should Be Bayes-Consistent” (2026).</strong> Argues that the control layer orchestrating LLMs and tools should maintain calibrated beliefs and select actions by expected utility / value of information — the Bayesian-controller view of §4 and the through-line into Post 5b.</li>
+</ul>
+<hr>
+<p><strong>Next up — Post 5b: The nanoAgent reference implementation.</strong> We have built every piece from the ground up — bandits and exploration, MDPs and value, policy gradients and RLHF, decoding and search, tools, retrieval, reflection, calibration, and now coordination. The final post wires them into <strong>nanoAgent</strong>: a small, readable, from-scratch agent that plans, calls tools, retrieves, reflects, and knows when it is unsure — the whole curriculum assembled into something you can run, read end to end, and extend.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Multi-Agent {Systems:} {When} {Do} {More} {Agents} {Help?}},
+  date = {2026-06-17},
+  url = {https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html},
+  langid = {en}
+}
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
+Tran, Ba-Hien. 2026. <span>“Multi-Agent Systems: When Do More Agents
+Help?”</span> June 17. <a href="https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html">https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html</a>.
+</div></div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/tranbahien\.github\.io\/nano-agents");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Multi-Agent Systems: When Do More Agents Help?"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Topic 5, post 1 of 2. Several agents can vote, debate, specialize, or be orchestrated — but more agents means more cost and more ways for errors to compound. We frame multi-agent systems as the problem of combining noisy estimators, prove with the Condorcet jury theorem when voting works, show how correlated errors (shared base models, shared blind spots) cap the gains, and find the honest limits: diversity is the resource, debate can herd, and pipelines compound errors multiplicatively."</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-06-17"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [multi-agent, debate, voting, condorcet, coordination]</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../assets/05a-multi-agent-systems.png</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="al">![](../assets/05a-multi-agent-systems.png)</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Topic 5, post 1 of 2.*</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>Every post so far has concerned a *single* agent: how it explores, decides, learns, decodes, searches, calls tools, retrieves, reflects, and knows what it doesn't know. The obvious next move — the one every framework markets — is to use *several* agents: a committee that votes, a panel that debates, a pipeline of specialists, a manager that delegates to workers. The promise is that many heads are better than one.</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>Sometimes. The honest question this post asks is the one the marketing skips: **when does adding agents actually help, and when does it just multiply cost and compound errors?** The answer turns out to be sharp and largely classical, because a committee of LLMs is an instance of a problem statisticians have studied for two centuries — *combining many noisy estimators of the same truth*. That framing connects multi-agent systems straight back through this series: voting is <span class="co">[</span><span class="ot">self-consistency</span><span class="co">](03a-decoding-as-inference.qmd)</span> across agents, debate is <span class="co">[</span><span class="ot">reflection</span><span class="co">](04b-self-reflection.qmd)</span> with peer critics instead of self-critique, and a loud miscalibrated agent is a <span class="co">[</span><span class="ot">calibration</span><span class="co">](04c-calibration.qmd)</span> failure that poisons the group.</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>We will (§0) lay out the four patterns; (§1) prove the upside with the **Condorcet jury theorem**; (§2) find the catch — **correlated errors** cap everything, so diversity is the real resource; (§3) examine **debate** and when peer pressure helps versus herds; (§4) examine **pipelines and specialization**, where errors compound multiplicatively; and (§5) pull it into design guidance. The recurring lesson: multi-agent systems are not magic, they are variance reduction and labor division, and both have precise conditions under which they pay.</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">## 0. Four ways to wire agents together</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>"Multi-agent system" covers several distinct architectures, and conflating them is the first mistake. Four patterns cover most of the space:</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="al">![Four ways to wire agents together. Ensemble aggregates independent votes; debate has agents revise toward each other over rounds; a pipeline chains specialists in series; an orchestrator decomposes a task and delegates to workers, then integrates.](../figures/05a_patterns.png)</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Ensemble / vote.** Several agents answer the same question independently; aggregate by majority vote (or averaging). This is the multi-agent face of self-consistency from <span class="co">[</span><span class="ot">Post 3a</span><span class="co">](03a-decoding-as-inference.qmd)</span> — there the "agents" were independent samples from one model; here they may be different models or differently-prompted instances.</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Debate.** Agents see each other's answers and revise over several rounds, critiquing and responding. This is <span class="co">[</span><span class="ot">reflection</span><span class="co">](04b-self-reflection.qmd)</span> with *peer* critics rather than self-critique — and, as we will see, that change of critic is exactly what 4b predicted would matter.</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Pipeline (specialists).** Agents work in series, each a specialist for one stage: a planner, then a researcher, then a writer, then a checker. Output flows down the chain.</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Orchestrator–workers.** A manager agent decomposes a task, delegates subtasks to workers (often in parallel), and integrates their results. The hierarchical generalization of the pipeline.</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>The first two **aggregate** redundant attempts at the *same* task (variance reduction); the last two **decompose** a task into *different* subtasks (labor division). These are fundamentally different value propositions with different failure modes, and the rest of the post takes them in turn.</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>The distinction is worth dwelling on because it determines which mathematics applies. Aggregation patterns are governed by the statistics of **combining estimators**: their benefit comes from averaging away independent noise, so they help most when individual agents are decent-but-noisy and their errors are uncorrelated, and they fail when errors correlate (§2). Decomposition patterns are governed by the arithmetic of **reliability in series**: their benefit comes from letting each agent specialize, but they pay a multiplicative reliability tax because every stage must work (§4). A useful diagnostic before reaching for any multi-agent design is to ask which kind of leverage you actually need — *"I want a more reliable answer to one hard question"* points to aggregation; *"I want to accomplish a multi-step task"* points to decomposition — because the two need opposite things from their members (diverse redundancy vs. reliable specialization) and degrade in opposite ways.</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="fu">## 1. The wisdom of crowds: the Condorcet jury theorem</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>Start with voting, because it has a clean and old answer. In 1785 the Marquis de Condorcet proved a result about juries that turns out to govern LLM committees exactly. Suppose $n$ agents each answer independently and each is correct with probability $p$. Take the majority vote. Then:</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>if $p &gt; \tfrac12$ (each agent better than chance), majority-vote accuracy **increases** with $n$ and tends to **1** as $n \to \infty$;</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>if $p &lt; \tfrac12$, it **decreases** to **0**;</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>if $p = \tfrac12$, it stays at $\tfrac12$.</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="al">![The Condorcet jury theorem: majority-vote accuracy versus committee size, for agents of different individual accuracy. Above chance, independent agents vote their way to near-certainty; below chance, to near-certain failure; at exactly chance, nothing changes.](../figures/05a_condorcet.png)</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>The mechanism is the law of large numbers. Each agent's answer is a noisy vote for the truth; averaging many independent noisy votes concentrates on the majority tendency, and if that tendency leans even slightly correct ($p&gt;\tfrac12$), enough votes make the correct answer win almost surely. It is the same $1/\sqrt{n}$ variance reduction that made self-consistency work in Post 3a — a committee is a self-consistency ensemble whose samples come from different agents.</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>A small calculation shows the lift concretely. With three independent agents each correct with probability $p = 0.6$, the majority is correct if at least two are. That probability is $\binom{3}{2}(0.6)^2(0.4) + (0.6)^3 = 3(0.36)(0.4) + 0.216 = 0.432 + 0.216 = 0.648$ — a jump from 0.60 to 0.648 for two extra agents. Push to nine agents and the majority-correct probability climbs past 0.73; at 21 agents, past 0.80. The gains are real but *sublinear* — each doubling of the committee buys a shrinking increment, the same diminishing returns as drawing more Monte Carlo samples, which is why §7.4's cost analysis matters. The closed form is $\sum_{k &gt; n/2} \binom{n}{k} p^k (1-p)^{n-k}$, the upper tail of a binomial, and its march toward 1 for $p&gt;\tfrac12$ is the jury theorem in one line.</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>Two consequences deserve emphasis because they are easy to forget in the excitement of "let's add more agents":</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**The knife-edge at $p = \tfrac12$ is unforgiving.** The theorem amplifies whatever tendency exists. A committee of below-chance agents is *worse* than one agent — voting drives them confidently to the wrong answer. Adding agents is not a way to fix a bad base model; it sharpens whatever the base model already leans toward.</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**It assumes independence.** Every word of the theorem rests on the votes being independent. That assumption is where LLM committees fall apart, and it is the subject of the next section.</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>It is worth pausing on how strong the independence assumption is, because the theorem is often quoted as if "more voters help" were unconditional. The proof needs the votes to be independent *conditional on the truth* — agent A being wrong tells you nothing about whether agent B is wrong. For human juries deliberating separately that is roughly plausible; for LLM agents it is close to false by construction, because the thing that makes one instance wrong on a question (a gap in training data, a misleading surface pattern, a common misconception) is usually present for every instance built from the same model. The theorem is not wrong — it is just answering a question ("what if errors are independent?") whose premise rarely holds for clones. Holding the premise up to the light is what the next section does, and it is the difference between the textbook promise of certainty and the disappointing plateau real committees hit.</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a><span class="fu">## 2. Diversity is the resource</span></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>Real agents are not independent. If your "committee" is five copies of the same model with the same prompt, they will tend to be right together and — fatally — *wrong together*, making the same mistakes on the same inputs. The Condorcet magic evaporates when errors are correlated, and quantifying that is the most important practical result in this post.</span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>Model it with a single knob: let $\rho$ be the fraction of items on which the agents fail (or succeed) **in lockstep** — all giving the same answer — because they share blind spots, while on the remaining $1-\rho$ they answer independently. Then majority-vote accuracy is capped, no matter how many agents you add, at</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>\text{accuracy}_{\infty} \;=\; 1 - \rho\,(1 - p).</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>The lockstep items can only be answered as well as a single agent ($p$); only the independent items get the Condorcet boost toward 1.</span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a><span class="al">![Correlated errors cap voting (individual accuracy p = 0.6). Independent committees (ρ = 0) climb toward 1; correlated ones plateau at 1 − ρ(1−p), shown dotted, however many agents you add. At ρ = 0.9 — near-clones — forty agents barely beat one.](../figures/05a_correlation_kills_voting.png)</span></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>The plateau is brutal at high correlation: near-clone agents ($\rho = 0.9$) get essentially nothing from a committee of forty. The right way to think about it is **effective sample size**. A committee of $n$ equicorrelated agents carries the information of only</span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>n_{\text{eff}} \;=\; \frac{n}{1 + (n-1)\rho}</span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>$$</span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a>independent ones — the same formula that governs correlated measurements anywhere in statistics. It comes straight from variance: averaging $n$ unit-variance estimators with pairwise correlation $\rho$ gives variance $\frac{1}{n} + \frac{n-1}{n}\rho$ rather than the $\frac{1}{n}$ you'd get if they were independent, and $n_{\text{eff}}$ is just the independent count that would yield the same variance. Two limits make it memorable: at $\rho = 0$, $n_{\text{eff}} = n$ (full credit for every agent); as $n \to \infty$ with $\rho &gt; 0$ fixed, $n_{\text{eff}} \to 1/\rho$ — a *hard ceiling* on effective votes no matter how many agents you recruit. At $\rho = 0.1$, forty agents are worth about eight; at $\rho = 0.5$, worth two; and you can never exceed ten effective votes at $\rho = 0.1$ even with a million agents. This is the quantitative heart of "**diversity is the resource**": the value of a committee is set not by its size but by the independence of its members' errors.</span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a>For LLM agents specifically, correlation is the *default*, not the exception, because the usual sources of independence are absent: the agents often share a **base model** (identical weights, identical biases), share **training data** (so they are fooled by the same myths and the same adversarial phrasings), and share a **prompt** (so they are anchored the same way). Genuine diversity has to be engineered, and the levers are concrete: **different base models** (the strongest lever — different architectures and training data fail differently), **different prompts or personas** (a "skeptic" and an "optimist" make different errors), **different tools or context** (an agent with web search errs differently from one reasoning from memory), and **different temperatures or decompositions**. Every bit of shared machinery pushes $\rho$ back up, so a committee of GPT-clones answering with the same prompt is close to one agent wearing five hats. The practical takeaway inverts the naive intuition: **past a handful of genuinely diverse agents, buy diversity, not headcount.**</span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a><span class="fu">## 3. Debate: reflection with peer critics</span></span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a>Voting is non-interactive — agents never see each other. **Debate** lets them: each agent reads the others' current answers and revises, over several rounds. The hope is that exposing reasoning lets agents catch each other's errors and converge on truth, and there is real evidence it can help (Du et al. 2023). But notice what debate *is* in the vocabulary of this series: it is the reflection loop of [Post 4b](04b-self-reflection.qmd), with the critic being *other agents* instead of the model itself. And 4b's central finding — reflection helps only when the critic discriminates better than the generator, and external feedback beats self-critique — tells us exactly what to expect. Peer critics are a step up from self-critique (a different model may catch what you can't), but they are still fallible critics, and debate inherits reflection's failure mode: **herding**.</span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a>Herding is the conformity trap. When agents revise toward the current majority, they can converge on a *confident wrong* consensus, and — worse — the very act of converging destroys the diversity that voting relied on. A debate that reaches unanimity has an effective sample size of one.</span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a><span class="al">![Debate versus one-shot voting (9 agents, individual accuracy 0.58), as the conformity rate grows. Moderate conformity combined with genuine reconsideration beats the one-shot vote; but as conformity rises toward 1 the committee herds onto whatever the early plurality was, and the advantage evaporates back to the single-agent level.](../figures/05a_debate_vs_voting.png)</span></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a>The curve tells the whole story. With *moderate* conformity and genuine reconsideration each round, debate accumulates evidence and beats one-shot voting — the peer critique adds real information, just as 4b's informative external feedback did. But as conformity climbs, the committee collapses to consensus before the evidence is in, freezing on the early plurality and throwing away the independence that made the crowd wise. There is a sweet spot, and it is not "agree as much as possible."</span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a>This is also where <span class="co">[</span><span class="ot">calibration</span><span class="co">](04c-calibration.qmd)</span> re-enters with teeth. In a debate, a *confidently wrong* agent is maximally dangerous: its unwavering assertiveness pulls conformist peers toward its error, exactly the over-correction dynamic of 4b and the loud-miscalibrated-agent failure of 4c, now at the group level. A single stubborn, miscalibrated participant can drag a committee that started correct toward a wrong consensus — sycophancy and conformity are not just social foibles, they are mathematically how a debate loses information. The defenses mirror the single-agent lessons: keep critics diverse (lower $\rho$), don't over-weight confident assertions (calibration), and prefer external verification over persuasion (4b) — a debate grounded in a tool result or a runnable test cannot be herded by rhetoric.</span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a>There is a clean way to see why debate is *strictly riskier* than voting on the diversity axis. Voting reads the agents' independent opinions once, at maximum diversity, and aggregates. Debate lets the opinions *influence each other before* aggregation, which can only reduce their diversity — interaction is a force that drives $\rho$ up over rounds, toward the consensus limit where $n_{\text{eff}} \to 1$. So debate is making a bet: that the information peers exchange (catching each other's specific errors) outweighs the independence they spend by converging. When peers genuinely discriminate — different models catching different mistakes, or a debate anchored in verifiable evidence — the bet pays. When they merely conform, debate pays the diversity cost and gets nothing for it, landing below where a simple vote would have. This reframes the practitioner's question from "should agents debate?" to "do my agents add more information by interacting than they lose in independence?" — and for clones sharing a base model and prompt, the answer is usually no.</span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a><span class="fu">## 4. Pipelines and specialization: when labor division pays</span></span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>The aggregation patterns (vote, debate) attack the *same* task redundantly. Pipelines and orchestrators do something different: they **decompose** a task into different subtasks handled by different agents. The promise is specialization — a dedicated planner, researcher, writer, and checker, each better at its job than a generalist. The peril is that they are wired *in series*, and series wiring compounds errors.</span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a><span class="al">![Pipeline reliability is the product of per-stage reliabilities, p^L. Even agents that succeed 95% of the time per stage fall below 60% end-to-end across a dozen stages — a chain of agents is only as strong as the product of its links.](../figures/05a_pipeline_compounding.png)</span></span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>If every stage must succeed for the task to succeed, end-to-end reliability is $p^L$ for $L$ stages — the same multiplicative error-compounding cliff we met for long-horizon tool use in <span class="co">[</span><span class="ot">Post 3b</span><span class="co">](03b-tool-use.qmd)</span>. The arithmetic is unforgiving: a pipeline of four 90%-reliable agents succeeds only $0.9^4 \approx 66\%$ of the time; ten stages at 95% each is still only $0.95^{10} \approx 60\%$. **Adding stages is adding risk**, and the instinct to decompose a task into ever-finer specialist roles can quietly make the system *less* reliable than a single capable generalist that does the whole thing in one coherent pass.</span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>So when does specialization actually win? When the per-subtask skill gain from specializing outruns the **coordination tax** of handing off between stages. Modeling each of the $L-1$ handoffs as succeeding with probability $h$ (context gets lost, formats mismatch, the next agent misreads the last one's output), a specialist pipeline achieves $s^L h^{L-1}$ against a generalist's $g^L$:</span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a><span class="al">![When specialization beats a generalist (4 subtasks). Specialists (per-subtask accuracy s) overtake the generalist (per-subtask g = 0.8) only when their skill edge is large enough to overcome the handoff tax h^(L−1). With lossy handoffs (h = 0.85) the specialists need to be much better just to break even.](../figures/05a_sol3_specialization.png)</span></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>The crossover makes the condition concrete: specialists must be enough better at their narrow jobs to pay for the handoffs. When handoffs are clean ($h \approx 1$) a modest skill edge suffices; when handoffs are lossy, specialists can be substantially better per-subtask and still lose end-to-end. A worked case sharpens it: with four subtasks, a generalist at $g = 0.8$ per subtask achieves $0.8^4 \approx 0.41$. Specialists at $s = 0.9$ with perfect handoffs achieve $0.9^4 \approx 0.66$ — a clear win. But drop the handoff reliability to $h = 0.85$ and the same specialists get $0.9^4 \cdot 0.85^3 \approx 0.40$ — *below the generalist*, despite each being meaningfully better at its own subtask. The three lossy handoffs ($0.85^3 \approx 0.61$) erased the entire specialization advantage. This is why the most reliable real systems keep pipelines *short*, invest heavily in clean handoff formats (structured outputs, shared scratchpads, explicit context passing), and add a verification stage — because the cheapest way to fight $p^L$ is to raise each $p$ toward 1, which usually means grounding stages in tools and checks rather than adding more agents.</span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>The **orchestrator–workers** pattern is the hierarchical generalization, and it inherits both properties. Parallel workers (an orchestrator fanning out independent subtasks) compound less than a serial pipeline — independent subtasks don't multiply each other's failure the same way — but the orchestrator's decomposition and integration steps are themselves stages that can fail, and the orchestrator is a single point of failure for the whole plan. The design lesson is the same: every agent you add is a stage that must work, so add agents only when the decomposition genuinely buys more than the coordination it costs.</span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>It is worth being precise about the parallel-versus-serial distinction, because it is the one structural choice that most changes a multi-agent system's reliability. In a **serial** pipeline of $L$ stages each reliable with probability $p$, *every* stage must succeed, so end-to-end reliability is $p^L$ — failure compounds. In a **parallel** fan-out where $L$ independent subtasks are each attempted once and all must succeed, the reliability is also $p^L$ (all must work), but the failures are *independent rather than sequential*, which matters for a subtler reason: a parallel subtask can be **retried or voted on in isolation** without re-running the whole chain, whereas a serial pipeline often has to restart from the failed stage with all the downstream context invalidated. And when the parallel subtasks are *redundant* rather than *complementary* — several workers attempting the same subtask — you are back in aggregation territory and reliability *rises* with workers ($1 - (1-p)^L$ if any-success suffices) instead of falling. So "parallel" spans both the best case (redundant workers, reliability climbing toward 1) and a compounding case (complementary subtasks, all required), and a good orchestrator design pushes toward the former: decompose so that subtasks are independently checkable and, where it matters, redundantly attempted. The orchestrator's own decomposition step, though, has no redundancy by default — a bad plan dooms every worker downstream — which is why the integration-and-verification step at the end (a checker that can reject and re-plan) is the highest-value agent to add to any orchestrator system. It converts a single-point-of-failure plan into a loop with a chance to recover, the multi-agent echo of the reflection loop from Post 4b.</span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>There is a unifying way to see what a good orchestrator is doing, and it ties this topic back to the Bayesian thread of the series. An orchestrator's job — decide which worker or tool to invoke, with what subtask, and when to stop — is a sequence of decisions under uncertainty, and the principled version is the **Bayesian control** view that closed Post 4c: the orchestrator maintains a calibrated *belief* about the state of the task (which subgoals are done, how reliable each worker is, how likely the current draft is correct) and chooses each next action by *expected utility* — routing to the worker with the highest expected value, and spending another call (a worker, a vote, a verification pass) only when its expected improvement outweighs its cost. The voting, debate, and pipeline choices of this post are then not separate tricks but actions a Bayesian controller selects among: vote when independent evidence is cheap and beliefs are uncertain, verify when a stage's reliability is in doubt, stop when the belief is confident enough that more compute isn't worth it. A recent position paper (Papamarkou et al., 2026) argues exactly this — that the orchestration layer, not the LLM weights, is where Bayesian decision-making belongs, with the models and tools left as black-box predictors underneath. Our series reaches the same conclusion constructively: every "when should the agent do X?" rule we derived (call a tool in 3b, retrieve in 4a, reflect in 4b, defer in 4c) is one expected-utility decision, and an orchestrator is just the controller that makes all of them in sequence.</span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a><span class="fu">## 5. A practical guide to multi-agent design</span></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>The analysis collapses into a short set of rules, cheapest and most reliable first:</span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Default to one good agent.** Multi-agent systems multiply cost and failure surface. Reach for them only when a single agent — with tools, retrieval, and reflection — is genuinely insufficient, and measure that it is.</span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**For hard judgment calls, vote — but engineer diversity.** Independent voting is the most robust multi-agent pattern (it cannot herd). Its value is set by $\rho$, so spend on *diverse* members: different models, prompts, personas, tools. A few diverse agents beat many clones.</span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Use debate sparingly and ground it.** Debate can beat voting when peers add genuine information, but it herds under conformity and is poisoned by confident wrong agents. Keep rounds few, keep participants diverse, and anchor the debate in external verification (a test, a tool, a retrieved fact) rather than persuasion.</span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Keep pipelines short and handoffs clean.** Reliability is $p^L$; every stage is risk. Minimize stages, use structured handoffs, raise each stage's reliability with tools and checks before adding more specialists.</span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Specialize only when the skill edge beats the coordination tax.** Division of labor pays when subtasks are genuinely separable and specialists are clearly better at their part — not as a reflex.</span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Watch the cost–accuracy frontier.** Cost grows linearly with agents; accuracy saturates. The cost-effective committee is small.</span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>The meta-point ties the topic to everything before it: a multi-agent system is a way of *combining* the single-agent capabilities we spent four topics building, and the combination is governed by the same forces — variance reduction needs independence, sequential reliability compounds, and confident-but-wrong signals corrupt aggregation. More agents is a tool, not a goal.</span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>To see the rules in action, consider a concrete choice: *"Should I answer hard factual questions with a 7-agent debate?"* Walk it through. Is the need aggregation or decomposition? Aggregation — it's one hard question, not a multi-step task — so the relevant math is §2's correlation, not §4's compounding. Are the agents diverse? If they are seven instances of one model with one prompt, $\rho$ is high and $n_{\text{eff}}$ is barely above 1, so seven agents will scarcely beat one — the answer is to spend the budget on *diversity* (different models, a skeptic/proponent split, one agent with retrieval) rather than count. Should they debate or vote? Debate spends diversity to exchange information (§3); for factual questions a *retrieval-grounded* exchange can genuinely help, but an ungrounded debate among clones will likely herd, so prefer voting unless the agents can cite external evidence. And is seven the right number? §7.4 says the marginal gain is near-dead past a handful, so three-to-five diverse, retrieval-grounded agents voting is almost certainly better than seven clones debating — at lower cost. Every step of that reasoning is one of the rules above; the value of the framework is that it turns "more agents sounds good" into a sequence of answerable questions.</span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a><span class="fu">## 6. Experiments to actually run</span></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.1 Effective votes under correlation</span></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a>Compute $n_{\text{eff}} = n/(1+(n-1)\rho)$ across $\rho$ for several committee sizes. How fast does correlation collapse a large committee?</span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.2 Herding in debate</span></span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a>Track majority-vote accuracy across debate rounds for moderate vs high conformity, with and without a stubborn faction. When does interaction help, and when does it freeze the committee?</span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.3 Specialization vs generalist</span></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>Sweep specialist skill against a generalist baseline for several handoff reliabilities. Where is the crossover?</span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a><span class="fu">### 6.4 The cost–accuracy frontier</span></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>Plot accuracy and marginal accuracy-per-agent against committee size, for independent and correlated committees. Where do the returns die?</span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a><span class="fu">## 7. Solutions</span></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.1 Effective votes under correlation — `experiments/05a_sol1_effective_votes.py`</span></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a><span class="al">![Effective number of independent votes n_eff = n/(1+(n−1)ρ) versus error correlation, for several committee sizes (log scale). Forty correlated agents at ρ = 0.1 are worth about eight independent ones; at ρ = 0.5, about two.](../figures/05a_sol1_effective_votes.png)</span></span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>**What you should see.** $n_{\text{eff}}$ falls off a cliff in $\rho$: even mild correlation slashes a large committee's effective size, and by $\rho = 0.5$ almost all committees — whether 5 or 40 agents — are worth only one to two independent votes. The lines converge, meaning that under real correlation, *committee size stops mattering* and only diversity does.</span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** This is the single number to internalize about multi-agent voting. The benefit of a committee is not $n$, it is $n_{\text{eff}}$, and $n_{\text{eff}}$ is governed by the correlation you usually can't see. It is the same arithmetic as self-consistency's diminishing returns (Post 3a) and deep ensembles' calibration gains (Post 4c) — independent errors are a scarce resource, and shared base models spend it fast. Before scaling a committee, ask not "how many agents?" but "how independent are their mistakes?"</span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.2 Herding in debate — `experiments/05a_sol2_herding.py`</span></span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a><span class="al">![Majority-vote accuracy across debate rounds (9 agents, p = 0.6). With moderate conformity and no stubborn agents, accuracy climbs above the round-0 vote. With high conformity — with or without a stubborn faction — the committee freezes at its initial vote, forfeiting the gains genuine reconsideration would bring.](../figures/05a_sol2_herding.png)</span></span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a>**What you should see.** The moderate-conformity committee improves round over round — peers genuinely informing each other. The high-conformity committees flatline at the round-0 accuracy: everyone copies the early plurality immediately, so no new evidence enters and the debate is over before it began. The stubborn faction makes it no better.</span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Debate's value comes from *reconsideration*, not *agreement* — the same distinction as 4b's "the value is in the content of the critique, not the round count." Conformity feels like progress (the committee is converging!) while actually destroying the independence that made the crowd worth consulting. The instinct to drive a multi-agent system toward consensus is often exactly wrong: a committee that agrees too fast has thrown away its own wisdom.</span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.3 Specialization vs generalist — `experiments/05a_sol3_specialization.py`</span></span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a><span class="al">![End-to-end success of a 4-stage specialist pipeline versus a generalist (g = 0.8 per subtask), as specialist skill rises, for three handoff reliabilities. Specialists overtake the generalist only past a crossover that moves right as handoffs get lossier.](../figures/05a_sol3_specialization.png)</span></span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>**What you should see.** With perfect handoffs ($h = 1$), specialists need only a small per-subtask edge to beat the generalist. As handoffs degrade to $h = 0.85$, the crossover shifts far right — specialists must be dramatically better just to break even, because the $h^{L-1}$ coordination tax eats their advantage.</span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** Decomposition is not free. Every handoff is a lossy channel — context dropped, formats mismatched, the next agent misreading the last — and those losses compound exactly like the pipeline's $p^L$. This is why "just add a specialized agent for X" so often disappoints: the specialist may be better at X, but the wiring tax can swallow the gain. Specialize when subtasks are cleanly separable and the skill edge is large; otherwise a coherent generalist that never has to hand off wins.</span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a><span class="fu">### 7.4 The cost–accuracy frontier — `experiments/05a_sol4_cost_accuracy.py`</span></span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a><span class="al">![Left: majority-vote accuracy versus committee size for independent (ρ=0) and correlated (ρ=0.3) committees — both saturating while cost grows linearly. Right: marginal accuracy per added agent, which collapses toward zero within a handful of agents.](../figures/05a_sol4_cost_accuracy.png)</span></span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a>**What you should see.** Accuracy rises steeply for the first few agents then flattens, while cost (committee size) grows linearly forever. The marginal-gain panel makes the verdict explicit: the accuracy added by each new agent collapses fast, and faster still when errors are correlated — the correlated committee's marginal gain is near zero almost immediately.</span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a>**The deeper lesson.** The economically right committee is small. Because benefit saturates ($1/\sqrt{n}$-ish) while cost is linear, the cost-effectiveness peaks at a handful of agents and declines from there; a 40-agent committee pays 40× for accuracy a 5-agent committee nearly matched. Combined with §7.1, the guidance is unambiguous: a few genuinely diverse agents capture almost all the available benefit, and everything past that is mostly burning compute.</span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a><span class="fu">## 8. Further reading</span></span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Condorcet, "Essai sur l'application de l'analyse à la probabilité des décisions" (1785).** The jury theorem, two centuries before LLMs made it newly relevant.</span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Du et al., "Improving Factuality and Reasoning in Language Models through Multiagent Debate" (2023).** Debate improves answers — the upside of §3, with the caveats this post quantifies.</span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Wang et al., "Self-Consistency Improves Chain of Thought Reasoning" (2022).** Voting over samples; the single-model ancestor of the committee (Post 3a).</span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Du Bois / Lakshminarayanan et al. on ensembles (NeurIPS 2017).** Why diversity drives ensemble gains — the correlation story of §2, from the ML side.</span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Hong et al., "MetaGPT" (2023) and Wu et al., "AutoGen" (2023).** Orchestrator–worker and role-specialized frameworks; the engineering face of §4, including the handoff-format problem.</span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Anthropic, "Building effective agents" (2024).** A practitioner's argument for preferring simple, single-agent designs until multi-agent complexity is demonstrably warranted — the §5 default, in practice.</span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Papamarkou et al., "Position: Agentic AI Orchestration Should Be Bayes-Consistent" (2026).** Argues that the control layer orchestrating LLMs and tools should maintain calibrated beliefs and select actions by expected utility / value of information — the Bayesian-controller view of §4 and the through-line into Post 5b.</span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a>---</span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a>**Next up — Post 5b: The nanoAgent reference implementation.** We have built every piece from the ground up — bandits and exploration, MDPs and value, policy gradients and RLHF, decoding and search, tools, retrieval, reflection, calibration, and now coordination. The final post wires them into **nanoAgent**: a small, readable, from-scratch agent that plans, calls tools, retrieves, reflects, and knows when it is unsure — the whole curriculum assembled into something you can run, read end to end, and extend.</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2026 Ba-Hien Tran</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    <div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/posts/05a-multi-agent-systems.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/tranbahien/nano-agents">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item">
+    <a class="nav-link" href="../posts.xml">
+<p>RSS</p>
+</a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

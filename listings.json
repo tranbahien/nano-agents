@@ -2,6 +2,8 @@
   {
     "listing": "/posts.html",
     "items": [
+      "/posts/05b-nanoagent.html",
+      "/posts/05a-multi-agent-systems.html",
       "/posts/04c-calibration.html",
       "/posts/04b-self-reflection.html",
       "/posts/04a-rag-as-bayesian-conditioning.html",
@@ -21,6 +23,8 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/05b-nanoagent.html",
+      "/posts/05a-multi-agent-systems.html",
       "/posts/04c-calibration.html",
       "/posts/04b-self-reflection.html",
       "/posts/04a-rag-as-bayesian-conditioning.html",

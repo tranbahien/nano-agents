@@ -10,7 +10,669 @@
 <atom:link href="https://tranbahien.github.io/nano-agents/posts.xml" rel="self" type="application/rss+xml"/>
 <description>Agentic AI from scratch, with a Bayesian lens</description>
 <generator>quarto-1.9.37</generator>
-<lastBuildDate>Wed, 10 Jun 2026 00:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 24 Jun 2026 00:00:00 GMT</lastBuildDate>
+<item>
+  <title>nanoAgent: Wiring the Whole Curriculum into One Agent</title>
+  <dc:creator>Ba-Hien Tran</dc:creator>
+  <link>https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p><img src="https://tranbahien.github.io/nano-agents/assets/05b-nanoagent.png" class="img-fluid"></p>
+<blockquote class="blockquote">
+<p><em>Topic 5, post 2 of 2 — and the finale of the series.</em></p>
+</blockquote>
+<p>We have built every piece from the ground up. Exploration and regret with <a href="../posts/01a-multi-armed-bandits.html">bandits</a>; value, policy, and credit assignment with <a href="01c-markov-decision-processes.qmd">MDPs</a> and <a href="02a-policy-gradient-theorem.qmd">policy gradients</a>; alignment with <a href="../posts/02d-rlhf-dpo-grpo.html">RLHF</a>; inference-time reasoning with <a href="../posts/03a-decoding-as-inference.html">decoding</a>, <a href="../posts/03b-tool-use.html">tools</a>, and <a href="../posts/03c-tree-of-thoughts.html">search</a>; evidence-marshalling with <a href="../posts/04a-rag-as-bayesian-conditioning.html">retrieval</a>, <a href="../posts/04b-self-reflection.html">reflection</a>, and <a href="../posts/04c-calibration.html">calibration</a>; and coordination with <a href="../posts/05a-multi-agent-systems.html">multi-agent systems</a>. This final post assembles them into one runnable artifact: <strong>nanoAgent</strong>, a small agent that answers questions by orchestrating all of these capabilities — and decides <em>which</em> to use, and <em>when to stop</em>, by a single principle.</p>
+<p>That principle is the one <a href="../posts/04c-calibration.html">Post 4c</a> and <a href="../posts/05a-multi-agent-systems.html">Post 5a</a> converged on: the agent’s control layer should be a <strong>Bayes-consistent controller</strong>. It maintains one calibrated belief — the probability its current answer is correct — and at each step makes a value-of-information decision: for each capability, estimate the expected accuracy after using it, subtract its cost, and take the best option only if that net gain beats answering now. When nothing is worth its cost, it commits. That is the whole agent. What makes it a fitting capstone is that the controller’s estimate of each action’s value is <em>literally the analytic result we derived for that action earlier in the series</em> — <code>one_round_accuracy</code> from reflection, <code>condorcet_accuracy</code> from voting, the calibrated belief from temperature scaling. nanoAgent is the curriculum, wired together and made to run.</p>
+<p>A note on what this is and isn’t. nanoAgent’s <strong>controller</strong> is real, readable code you could lift into a production agent. To run it end to end without a live LLM, we plug it into a <em>simulated world</em> faithful to the toy models of earlier posts — the same approach the whole series used. The control logic is genuine; the model and tools underneath it are stand-ins. That separation is exactly the architecture the Bayesian-orchestration view recommends, and it is how real agent code is structured: a model-agnostic controller over swappable black-box capabilities.</p>
+<hr>
+<section id="the-architecture" class="level2">
+<h2 class="anchored" data-anchor-id="the-architecture">0. The architecture</h2>
+<p>nanoAgent is a loop around a belief.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05b_architecture.png" class="img-fluid figure-img"></p>
+<figcaption>The nanoAgent control loop. Generate an answer and a calibrated belief; then, for each capability, estimate the expected accuracy after acting minus its cost (value of information); take the best action if it beats answering now, execute it, and update the belief; otherwise commit. The control layer is Bayesian; the capabilities beneath it are black boxes.</figcaption>
+</figure>
+</div>
+<p>The pieces map onto the whole series:</p>
+<ul>
+<li><strong>Belief</strong> — a single number <img src="https://latex.codecogs.com/png.latex?b">, the calibrated probability that the current answer is correct. Seeded from the generator’s confidence and made trustworthy by the temperature scaling of <a href="../posts/04c-calibration.html">Post 4c</a>. This is the agent’s posterior over “am I right?”</li>
+<li><strong>Capabilities</strong> — the actions that can change the answer or the belief: call a <strong>tool</strong> (<a href="../posts/03b-tool-use.html">3b</a>), <strong>retrieve</strong> (<a href="../posts/04a-rag-as-bayesian-conditioning.html">4a</a>), <strong>reflect</strong> (<a href="../posts/04b-self-reflection.html">4b</a>), or <strong>vote</strong> over more samples (<a href="../posts/03a-decoding-as-inference.html">3a</a>/<a href="../posts/05a-multi-agent-systems.html">5a</a>). Each is a black box with a cost.</li>
+<li><strong>The controller</strong> — the value-of-information rule that chooses among them. This is the only “intelligence” in the orchestration layer, and it is small.</li>
+</ul>
+<p>Everything interesting — routing each question to the right capability, spending more effort on hard questions, stopping early on easy ones — <em>emerges</em> from the one rule. There is no routing table and no hand-written policy. Let us build it.</p>
+<p>It is worth being precise about what makes this controller “Bayes-consistent,” because the phrase is doing real work. A Bayesian decision-maker has three parts: a <strong>belief</strong> (a probability distribution over unknown quantities), a <strong>utility</strong> (how much each outcome is worth), and a <strong>decision rule</strong> (choose the action maximizing expected utility). nanoAgent has all three. Its belief is <img src="https://latex.codecogs.com/png.latex?b">, the posterior probability that the current answer is correct. Its utility is accuracy minus cost — a right answer is worth <img src="https://latex.codecogs.com/png.latex?1">, each action costs its price. Its decision rule is “take the action with the highest expected utility, which is the action whose expected accuracy gain most exceeds its cost.” The agent is <em>coherent</em> in the decision-theoretic sense: it never takes an action it expects to leave it worse off, and it stops exactly when no action’s expected benefit covers its price. This is the whole content of the position that an agent’s orchestration layer should be Bayesian — and nanoAgent is what it looks like in forty lines. Notice what is <em>not</em> Bayesian here: the generator, tools, and retriever are black boxes making no guarantees. The coherence lives entirely in the thin control layer on top, which is precisely where it is cheap to put and most valuable to have.</p>
+<hr>
+</section>
+<section id="the-world-capabilities-as-black-boxes" class="level2">
+<h2 class="anchored" data-anchor-id="the-world-capabilities-as-black-boxes">1. The world: capabilities as black boxes</h2>
+<p>The agent orchestrates capabilities; to run it we need capabilities to orchestrate. The simulated world gives each question a <em>type</em> (<code>knowledge</code>, <code>calculation</code>, or <code>reasoning</code>) and a latent difficulty, and exposes the four capabilities, each faithful to its post:</p>
+<ul>
+<li><code>generate</code> — the base model (<a href="../posts/03a-decoding-as-inference.html">3a</a>): returns an answer (correct with a type- and difficulty-dependent probability) and a confidence that may be miscalibrated (<a href="../posts/04c-calibration.html">4c</a>).</li>
+<li><code>use_tool</code> — a calculator (<a href="../posts/03b-tool-use.html">3b</a>): near-perfect on <code>calculation</code>, useless elsewhere.</li>
+<li><code>retrieve</code> — retrieval (<a href="../posts/04a-rag-as-bayesian-conditioning.html">4a</a>): strong on <code>knowledge</code>, noisy elsewhere.</li>
+<li><code>reflect</code> — a self-critic (<a href="../posts/04b-self-reflection.html">4b</a>): flags and revises, with the detection/false-alarm/revision parameters from that post.</li>
+</ul>
+<p>The crucial design choice is that <strong>each capability has a home question type where it shines</strong>, and the world never tells the agent the answer — only the question type. The agent must figure out, per question, which capability is worth invoking. That is the whole challenge, and the world is built so that no single capability wins everywhere — exactly the condition under which orchestration earns its keep.</p>
+<hr>
+</section>
+<section id="the-belief-a-calibrated-posterior" class="level2">
+<h2 class="anchored" data-anchor-id="the-belief-a-calibrated-posterior">2. The belief: a calibrated posterior</h2>
+<p>The agent’s belief is the probability its current answer is correct. It starts from the generator’s reported confidence, but — following <a href="../posts/04c-calibration.html">Post 4c</a> — that raw confidence may be overconfident, so the agent temperature-scales it before trusting it:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> _calibrate(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, raw_conf: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>:</span>
+<span id="cb1-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Apply temperature scaling to the raw confidence (Post 4c)."""</span></span>
+<span id="cb1-3">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>(sigmoid(logit(raw_conf) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.calibration_T))</span></code></pre></div></div>
+<p>This one line is load-bearing for the entire agent, and §5 shows why: every decision the controller makes is a comparison against this belief, so if the belief is inflated, every “answer now” looks better than it should and the agent stops too early. Calibration is not a nicety bolted onto the agent — it is the precondition that makes the controller’s arithmetic mean anything.</p>
+<p>It is worth dwelling on why a <em>scalar</em> belief suffices here, and where it would not. nanoAgent tracks one number: the probability the current answer is correct. That is enough for the decisions it faces, because every action is evaluated by how it changes that one probability, and the value-of-information comparison only needs expected accuracies. A richer agent — one that had to decide <em>which</em> alternative answer to prefer, or combine partial evidence from several retrievals — would need a full posterior over the answer space, updated by Bayesian conditioning (<a href="../posts/04a-rag-as-bayesian-conditioning.html">Post 4a</a>) as each capability reports in. The scalar belief is the minimal sufficient statistic for nanoAgent’s decision problem, and starting minimal is the point: it keeps the controller legible, and §7 sketches how to grow the belief when the task demands it. The discipline is to track exactly the belief your decisions actually consult — no more, no less — and here that is a single calibrated probability.</p>
+<hr>
+</section>
+<section id="the-controller-value-of-information" class="level2">
+<h2 class="anchored" data-anchor-id="the-controller-value-of-information">3. The controller: value of information</h2>
+<p>Here is the heart of nanoAgent. For each capability, the controller estimates the <strong>expected accuracy of the current answer after taking that action</strong>, using the analytic models from earlier posts:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> _expected_after(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, action, belief, qtype):</span>
+<span id="cb2-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Expected accuracy of the current answer after taking `action`."""</span></span>
+<span id="cb2-3">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> TOOL:</span>
+<span id="cb2-4">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.m.tool_accuracy <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> qtype <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"calculation"</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> belief</span>
+<span id="cb2-5">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> RETRIEVE:</span>
+<span id="cb2-6">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.m.retrieval_accuracy <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> qtype <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"knowledge"</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> belief</span>
+<span id="cb2-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> REFLECT:                                    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Post 4b</span></span>
+<span id="cb2-8">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> one_round_accuracy(belief, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.m.detect,</span>
+<span id="cb2-9">                                  <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.m.false_alarm, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.m.revise)</span>
+<span id="cb2-10">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> VOTE:                                       <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Post 5a</span></span>
+<span id="cb2-11">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> condorcet_accuracy(belief, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.m.vote_n)</span></code></pre></div></div>
+<p>Notice the reuse: the value of a reflect step <em>is</em> <code>one_round_accuracy</code> from Post 4b; the value of voting <em>is</em> <code>condorcet_accuracy</code> from Post 5a. The agent’s model of its own capabilities is the mathematics we derived for them. The controller then picks the action with the greatest expected gain net of cost — or answers now if none clears the bar:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> _best_action(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, belief, qtype):</span>
+<span id="cb3-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""The action with the greatest expected gain net of cost, or ANSWER."""</span></span>
+<span id="cb3-3">    best, best_gain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ANSWER, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0</span></span>
+<span id="cb3-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> action <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> (TOOL, RETRIEVE, REFLECT, VOTE):</span>
+<span id="cb3-5">        gain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>._expected_after(action, belief, qtype) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> belief) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb3-6">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>._cost(action)</span>
+<span id="cb3-7">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> gain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> best_gain:</span>
+<span id="cb3-8">            best, best_gain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> action, gain</span>
+<span id="cb3-9">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> best, best_gain</span></code></pre></div></div>
+<p>That comparison — expected gain versus cost — is the <strong>value-of-information</strong> rule named in <a href="../posts/03b-tool-use.html">Post 3b §4</a> and <a href="../posts/04c-calibration.html">Post 4c §5</a>, and it is the entire decision logic.</p>
+<p>There is a subtlety worth making explicit, because it is the difference between a controller that works and one that spins. Why is gathering information ever worth it, if a Bayesian belief update is unbiased — the expected posterior equals the prior? The answer is that the value of an action does not come from <em>refining the belief</em>; it comes from the action’s power to <em>change the answer</em>. A tool call on a calculation question does not merely sharpen the agent’s estimate of whether its shaky guess was right — it <em>replaces</em> that guess with a near-certain one. The gain <code>_expected_after(TOOL, ...) − belief</code> is positive precisely because the tool can fix a wrong answer, not because it reduces uncertainty about a fixed one. This is why <code>_expected_after</code> returns the <em>capability’s</em> accuracy on its home type, not some refinement of <code>belief</code>: the action is an opportunity to swap in a better answer, and its value is how much better, minus what it costs. An action that could only tell the agent “you were right” or “you were wrong,” without letting it act on the news, would have zero value here — which is exactly correct.</p>
+<p>The stopping rule follows from the same logic and is worth seeing as an <strong>optimal-stopping</strong> decision (the frame from <a href="../posts/04b-self-reflection.html">Post 4b</a>). At each step the agent holds an answer and asks: is any action’s expected improvement worth its cost? As the belief rises — after a successful tool call or retrieval — the room left to improve shrinks, so every action’s gain shrinks too, until none clears its cost and the agent commits. The agent stops not after a fixed number of steps but when its belief is <em>good enough that more work is not worth it</em>, which is the right stopping rule and the source of the adaptive compute we will see in §5.4. The control loop just applies this rule until the agent decides to answer:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> solve(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, world, qid, rng):</span>
+<span id="cb4-2">    qtype <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> world.observe(qid)[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>]</span>
+<span id="cb4-3">    answer, raw_conf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> world.generate(qid, rng)</span>
+<span id="cb4-4">    belief <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>._calibrate(raw_conf)</span>
+<span id="cb4-5"></span>
+<span id="cb4-6">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> _ <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.max_steps):</span>
+<span id="cb4-7">        action, gain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>._best_action(belief, qtype)</span>
+<span id="cb4-8">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> ANSWER:</span>
+<span id="cb4-9">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">break</span></span>
+<span id="cb4-10">        answer, belief <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>._execute(action, world, qid, answer,</span>
+<span id="cb4-11">                                       belief, qtype, rng)</span>
+<span id="cb4-12">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> Trace(answer<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>answer, correct<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>world.is_correct(qid, answer), ...)</span></code></pre></div></div>
+<p>Forty lines, and it is a complete agent. No routing table: the agent calls the tool on calculation questions because <code>_expected_after(TOOL, ...)</code> returns a high number there and a low one elsewhere. No stopping heuristic: it stops because every action’s expected gain has fallen below its cost. The behavior is emergent from the value-of-information rule, which is what makes this a <em>controller</em> rather than a script.</p>
+<hr>
+</section>
+<section id="watching-it-run" class="level2">
+<h2 class="anchored" data-anchor-id="watching-it-run">4. Watching it run</h2>
+<p>Trace the agent on one question of each type (belief in brackets):</p>
+<ul>
+<li><strong>Calculation</strong> — generate gives a shaky answer (<img src="https://latex.codecogs.com/png.latex?b%20=%200.41">). The controller sees <code>tool</code> would lift expected accuracy to <img src="https://latex.codecogs.com/png.latex?0.97"> at cost <img src="https://latex.codecogs.com/png.latex?0.06">: gain <img src="https://latex.codecogs.com/png.latex?%5Capprox%200.50">, easily the best. It calls the tool, belief jumps to <img src="https://latex.codecogs.com/png.latex?0.97">, and on the next step no action’s gain beats its cost — it answers. <em>One action.</em></li>
+<li><strong>Knowledge</strong> — generate is weak (<img src="https://latex.codecogs.com/png.latex?b%20=%200.45">); <code>retrieve</code> promises <img src="https://latex.codecogs.com/png.latex?0.90"> at cost <img src="https://latex.codecogs.com/png.latex?0.06"> (gain <img src="https://latex.codecogs.com/png.latex?%5Capprox%200.39">). It retrieves, belief rises to <img src="https://latex.codecogs.com/png.latex?0.90">, and it answers. <em>One action.</em></li>
+<li><strong>Reasoning</strong> — generate is middling (<img src="https://latex.codecogs.com/png.latex?b%20=%200.60">). No tool or retrieval helps this type, but <code>reflect</code> promises <code>one_round_accuracy(0.60, ...) ≈ 0.73</code> at cost <img src="https://latex.codecogs.com/png.latex?0.05"> (gain <img src="https://latex.codecogs.com/png.latex?%5Capprox%200.08">). It reflects, belief rises to <img src="https://latex.codecogs.com/png.latex?0.73">; a second reflect still clears its cost (<img src="https://latex.codecogs.com/png.latex?0.73%20%5Cto%200.79">), a third does not. It answers. <em>Two actions.</em></li>
+<li><strong>Easy anything</strong> — generate is already confident (<img src="https://latex.codecogs.com/png.latex?b%20=%200.93">). Every action’s expected gain is below its cost from the start. It answers immediately. <em>Zero actions.</em></li>
+</ul>
+<p>The same rule produces four different behaviors, each appropriate to the question. That is the point of a controller: one principle, many policies.</p>
+<hr>
+</section>
+<section id="does-it-work" class="level2">
+<h2 class="anchored" data-anchor-id="does-it-work">5. Does it work?</h2>
+<section id="the-adaptive-controller-beats-every-fixed-strategy" class="level3">
+<h3 class="anchored" data-anchor-id="the-adaptive-controller-beats-every-fixed-strategy">5.1 The adaptive controller beats every fixed strategy</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05b_agent_vs_fixed.png" class="img-fluid figure-img"></p>
+<figcaption>Accuracy of fixed single-strategy agents versus the adaptive nanoAgent. Each fixed strategy applies one capability to every question and tops out around 0.65–0.68 because each capability only helps its home type; the adaptive controller routes each question to the right capability and reaches 0.89.</figcaption>
+</figure>
+</div>
+<p>No fixed strategy can win, because each capability helps only its home type: “always use the tool” is great on calculation and useless on knowledge. The adaptive controller — same capabilities, same costs — routes each question to the capability that helps it, and clears every fixed baseline by a wide margin. <strong>Orchestration is the value-add</strong>, and it comes entirely from per-question action selection.</p>
+<p>This reframes what an “agent” buys you. The capabilities are fixed and unremarkable — a base model, a calculator, a retriever, a critic, each mediocre outside its niche. The agent adds no new capability; it adds <em>judgment about which to use</em>. That judgment is worth roughly twenty accuracy points here (from the best fixed strategy’s ~0.68 to the controller’s ~0.89), and it is the cheapest twenty points in the system because it requires no better model, tool, or retriever — only a calibrated belief and a value-of-information rule over capabilities you already have. The lesson generalizes well beyond this toy: when you have several specialized tools and no single one dominates, the highest-leverage investment is often not a better tool but a better <em>controller</em> to route among them.</p>
+</section>
+<section id="routing-emerges-from-value-of-information" class="level3">
+<h3 class="anchored" data-anchor-id="routing-emerges-from-value-of-information">5.2 Routing emerges from value of information</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05b_routing.png" class="img-fluid figure-img"></p>
+<figcaption>First action chosen by the controller, per question type. Calculation questions go to the tool, knowledge questions to retrieval, reasoning questions to reflection — with no hard-coded routing rules. The routing is a consequence of which capability has the highest expected gain.</figcaption>
+</figure>
+</div>
+<p>This is the result that makes the design feel less like engineering and more like a principle. We never told the agent that tools are for arithmetic. It computes the expected gain of each capability against its calibrated belief, and the home capability simply wins for each type. Routing is <em>derived</em>, not declared — which means it would adapt automatically if the capabilities or their costs changed.</p>
+</section>
+<section id="calibration-drives-control" class="level3">
+<h3 class="anchored" data-anchor-id="calibration-drives-control">5.3 Calibration drives control</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05b_calibration_drives_control.png" class="img-fluid figure-img"></p>
+<figcaption>Accuracy and cost of two controllers as the generator’s overconfidence grows: one that trusts the raw confidence, one that temperature-scales it first. The calibrated controller holds its accuracy; the naive one degrades, and spends less doing so — its inflated belief makes it stop too early.</figcaption>
+</figure>
+</div>
+<p>Here is where Topic 4 pays off concretely. When the generator is overconfident and the agent trusts it, every “answer now” looks attractive, so the agent gathers less evidence (lower cost) and scores worse. The agent that temperature-scales its belief first keeps making the right calls. The lesson the whole series built toward, in one figure: <strong>an agent’s decisions are only as good as its belief is honest.</strong> Calibration is not a side-quest; it is the control signal.</p>
+<p>The failure mode is worth naming precisely, because it is subtle and common. The overconfident agent is not making <em>random</em> mistakes — it is making a <em>systematic</em> one: it consistently believes its answers are better than they are, so the gain term <code>_expected_after(action) − belief</code> is consistently too small, and actions that would have helped look not worth their cost. The agent is rational given its belief; the belief is just wrong. And note the second symptom in the right panel — the overconfident agent spends <em>less</em>. A miscalibrated agent is not only less accurate but cheaper, which is exactly the trap: in a quick evaluation it looks efficient (high apparent confidence, low cost) right up until you measure the accuracy it quietly gave up. This is why calibration must be measured directly (<a href="../posts/04c-calibration.html">Post 4c</a>) and never inferred from an agent’s own confidence or its apparent decisiveness — the agent that seems surest of itself may be the one most in need of evidence.</p>
+</section>
+<section id="value-of-information-stopping-gives-adaptive-compute" class="level3">
+<h3 class="anchored" data-anchor-id="value-of-information-stopping-gives-adaptive-compute">5.4 Value-of-information stopping gives adaptive compute</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05b_adaptive_compute.png" class="img-fluid figure-img"></p>
+<figcaption>Mean number of actions taken versus the base-model accuracy on the question. The controller spends more actions on hard questions (low base accuracy) and fewer — often zero — on easy ones, with no explicit difficulty signal.</figcaption>
+</figure>
+</div>
+<p>Because the agent stops as soon as no action’s expected gain beats its cost, it naturally spends compute where it is needed: easy questions are answered immediately, hard ones draw several actions. This <em>adaptive compute</em> — the property expensive reasoning systems work hard to engineer — falls out of the value-of-information rule for free.</p>
+</section>
+<section id="the-computeaccuracy-frontier-and-a-familiar-trap" class="level3">
+<h3 class="anchored" data-anchor-id="the-computeaccuracy-frontier-and-a-familiar-trap">5.5 The compute–accuracy frontier (and a familiar trap)</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05b_cost_accuracy.png" class="img-fluid figure-img"></p>
+<figcaption>Accuracy versus mean actions per question. The controller, tuned well, matches or beats “do everything” (running every capability on every question) at far less compute. Pushed to act too eagerly — costs set too low — it over-acts and accuracy falls, reflecting correct answers away: the over-correction of Post 4b, now at the agent level.</figcaption>
+</figure>
+</div>
+<p>Two honest findings here. First, the well-tuned controller <strong>beats indiscriminate “do everything” at lower cost</strong> — because doing everything includes harmful actions (reflecting on answers that were already right), while the controller skips them. Second, the trap: if you make actions too cheap, the agent <em>over-acts</em>, and accuracy <em>falls</em> — it reflects correct answers into wrong ones, exactly the over-correction of <a href="../posts/04b-self-reflection.html">Post 4b</a>, now visible at the level of the whole agent. There is an optimal eagerness, and it is neither “never act” nor “always act.” The cost parameters are how you tune it.</p>
+<p>The deeper point is that the cost parameters are not bookkeeping — they are the agent’s <em>theory of when an action is worth taking</em>, and getting them wrong fails in both directions. Set them too high and the agent is timid: it answers from a weak belief when a cheap tool call would have rescued it (the right side of the curve, sliding toward “do nothing”). Set them too low and it is manic: it keeps acting past the point of usefulness, and because some actions can <em>hurt</em> (reflection’s false alarms, a vote that dilutes a good answer), over-acting actively destroys accuracy rather than merely wasting compute. That accuracy can <em>decrease</em> with more compute is the counterintuitive part, and it is the same shape as Post 4b’s over-reflection and Post 5a’s herding: more is not better once the marginal action’s expected harm exceeds its expected good. The value-of-information rule with honest costs is precisely what finds the balance, which is why the costs deserve as much care as the belief — they are the other half of the agent’s utility function.</p>
+<hr>
+<hr>
+</section>
+</section>
+<section id="honest-limits" class="level2">
+<h2 class="anchored" data-anchor-id="honest-limits">6. Honest limits</h2>
+<p>nanoAgent is a faithful skeleton, not a production system, and being clear about the gap is part of the curriculum’s contract:</p>
+<ul>
+<li><strong>The world is simulated.</strong> The capabilities are toy models with known parameters; a real LLM’s accuracy, a real tool’s reliability, and a real retriever’s relevance are messier, drift over time, and interact. The control logic transfers; the clean numbers do not.</li>
+<li><strong>The controller’s self-model can be wrong.</strong> nanoAgent knows its own capability accuracies (<img src="https://latex.codecogs.com/png.latex?d">, <img src="https://latex.codecogs.com/png.latex?f">, tool reliability, …). A real agent only <em>estimates</em> these, and a mis-estimated self-model mis-prices actions — an agent that thinks its critic is better than it is will over-reflect. The value-of-information rule is only as good as the models plugged into it.</li>
+<li><strong>Calibration is assumed achievable.</strong> We temperature-scale a clean confidence. Real LLM confidence is harder to extract and calibrate, degrades off-distribution (<a href="../posts/04c-calibration.html">Post 4c §6</a>), and verbalized confidence is unreliable. The agent inherits every caveat of the calibration post.</li>
+<li><strong>Question type is observed.</strong> The agent is told each question’s type; a real agent must infer it, imperfectly, and a misrouted question wastes an action. Type inference is itself a learnable sub-policy we have not built.</li>
+<li><strong>The action space is small and the horizon short.</strong> Real agents face long horizons where errors compound (<a href="../posts/03b-tool-use.html">Post 3b</a>, <a href="../posts/05a-multi-agent-systems.html">5a</a>), larger action spaces, and tool <em>arguments</em> to choose, not just tools. The controller’s structure scales to these; its tractability may not.</li>
+</ul>
+<p>None of these break the design — they are where the next thousand lines of engineering go. The point of nanoAgent is that the <em>control principle</em> is small, principled, and complete; production work is making each black box and each estimate good enough for the principle to act on.</p>
+<hr>
+</section>
+<section id="extending-nanoagent" class="level2">
+<h2 class="anchored" data-anchor-id="extending-nanoagent">7. Extending nanoAgent</h2>
+<p>The reference implementation is deliberately small so it can be grown. Natural extensions, each mapping to a piece of the series:</p>
+<ul>
+<li><strong>A real backend.</strong> Swap the simulated world for an LLM and real tools; the controller is unchanged. Calibrate the LLM’s confidence on a held-out set (<a href="../posts/04c-calibration.html">4c</a>) so the belief is trustworthy.</li>
+<li><strong>Learned self-model.</strong> Estimate the capability parameters (<img src="https://latex.codecogs.com/png.latex?d">, <img src="https://latex.codecogs.com/png.latex?f">, tool accuracy, costs) from logged outcomes instead of hard-coding them — a bandit problem (<a href="../posts/01a-multi-armed-bandits.html">1a</a>) over the agent’s own actions.</li>
+<li><strong>Richer beliefs.</strong> Track a posterior over the answer itself, not just a scalar correctness probability, and update it by Bayesian conditioning on each capability’s output (<a href="../posts/04a-rag-as-bayesian-conditioning.html">4a</a>).</li>
+<li><strong>Multi-step tasks.</strong> Extend the single-question loop to a plan over subgoals, where the controller chooses sub-tasks and the compounding arithmetic of <a href="../posts/05a-multi-agent-systems.html">Post 5a</a> governs reliability.</li>
+<li><strong>A committee of nanoAgents.</strong> Wrap several diverse controllers in the voting or debate patterns of <a href="../posts/05a-multi-agent-systems.html">Post 5a</a> — orchestration all the way up.</li>
+</ul>
+<p>Each is a few dozen lines on top of the controller, because the controller already factors the problem the right way: beliefs, capabilities, and a value-of-information rule that ties them together.</p>
+<hr>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">8. Further reading</h2>
+<ul>
+<li><strong>Papamarkou et al., “Position: Agentic AI Orchestration Should Be Bayes-Consistent” (2026).</strong> Argues that an agent’s control layer — not the LLM weights — should maintain calibrated beliefs over latent task quantities and choose actions by expected utility / value of information, with the models and tools as black boxes. nanoAgent is a small, concrete instance of exactly this architecture.</li>
+<li><strong>Anthropic, “Building effective agents” (2024).</strong> The practitioner’s case for simple, composable agent designs over elaborate frameworks — the spirit of nanoAgent’s forty-line controller.</li>
+<li><strong>Russell &amp; Norvig, <em>Artificial Intelligence: A Modern Approach</em>, ch.&nbsp;16–17.</strong> Decision theory, value of information, and rational agents — the classical foundation under the controller’s one rule.</li>
+<li><strong>Schick et al., “Toolformer” (2023); Yao et al., “ReAct” (2022).</strong> Tool-use and reasoning-plus-acting agents; the engineering lineage nanoAgent abstracts.</li>
+<li>The companion notebook builds and runs nanoAgent end to end, including the worked trace of §4 and every experiment above.</li>
+</ul>
+<hr>
+<p><strong>The series, in one arc.</strong> We began with a single decision under uncertainty — which arm to pull — and the exploration–exploitation trade that governs it. We end with an agent that makes a <em>sequence</em> of decisions under uncertainty — which capability to invoke, and when to stop — governed by the same logic: maintain a calibrated belief, weigh expected value against cost, and act. Everything between, from policy gradients to retrieval to calibration, was a way of building or sharpening one of those two things: the <strong>belief</strong>, or the <strong>value of an action</strong>. nanoAgent is where they meet. An agent, in the end, is not a model — it is a controller that knows what it believes, knows what its actions are worth, and chooses accordingly. Thank you for building it from scratch.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {nanoAgent: {Wiring} the {Whole} {Curriculum} into {One}
+    {Agent}},
+  date = {2026-06-24},
+  url = {https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html},
+  langid = {en}
+}
+</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
+Tran, Ba-Hien. 2026. <span>“nanoAgent: Wiring the Whole Curriculum into
+One Agent.”</span> June 24. <a href="https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html">https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html</a>.
+</div></div></section></div> ]]></description>
+  <category>agents</category>
+  <category>orchestration</category>
+  <category>bayesian control</category>
+  <category>reference implementation</category>
+  <category>capstone</category>
+  <guid>https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html</guid>
+  <pubDate>Wed, 24 Jun 2026 00:00:00 GMT</pubDate>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/05b-nanoagent.png" medium="image" type="image/png" height="81" width="144"/>
+</item>
+<item>
+  <title>Multi-Agent Systems: When Do More Agents Help?</title>
+  <dc:creator>Ba-Hien Tran</dc:creator>
+  <link>https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p><img src="https://tranbahien.github.io/nano-agents/assets/05a-multi-agent-systems.png" class="img-fluid"></p>
+<blockquote class="blockquote">
+<p><em>Topic 5, post 1 of 2.</em></p>
+</blockquote>
+<p>Every post so far has concerned a <em>single</em> agent: how it explores, decides, learns, decodes, searches, calls tools, retrieves, reflects, and knows what it doesn’t know. The obvious next move — the one every framework markets — is to use <em>several</em> agents: a committee that votes, a panel that debates, a pipeline of specialists, a manager that delegates to workers. The promise is that many heads are better than one.</p>
+<p>Sometimes. The honest question this post asks is the one the marketing skips: <strong>when does adding agents actually help, and when does it just multiply cost and compound errors?</strong> The answer turns out to be sharp and largely classical, because a committee of LLMs is an instance of a problem statisticians have studied for two centuries — <em>combining many noisy estimators of the same truth</em>. That framing connects multi-agent systems straight back through this series: voting is <a href="../posts/03a-decoding-as-inference.html">self-consistency</a> across agents, debate is <a href="../posts/04b-self-reflection.html">reflection</a> with peer critics instead of self-critique, and a loud miscalibrated agent is a <a href="../posts/04c-calibration.html">calibration</a> failure that poisons the group.</p>
+<p>We will (§0) lay out the four patterns; (§1) prove the upside with the <strong>Condorcet jury theorem</strong>; (§2) find the catch — <strong>correlated errors</strong> cap everything, so diversity is the real resource; (§3) examine <strong>debate</strong> and when peer pressure helps versus herds; (§4) examine <strong>pipelines and specialization</strong>, where errors compound multiplicatively; and (§5) pull it into design guidance. The recurring lesson: multi-agent systems are not magic, they are variance reduction and labor division, and both have precise conditions under which they pay.</p>
+<hr>
+<section id="four-ways-to-wire-agents-together" class="level2">
+<h2 class="anchored" data-anchor-id="four-ways-to-wire-agents-together">0. Four ways to wire agents together</h2>
+<p>“Multi-agent system” covers several distinct architectures, and conflating them is the first mistake. Four patterns cover most of the space:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_patterns.png" class="img-fluid figure-img"></p>
+<figcaption>Four ways to wire agents together. Ensemble aggregates independent votes; debate has agents revise toward each other over rounds; a pipeline chains specialists in series; an orchestrator decomposes a task and delegates to workers, then integrates.</figcaption>
+</figure>
+</div>
+<ul>
+<li><strong>Ensemble / vote.</strong> Several agents answer the same question independently; aggregate by majority vote (or averaging). This is the multi-agent face of self-consistency from <a href="../posts/03a-decoding-as-inference.html">Post 3a</a> — there the “agents” were independent samples from one model; here they may be different models or differently-prompted instances.</li>
+<li><strong>Debate.</strong> Agents see each other’s answers and revise over several rounds, critiquing and responding. This is <a href="../posts/04b-self-reflection.html">reflection</a> with <em>peer</em> critics rather than self-critique — and, as we will see, that change of critic is exactly what 4b predicted would matter.</li>
+<li><strong>Pipeline (specialists).</strong> Agents work in series, each a specialist for one stage: a planner, then a researcher, then a writer, then a checker. Output flows down the chain.</li>
+<li><strong>Orchestrator–workers.</strong> A manager agent decomposes a task, delegates subtasks to workers (often in parallel), and integrates their results. The hierarchical generalization of the pipeline.</li>
+</ul>
+<p>The first two <strong>aggregate</strong> redundant attempts at the <em>same</em> task (variance reduction); the last two <strong>decompose</strong> a task into <em>different</em> subtasks (labor division). These are fundamentally different value propositions with different failure modes, and the rest of the post takes them in turn.</p>
+<p>The distinction is worth dwelling on because it determines which mathematics applies. Aggregation patterns are governed by the statistics of <strong>combining estimators</strong>: their benefit comes from averaging away independent noise, so they help most when individual agents are decent-but-noisy and their errors are uncorrelated, and they fail when errors correlate (§2). Decomposition patterns are governed by the arithmetic of <strong>reliability in series</strong>: their benefit comes from letting each agent specialize, but they pay a multiplicative reliability tax because every stage must work (§4). A useful diagnostic before reaching for any multi-agent design is to ask which kind of leverage you actually need — <em>“I want a more reliable answer to one hard question”</em> points to aggregation; <em>“I want to accomplish a multi-step task”</em> points to decomposition — because the two need opposite things from their members (diverse redundancy vs.&nbsp;reliable specialization) and degrade in opposite ways.</p>
+<hr>
+</section>
+<section id="the-wisdom-of-crowds-the-condorcet-jury-theorem" class="level2">
+<h2 class="anchored" data-anchor-id="the-wisdom-of-crowds-the-condorcet-jury-theorem">1. The wisdom of crowds: the Condorcet jury theorem</h2>
+<p>Start with voting, because it has a clean and old answer. In 1785 the Marquis de Condorcet proved a result about juries that turns out to govern LLM committees exactly. Suppose <img src="https://latex.codecogs.com/png.latex?n"> agents each answer independently and each is correct with probability <img src="https://latex.codecogs.com/png.latex?p">. Take the majority vote. Then:</p>
+<ul>
+<li>if <img src="https://latex.codecogs.com/png.latex?p%20%3E%20%5Ctfrac12"> (each agent better than chance), majority-vote accuracy <strong>increases</strong> with <img src="https://latex.codecogs.com/png.latex?n"> and tends to <strong>1</strong> as <img src="https://latex.codecogs.com/png.latex?n%20%5Cto%20%5Cinfty">;</li>
+<li>if <img src="https://latex.codecogs.com/png.latex?p%20%3C%20%5Ctfrac12">, it <strong>decreases</strong> to <strong>0</strong>;</li>
+<li>if <img src="https://latex.codecogs.com/png.latex?p%20=%20%5Ctfrac12">, it stays at <img src="https://latex.codecogs.com/png.latex?%5Ctfrac12">.</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_condorcet.png" class="img-fluid figure-img"></p>
+<figcaption>The Condorcet jury theorem: majority-vote accuracy versus committee size, for agents of different individual accuracy. Above chance, independent agents vote their way to near-certainty; below chance, to near-certain failure; at exactly chance, nothing changes.</figcaption>
+</figure>
+</div>
+<p>The mechanism is the law of large numbers. Each agent’s answer is a noisy vote for the truth; averaging many independent noisy votes concentrates on the majority tendency, and if that tendency leans even slightly correct (<img src="https://latex.codecogs.com/png.latex?p%3E%5Ctfrac12">), enough votes make the correct answer win almost surely. It is the same <img src="https://latex.codecogs.com/png.latex?1/%5Csqrt%7Bn%7D"> variance reduction that made self-consistency work in Post 3a — a committee is a self-consistency ensemble whose samples come from different agents.</p>
+<p>A small calculation shows the lift concretely. With three independent agents each correct with probability <img src="https://latex.codecogs.com/png.latex?p%20=%200.6">, the majority is correct if at least two are. That probability is <img src="https://latex.codecogs.com/png.latex?%5Cbinom%7B3%7D%7B2%7D(0.6)%5E2(0.4)%20+%20(0.6)%5E3%20=%203(0.36)(0.4)%20+%200.216%20=%200.432%20+%200.216%20=%200.648"> — a jump from 0.60 to 0.648 for two extra agents. Push to nine agents and the majority-correct probability climbs past 0.73; at 21 agents, past 0.80. The gains are real but <em>sublinear</em> — each doubling of the committee buys a shrinking increment, the same diminishing returns as drawing more Monte Carlo samples, which is why §7.4’s cost analysis matters. The closed form is <img src="https://latex.codecogs.com/png.latex?%5Csum_%7Bk%20%3E%20n/2%7D%20%5Cbinom%7Bn%7D%7Bk%7D%20p%5Ek%20(1-p)%5E%7Bn-k%7D">, the upper tail of a binomial, and its march toward 1 for <img src="https://latex.codecogs.com/png.latex?p%3E%5Ctfrac12"> is the jury theorem in one line.</p>
+<p>Two consequences deserve emphasis because they are easy to forget in the excitement of “let’s add more agents”:</p>
+<ul>
+<li><strong>The knife-edge at <img src="https://latex.codecogs.com/png.latex?p%20=%20%5Ctfrac12"> is unforgiving.</strong> The theorem amplifies whatever tendency exists. A committee of below-chance agents is <em>worse</em> than one agent — voting drives them confidently to the wrong answer. Adding agents is not a way to fix a bad base model; it sharpens whatever the base model already leans toward.</li>
+<li><strong>It assumes independence.</strong> Every word of the theorem rests on the votes being independent. That assumption is where LLM committees fall apart, and it is the subject of the next section.</li>
+</ul>
+<p>It is worth pausing on how strong the independence assumption is, because the theorem is often quoted as if “more voters help” were unconditional. The proof needs the votes to be independent <em>conditional on the truth</em> — agent A being wrong tells you nothing about whether agent B is wrong. For human juries deliberating separately that is roughly plausible; for LLM agents it is close to false by construction, because the thing that makes one instance wrong on a question (a gap in training data, a misleading surface pattern, a common misconception) is usually present for every instance built from the same model. The theorem is not wrong — it is just answering a question (“what if errors are independent?”) whose premise rarely holds for clones. Holding the premise up to the light is what the next section does, and it is the difference between the textbook promise of certainty and the disappointing plateau real committees hit.</p>
+<hr>
+</section>
+<section id="diversity-is-the-resource" class="level2">
+<h2 class="anchored" data-anchor-id="diversity-is-the-resource">2. Diversity is the resource</h2>
+<p>Real agents are not independent. If your “committee” is five copies of the same model with the same prompt, they will tend to be right together and — fatally — <em>wrong together</em>, making the same mistakes on the same inputs. The Condorcet magic evaporates when errors are correlated, and quantifying that is the most important practical result in this post.</p>
+<p>Model it with a single knob: let <img src="https://latex.codecogs.com/png.latex?%5Crho"> be the fraction of items on which the agents fail (or succeed) <strong>in lockstep</strong> — all giving the same answer — because they share blind spots, while on the remaining <img src="https://latex.codecogs.com/png.latex?1-%5Crho"> they answer independently. Then majority-vote accuracy is capped, no matter how many agents you add, at</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7Baccuracy%7D_%7B%5Cinfty%7D%20%5C;=%5C;%201%20-%20%5Crho%5C,(1%20-%20p).%0A"></p>
+<p>The lockstep items can only be answered as well as a single agent (<img src="https://latex.codecogs.com/png.latex?p">); only the independent items get the Condorcet boost toward 1.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_correlation_kills_voting.png" class="img-fluid figure-img"></p>
+<figcaption>Correlated errors cap voting (individual accuracy p = 0.6). Independent committees (ρ = 0) climb toward 1; correlated ones plateau at 1 − ρ(1−p), shown dotted, however many agents you add. At ρ = 0.9 — near-clones — forty agents barely beat one.</figcaption>
+</figure>
+</div>
+<p>The plateau is brutal at high correlation: near-clone agents (<img src="https://latex.codecogs.com/png.latex?%5Crho%20=%200.9">) get essentially nothing from a committee of forty. The right way to think about it is <strong>effective sample size</strong>. A committee of <img src="https://latex.codecogs.com/png.latex?n"> equicorrelated agents carries the information of only</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0An_%7B%5Ctext%7Beff%7D%7D%20%5C;=%5C;%20%5Cfrac%7Bn%7D%7B1%20+%20(n-1)%5Crho%7D%0A"></p>
+<p>independent ones — the same formula that governs correlated measurements anywhere in statistics. It comes straight from variance: averaging <img src="https://latex.codecogs.com/png.latex?n"> unit-variance estimators with pairwise correlation <img src="https://latex.codecogs.com/png.latex?%5Crho"> gives variance <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7Bn%7D%20+%20%5Cfrac%7Bn-1%7D%7Bn%7D%5Crho"> rather than the <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7Bn%7D"> you’d get if they were independent, and <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D"> is just the independent count that would yield the same variance. Two limits make it memorable: at <img src="https://latex.codecogs.com/png.latex?%5Crho%20=%200">, <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D%20=%20n"> (full credit for every agent); as <img src="https://latex.codecogs.com/png.latex?n%20%5Cto%20%5Cinfty"> with <img src="https://latex.codecogs.com/png.latex?%5Crho%20%3E%200"> fixed, <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D%20%5Cto%201/%5Crho"> — a <em>hard ceiling</em> on effective votes no matter how many agents you recruit. At <img src="https://latex.codecogs.com/png.latex?%5Crho%20=%200.1">, forty agents are worth about eight; at <img src="https://latex.codecogs.com/png.latex?%5Crho%20=%200.5">, worth two; and you can never exceed ten effective votes at <img src="https://latex.codecogs.com/png.latex?%5Crho%20=%200.1"> even with a million agents. This is the quantitative heart of “<strong>diversity is the resource</strong>”: the value of a committee is set not by its size but by the independence of its members’ errors.</p>
+<p>For LLM agents specifically, correlation is the <em>default</em>, not the exception, because the usual sources of independence are absent: the agents often share a <strong>base model</strong> (identical weights, identical biases), share <strong>training data</strong> (so they are fooled by the same myths and the same adversarial phrasings), and share a <strong>prompt</strong> (so they are anchored the same way). Genuine diversity has to be engineered, and the levers are concrete: <strong>different base models</strong> (the strongest lever — different architectures and training data fail differently), <strong>different prompts or personas</strong> (a “skeptic” and an “optimist” make different errors), <strong>different tools or context</strong> (an agent with web search errs differently from one reasoning from memory), and <strong>different temperatures or decompositions</strong>. Every bit of shared machinery pushes <img src="https://latex.codecogs.com/png.latex?%5Crho"> back up, so a committee of GPT-clones answering with the same prompt is close to one agent wearing five hats. The practical takeaway inverts the naive intuition: <strong>past a handful of genuinely diverse agents, buy diversity, not headcount.</strong></p>
+<hr>
+</section>
+<section id="debate-reflection-with-peer-critics" class="level2">
+<h2 class="anchored" data-anchor-id="debate-reflection-with-peer-critics">3. Debate: reflection with peer critics</h2>
+<p>Voting is non-interactive — agents never see each other. <strong>Debate</strong> lets them: each agent reads the others’ current answers and revises, over several rounds. The hope is that exposing reasoning lets agents catch each other’s errors and converge on truth, and there is real evidence it can help (Du et al.&nbsp;2023). But notice what debate <em>is</em> in the vocabulary of this series: it is the reflection loop of <a href="../posts/04b-self-reflection.html">Post 4b</a>, with the critic being <em>other agents</em> instead of the model itself. And 4b’s central finding — reflection helps only when the critic discriminates better than the generator, and external feedback beats self-critique — tells us exactly what to expect. Peer critics are a step up from self-critique (a different model may catch what you can’t), but they are still fallible critics, and debate inherits reflection’s failure mode: <strong>herding</strong>.</p>
+<p>Herding is the conformity trap. When agents revise toward the current majority, they can converge on a <em>confident wrong</em> consensus, and — worse — the very act of converging destroys the diversity that voting relied on. A debate that reaches unanimity has an effective sample size of one.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_debate_vs_voting.png" class="img-fluid figure-img"></p>
+<figcaption>Debate versus one-shot voting (9 agents, individual accuracy 0.58), as the conformity rate grows. Moderate conformity combined with genuine reconsideration beats the one-shot vote; but as conformity rises toward 1 the committee herds onto whatever the early plurality was, and the advantage evaporates back to the single-agent level.</figcaption>
+</figure>
+</div>
+<p>The curve tells the whole story. With <em>moderate</em> conformity and genuine reconsideration each round, debate accumulates evidence and beats one-shot voting — the peer critique adds real information, just as 4b’s informative external feedback did. But as conformity climbs, the committee collapses to consensus before the evidence is in, freezing on the early plurality and throwing away the independence that made the crowd wise. There is a sweet spot, and it is not “agree as much as possible.”</p>
+<p>This is also where <a href="../posts/04c-calibration.html">calibration</a> re-enters with teeth. In a debate, a <em>confidently wrong</em> agent is maximally dangerous: its unwavering assertiveness pulls conformist peers toward its error, exactly the over-correction dynamic of 4b and the loud-miscalibrated-agent failure of 4c, now at the group level. A single stubborn, miscalibrated participant can drag a committee that started correct toward a wrong consensus — sycophancy and conformity are not just social foibles, they are mathematically how a debate loses information. The defenses mirror the single-agent lessons: keep critics diverse (lower <img src="https://latex.codecogs.com/png.latex?%5Crho">), don’t over-weight confident assertions (calibration), and prefer external verification over persuasion (4b) — a debate grounded in a tool result or a runnable test cannot be herded by rhetoric.</p>
+<p>There is a clean way to see why debate is <em>strictly riskier</em> than voting on the diversity axis. Voting reads the agents’ independent opinions once, at maximum diversity, and aggregates. Debate lets the opinions <em>influence each other before</em> aggregation, which can only reduce their diversity — interaction is a force that drives <img src="https://latex.codecogs.com/png.latex?%5Crho"> up over rounds, toward the consensus limit where <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D%20%5Cto%201">. So debate is making a bet: that the information peers exchange (catching each other’s specific errors) outweighs the independence they spend by converging. When peers genuinely discriminate — different models catching different mistakes, or a debate anchored in verifiable evidence — the bet pays. When they merely conform, debate pays the diversity cost and gets nothing for it, landing below where a simple vote would have. This reframes the practitioner’s question from “should agents debate?” to “do my agents add more information by interacting than they lose in independence?” — and for clones sharing a base model and prompt, the answer is usually no.</p>
+<hr>
+</section>
+<section id="pipelines-and-specialization-when-labor-division-pays" class="level2">
+<h2 class="anchored" data-anchor-id="pipelines-and-specialization-when-labor-division-pays">4. Pipelines and specialization: when labor division pays</h2>
+<p>The aggregation patterns (vote, debate) attack the <em>same</em> task redundantly. Pipelines and orchestrators do something different: they <strong>decompose</strong> a task into different subtasks handled by different agents. The promise is specialization — a dedicated planner, researcher, writer, and checker, each better at its job than a generalist. The peril is that they are wired <em>in series</em>, and series wiring compounds errors.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_pipeline_compounding.png" class="img-fluid figure-img"></p>
+<figcaption>Pipeline reliability is the product of per-stage reliabilities, p^L. Even agents that succeed 95% of the time per stage fall below 60% end-to-end across a dozen stages — a chain of agents is only as strong as the product of its links.</figcaption>
+</figure>
+</div>
+<p>If every stage must succeed for the task to succeed, end-to-end reliability is <img src="https://latex.codecogs.com/png.latex?p%5EL"> for <img src="https://latex.codecogs.com/png.latex?L"> stages — the same multiplicative error-compounding cliff we met for long-horizon tool use in <a href="../posts/03b-tool-use.html">Post 3b</a>. The arithmetic is unforgiving: a pipeline of four 90%-reliable agents succeeds only <img src="https://latex.codecogs.com/png.latex?0.9%5E4%20%5Capprox%2066%5C%25"> of the time; ten stages at 95% each is still only <img src="https://latex.codecogs.com/png.latex?0.95%5E%7B10%7D%20%5Capprox%2060%5C%25">. <strong>Adding stages is adding risk</strong>, and the instinct to decompose a task into ever-finer specialist roles can quietly make the system <em>less</em> reliable than a single capable generalist that does the whole thing in one coherent pass.</p>
+<p>So when does specialization actually win? When the per-subtask skill gain from specializing outruns the <strong>coordination tax</strong> of handing off between stages. Modeling each of the <img src="https://latex.codecogs.com/png.latex?L-1"> handoffs as succeeding with probability <img src="https://latex.codecogs.com/png.latex?h"> (context gets lost, formats mismatch, the next agent misreads the last one’s output), a specialist pipeline achieves <img src="https://latex.codecogs.com/png.latex?s%5EL%20h%5E%7BL-1%7D"> against a generalist’s <img src="https://latex.codecogs.com/png.latex?g%5EL">:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_sol3_specialization.png" class="img-fluid figure-img"></p>
+<figcaption>When specialization beats a generalist (4 subtasks). Specialists (per-subtask accuracy s) overtake the generalist (per-subtask g = 0.8) only when their skill edge is large enough to overcome the handoff tax h^(L−1). With lossy handoffs (h = 0.85) the specialists need to be much better just to break even.</figcaption>
+</figure>
+</div>
+<p>The crossover makes the condition concrete: specialists must be enough better at their narrow jobs to pay for the handoffs. When handoffs are clean (<img src="https://latex.codecogs.com/png.latex?h%20%5Capprox%201">) a modest skill edge suffices; when handoffs are lossy, specialists can be substantially better per-subtask and still lose end-to-end. A worked case sharpens it: with four subtasks, a generalist at <img src="https://latex.codecogs.com/png.latex?g%20=%200.8"> per subtask achieves <img src="https://latex.codecogs.com/png.latex?0.8%5E4%20%5Capprox%200.41">. Specialists at <img src="https://latex.codecogs.com/png.latex?s%20=%200.9"> with perfect handoffs achieve <img src="https://latex.codecogs.com/png.latex?0.9%5E4%20%5Capprox%200.66"> — a clear win. But drop the handoff reliability to <img src="https://latex.codecogs.com/png.latex?h%20=%200.85"> and the same specialists get <img src="https://latex.codecogs.com/png.latex?0.9%5E4%20%5Ccdot%200.85%5E3%20%5Capprox%200.40"> — <em>below the generalist</em>, despite each being meaningfully better at its own subtask. The three lossy handoffs (<img src="https://latex.codecogs.com/png.latex?0.85%5E3%20%5Capprox%200.61">) erased the entire specialization advantage. This is why the most reliable real systems keep pipelines <em>short</em>, invest heavily in clean handoff formats (structured outputs, shared scratchpads, explicit context passing), and add a verification stage — because the cheapest way to fight <img src="https://latex.codecogs.com/png.latex?p%5EL"> is to raise each <img src="https://latex.codecogs.com/png.latex?p"> toward 1, which usually means grounding stages in tools and checks rather than adding more agents.</p>
+<p>The <strong>orchestrator–workers</strong> pattern is the hierarchical generalization, and it inherits both properties. Parallel workers (an orchestrator fanning out independent subtasks) compound less than a serial pipeline — independent subtasks don’t multiply each other’s failure the same way — but the orchestrator’s decomposition and integration steps are themselves stages that can fail, and the orchestrator is a single point of failure for the whole plan. The design lesson is the same: every agent you add is a stage that must work, so add agents only when the decomposition genuinely buys more than the coordination it costs.</p>
+<p>It is worth being precise about the parallel-versus-serial distinction, because it is the one structural choice that most changes a multi-agent system’s reliability. In a <strong>serial</strong> pipeline of <img src="https://latex.codecogs.com/png.latex?L"> stages each reliable with probability <img src="https://latex.codecogs.com/png.latex?p">, <em>every</em> stage must succeed, so end-to-end reliability is <img src="https://latex.codecogs.com/png.latex?p%5EL"> — failure compounds. In a <strong>parallel</strong> fan-out where <img src="https://latex.codecogs.com/png.latex?L"> independent subtasks are each attempted once and all must succeed, the reliability is also <img src="https://latex.codecogs.com/png.latex?p%5EL"> (all must work), but the failures are <em>independent rather than sequential</em>, which matters for a subtler reason: a parallel subtask can be <strong>retried or voted on in isolation</strong> without re-running the whole chain, whereas a serial pipeline often has to restart from the failed stage with all the downstream context invalidated. And when the parallel subtasks are <em>redundant</em> rather than <em>complementary</em> — several workers attempting the same subtask — you are back in aggregation territory and reliability <em>rises</em> with workers (<img src="https://latex.codecogs.com/png.latex?1%20-%20(1-p)%5EL"> if any-success suffices) instead of falling. So “parallel” spans both the best case (redundant workers, reliability climbing toward 1) and a compounding case (complementary subtasks, all required), and a good orchestrator design pushes toward the former: decompose so that subtasks are independently checkable and, where it matters, redundantly attempted. The orchestrator’s own decomposition step, though, has no redundancy by default — a bad plan dooms every worker downstream — which is why the integration-and-verification step at the end (a checker that can reject and re-plan) is the highest-value agent to add to any orchestrator system. It converts a single-point-of-failure plan into a loop with a chance to recover, the multi-agent echo of the reflection loop from Post 4b.</p>
+<p>There is a unifying way to see what a good orchestrator is doing, and it ties this topic back to the Bayesian thread of the series. An orchestrator’s job — decide which worker or tool to invoke, with what subtask, and when to stop — is a sequence of decisions under uncertainty, and the principled version is the <strong>Bayesian control</strong> view that closed Post 4c: the orchestrator maintains a calibrated <em>belief</em> about the state of the task (which subgoals are done, how reliable each worker is, how likely the current draft is correct) and chooses each next action by <em>expected utility</em> — routing to the worker with the highest expected value, and spending another call (a worker, a vote, a verification pass) only when its expected improvement outweighs its cost. The voting, debate, and pipeline choices of this post are then not separate tricks but actions a Bayesian controller selects among: vote when independent evidence is cheap and beliefs are uncertain, verify when a stage’s reliability is in doubt, stop when the belief is confident enough that more compute isn’t worth it. A recent position paper (Papamarkou et al., 2026) argues exactly this — that the orchestration layer, not the LLM weights, is where Bayesian decision-making belongs, with the models and tools left as black-box predictors underneath. Our series reaches the same conclusion constructively: every “when should the agent do X?” rule we derived (call a tool in 3b, retrieve in 4a, reflect in 4b, defer in 4c) is one expected-utility decision, and an orchestrator is just the controller that makes all of them in sequence.</p>
+<hr>
+</section>
+<section id="a-practical-guide-to-multi-agent-design" class="level2">
+<h2 class="anchored" data-anchor-id="a-practical-guide-to-multi-agent-design">5. A practical guide to multi-agent design</h2>
+<p>The analysis collapses into a short set of rules, cheapest and most reliable first:</p>
+<ul>
+<li><strong>Default to one good agent.</strong> Multi-agent systems multiply cost and failure surface. Reach for them only when a single agent — with tools, retrieval, and reflection — is genuinely insufficient, and measure that it is.</li>
+<li><strong>For hard judgment calls, vote — but engineer diversity.</strong> Independent voting is the most robust multi-agent pattern (it cannot herd). Its value is set by <img src="https://latex.codecogs.com/png.latex?%5Crho">, so spend on <em>diverse</em> members: different models, prompts, personas, tools. A few diverse agents beat many clones.</li>
+<li><strong>Use debate sparingly and ground it.</strong> Debate can beat voting when peers add genuine information, but it herds under conformity and is poisoned by confident wrong agents. Keep rounds few, keep participants diverse, and anchor the debate in external verification (a test, a tool, a retrieved fact) rather than persuasion.</li>
+<li><strong>Keep pipelines short and handoffs clean.</strong> Reliability is <img src="https://latex.codecogs.com/png.latex?p%5EL">; every stage is risk. Minimize stages, use structured handoffs, raise each stage’s reliability with tools and checks before adding more specialists.</li>
+<li><strong>Specialize only when the skill edge beats the coordination tax.</strong> Division of labor pays when subtasks are genuinely separable and specialists are clearly better at their part — not as a reflex.</li>
+<li><strong>Watch the cost–accuracy frontier.</strong> Cost grows linearly with agents; accuracy saturates. The cost-effective committee is small.</li>
+</ul>
+<p>The meta-point ties the topic to everything before it: a multi-agent system is a way of <em>combining</em> the single-agent capabilities we spent four topics building, and the combination is governed by the same forces — variance reduction needs independence, sequential reliability compounds, and confident-but-wrong signals corrupt aggregation. More agents is a tool, not a goal.</p>
+<p>To see the rules in action, consider a concrete choice: <em>“Should I answer hard factual questions with a 7-agent debate?”</em> Walk it through. Is the need aggregation or decomposition? Aggregation — it’s one hard question, not a multi-step task — so the relevant math is §2’s correlation, not §4’s compounding. Are the agents diverse? If they are seven instances of one model with one prompt, <img src="https://latex.codecogs.com/png.latex?%5Crho"> is high and <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D"> is barely above 1, so seven agents will scarcely beat one — the answer is to spend the budget on <em>diversity</em> (different models, a skeptic/proponent split, one agent with retrieval) rather than count. Should they debate or vote? Debate spends diversity to exchange information (§3); for factual questions a <em>retrieval-grounded</em> exchange can genuinely help, but an ungrounded debate among clones will likely herd, so prefer voting unless the agents can cite external evidence. And is seven the right number? §7.4 says the marginal gain is near-dead past a handful, so three-to-five diverse, retrieval-grounded agents voting is almost certainly better than seven clones debating — at lower cost. Every step of that reasoning is one of the rules above; the value of the framework is that it turns “more agents sounds good” into a sequence of answerable questions.</p>
+<hr>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">6. Experiments to actually run</h2>
+<section id="effective-votes-under-correlation" class="level3">
+<h3 class="anchored" data-anchor-id="effective-votes-under-correlation">6.1 Effective votes under correlation</h3>
+<p>Compute <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D%20=%20n/(1+(n-1)%5Crho)"> across <img src="https://latex.codecogs.com/png.latex?%5Crho"> for several committee sizes. How fast does correlation collapse a large committee?</p>
+</section>
+<section id="herding-in-debate" class="level3">
+<h3 class="anchored" data-anchor-id="herding-in-debate">6.2 Herding in debate</h3>
+<p>Track majority-vote accuracy across debate rounds for moderate vs high conformity, with and without a stubborn faction. When does interaction help, and when does it freeze the committee?</p>
+</section>
+<section id="specialization-vs-generalist" class="level3">
+<h3 class="anchored" data-anchor-id="specialization-vs-generalist">6.3 Specialization vs generalist</h3>
+<p>Sweep specialist skill against a generalist baseline for several handoff reliabilities. Where is the crossover?</p>
+</section>
+<section id="the-costaccuracy-frontier" class="level3">
+<h3 class="anchored" data-anchor-id="the-costaccuracy-frontier">6.4 The cost–accuracy frontier</h3>
+<p>Plot accuracy and marginal accuracy-per-agent against committee size, for independent and correlated committees. Where do the returns die?</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">7. Solutions</h2>
+<section id="effective-votes-under-correlation-experiments05a_sol1_effective_votes.py" class="level3">
+<h3 class="anchored" data-anchor-id="effective-votes-under-correlation-experiments05a_sol1_effective_votes.py">7.1 Effective votes under correlation — <code>experiments/05a_sol1_effective_votes.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_sol1_effective_votes.png" class="img-fluid figure-img"></p>
+<figcaption>Effective number of independent votes n_eff = n/(1+(n−1)ρ) versus error correlation, for several committee sizes (log scale). Forty correlated agents at ρ = 0.1 are worth about eight independent ones; at ρ = 0.5, about two.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D"> falls off a cliff in <img src="https://latex.codecogs.com/png.latex?%5Crho">: even mild correlation slashes a large committee’s effective size, and by <img src="https://latex.codecogs.com/png.latex?%5Crho%20=%200.5"> almost all committees — whether 5 or 40 agents — are worth only one to two independent votes. The lines converge, meaning that under real correlation, <em>committee size stops mattering</em> and only diversity does.</p>
+<p><strong>The deeper lesson.</strong> This is the single number to internalize about multi-agent voting. The benefit of a committee is not <img src="https://latex.codecogs.com/png.latex?n">, it is <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D">, and <img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Beff%7D%7D"> is governed by the correlation you usually can’t see. It is the same arithmetic as self-consistency’s diminishing returns (Post 3a) and deep ensembles’ calibration gains (Post 4c) — independent errors are a scarce resource, and shared base models spend it fast. Before scaling a committee, ask not “how many agents?” but “how independent are their mistakes?”</p>
+</section>
+<section id="herding-in-debate-experiments05a_sol2_herding.py" class="level3">
+<h3 class="anchored" data-anchor-id="herding-in-debate-experiments05a_sol2_herding.py">7.2 Herding in debate — <code>experiments/05a_sol2_herding.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_sol2_herding.png" class="img-fluid figure-img"></p>
+<figcaption>Majority-vote accuracy across debate rounds (9 agents, p = 0.6). With moderate conformity and no stubborn agents, accuracy climbs above the round-0 vote. With high conformity — with or without a stubborn faction — the committee freezes at its initial vote, forfeiting the gains genuine reconsideration would bring.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> The moderate-conformity committee improves round over round — peers genuinely informing each other. The high-conformity committees flatline at the round-0 accuracy: everyone copies the early plurality immediately, so no new evidence enters and the debate is over before it began. The stubborn faction makes it no better.</p>
+<p><strong>The deeper lesson.</strong> Debate’s value comes from <em>reconsideration</em>, not <em>agreement</em> — the same distinction as 4b’s “the value is in the content of the critique, not the round count.” Conformity feels like progress (the committee is converging!) while actually destroying the independence that made the crowd worth consulting. The instinct to drive a multi-agent system toward consensus is often exactly wrong: a committee that agrees too fast has thrown away its own wisdom.</p>
+</section>
+<section id="specialization-vs-generalist-experiments05a_sol3_specialization.py" class="level3">
+<h3 class="anchored" data-anchor-id="specialization-vs-generalist-experiments05a_sol3_specialization.py">7.3 Specialization vs generalist — <code>experiments/05a_sol3_specialization.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_sol3_specialization.png" class="img-fluid figure-img"></p>
+<figcaption>End-to-end success of a 4-stage specialist pipeline versus a generalist (g = 0.8 per subtask), as specialist skill rises, for three handoff reliabilities. Specialists overtake the generalist only past a crossover that moves right as handoffs get lossier.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> With perfect handoffs (<img src="https://latex.codecogs.com/png.latex?h%20=%201">), specialists need only a small per-subtask edge to beat the generalist. As handoffs degrade to <img src="https://latex.codecogs.com/png.latex?h%20=%200.85">, the crossover shifts far right — specialists must be dramatically better just to break even, because the <img src="https://latex.codecogs.com/png.latex?h%5E%7BL-1%7D"> coordination tax eats their advantage.</p>
+<p><strong>The deeper lesson.</strong> Decomposition is not free. Every handoff is a lossy channel — context dropped, formats mismatched, the next agent misreading the last — and those losses compound exactly like the pipeline’s <img src="https://latex.codecogs.com/png.latex?p%5EL">. This is why “just add a specialized agent for X” so often disappoints: the specialist may be better at X, but the wiring tax can swallow the gain. Specialize when subtasks are cleanly separable and the skill edge is large; otherwise a coherent generalist that never has to hand off wins.</p>
+</section>
+<section id="the-costaccuracy-frontier-experiments05a_sol4_cost_accuracy.py" class="level3">
+<h3 class="anchored" data-anchor-id="the-costaccuracy-frontier-experiments05a_sol4_cost_accuracy.py">7.4 The cost–accuracy frontier — <code>experiments/05a_sol4_cost_accuracy.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/05a_sol4_cost_accuracy.png" class="img-fluid figure-img"></p>
+<figcaption>Left: majority-vote accuracy versus committee size for independent (ρ=0) and correlated (ρ=0.3) committees — both saturating while cost grows linearly. Right: marginal accuracy per added agent, which collapses toward zero within a handful of agents.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Accuracy rises steeply for the first few agents then flattens, while cost (committee size) grows linearly forever. The marginal-gain panel makes the verdict explicit: the accuracy added by each new agent collapses fast, and faster still when errors are correlated — the correlated committee’s marginal gain is near zero almost immediately.</p>
+<p><strong>The deeper lesson.</strong> The economically right committee is small. Because benefit saturates (<img src="https://latex.codecogs.com/png.latex?1/%5Csqrt%7Bn%7D">-ish) while cost is linear, the cost-effectiveness peaks at a handful of agents and declines from there; a 40-agent committee pays 40× for accuracy a 5-agent committee nearly matched. Combined with §7.1, the guidance is unambiguous: a few genuinely diverse agents capture almost all the available benefit, and everything past that is mostly burning compute.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">8. Further reading</h2>
+<ul>
+<li><strong>Condorcet, “Essai sur l’application de l’analyse à la probabilité des décisions” (1785).</strong> The jury theorem, two centuries before LLMs made it newly relevant.</li>
+<li><strong>Du et al., “Improving Factuality and Reasoning in Language Models through Multiagent Debate” (2023).</strong> Debate improves answers — the upside of §3, with the caveats this post quantifies.</li>
+<li><strong>Wang et al., “Self-Consistency Improves Chain of Thought Reasoning” (2022).</strong> Voting over samples; the single-model ancestor of the committee (Post 3a).</li>
+<li><strong>Du Bois / Lakshminarayanan et al.&nbsp;on ensembles (NeurIPS 2017).</strong> Why diversity drives ensemble gains — the correlation story of §2, from the ML side.</li>
+<li><strong>Hong et al., “MetaGPT” (2023) and Wu et al., “AutoGen” (2023).</strong> Orchestrator–worker and role-specialized frameworks; the engineering face of §4, including the handoff-format problem.</li>
+<li><strong>Anthropic, “Building effective agents” (2024).</strong> A practitioner’s argument for preferring simple, single-agent designs until multi-agent complexity is demonstrably warranted — the §5 default, in practice.</li>
+<li><strong>Papamarkou et al., “Position: Agentic AI Orchestration Should Be Bayes-Consistent” (2026).</strong> Argues that the control layer orchestrating LLMs and tools should maintain calibrated beliefs and select actions by expected utility / value of information — the Bayesian-controller view of §4 and the through-line into Post 5b.</li>
+</ul>
+<hr>
+<p><strong>Next up — Post 5b: The nanoAgent reference implementation.</strong> We have built every piece from the ground up — bandits and exploration, MDPs and value, policy gradients and RLHF, decoding and search, tools, retrieval, reflection, calibration, and now coordination. The final post wires them into <strong>nanoAgent</strong>: a small, readable, from-scratch agent that plans, calls tools, retrieves, reflects, and knows when it is unsure — the whole curriculum assembled into something you can run, read end to end, and extend.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Multi-Agent {Systems:} {When} {Do} {More} {Agents} {Help?}},
+  date = {2026-06-17},
+  url = {https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html},
+  langid = {en}
+}
+</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
+Tran, Ba-Hien. 2026. <span>“Multi-Agent Systems: When Do More Agents
+Help?”</span> June 17. <a href="https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html">https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html</a>.
+</div></div></section></div> ]]></description>
+  <category>multi-agent</category>
+  <category>debate</category>
+  <category>voting</category>
+  <category>condorcet</category>
+  <category>coordination</category>
+  <guid>https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html</guid>
+  <pubDate>Wed, 17 Jun 2026 00:00:00 GMT</pubDate>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/05a-multi-agent-systems.png" medium="image" type="image/png" height="81" width="144"/>
+</item>
 <item>
   <title>Calibration: Does the Model Know What It Doesn’t Know?</title>
   <dc:creator>Ba-Hien Tran</dc:creator>
@@ -153,6 +815,8 @@
 <p>It is worth seeing <em>where</em> the threshold should sit, because calibration is precisely what makes the calculation valid. Suppose acting on the model’s own answer is worth its probability of being correct, <img src="https://latex.codecogs.com/png.latex?%5Chat%20p">, while the fallback (retrieve, reflect, defer) succeeds with probability <img src="https://latex.codecogs.com/png.latex?q"> at some extra cost <img src="https://latex.codecogs.com/png.latex?c"> (latency, tokens, a tool call). The agent should keep its own answer when its expected value exceeds the fallback’s, <img src="https://latex.codecogs.com/png.latex?%5Chat%20p%20%3E%20q%20-%20c">, giving the threshold</p>
 <p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%20p%5E%5Cstar%20=%20q%20-%20c.%0A"></p>
 <p>If the fallback is a strong retriever (<img src="https://latex.codecogs.com/png.latex?q%20=%200.9">) costing a little (<img src="https://latex.codecogs.com/png.latex?c%20=%200.05">), defer whenever confidence drops below <img src="https://latex.codecogs.com/png.latex?0.85">. This rule is only correct when <img src="https://latex.codecogs.com/png.latex?%5Chat%20p"> is a <em>real probability of correctness</em> — i.e.&nbsp;when the model is calibrated. Feed it an overconfident model’s inflated <img src="https://latex.codecogs.com/png.latex?%5Chat%20p"> and the comparison <img src="https://latex.codecogs.com/png.latex?%5Chat%20p%20%3E%20q%20-%20c"> fires on answers that are not actually that likely to be right, and the agent keeps them instead of deferring. Calibration is the precondition that turns this clean decision rule from wishful arithmetic into a policy that behaves as derived.</p>
+<p>It is worth naming what this rule actually is, because it is the same object that has been quietly recurring since Topic 3. Comparing <img src="https://latex.codecogs.com/png.latex?%5Chat%20p"> against <img src="https://latex.codecogs.com/png.latex?q%20-%20c"> is an <strong>expected-utility decision</strong>: the agent holds a <em>belief</em> about a latent quantity (is my answer correct?), attaches <em>utilities</em> to outcomes (a right answer is worth more than the cost of checking), and takes the action with the highest expected value. Deferring “when the expected improvement from the fallback outweighs its cost” is exactly a <strong>value-of-information</strong> calculation — act on what you have unless gathering more is worth the price. And this same shape governed every agentic decision in the series: the tool-call threshold of <a href="../posts/03b-tool-use.html">Post 3b §4</a> (<img src="https://latex.codecogs.com/png.latex?P_%7B%5Ctext%7Btool%7D%7D%20-%20%5Clambda%20%3E%20P_%7B%5Ctext%7Binternal%7D%7D">), the confidence-gated retrieval of <a href="../posts/04a-rag-as-bayesian-conditioning.html">Post 4a</a>, and the reflect-when-uncertain policy of <a href="../posts/04b-self-reflection.html">Post 4b</a> are all the same expected-utility comparison over a belief about the agent’s own reliability.</p>
+<p>That is the Bayesian thread of the whole curriculum surfacing at the control layer. We met Bayesian <em>belief</em> explicitly in the posterior of <a href="../posts/01b-contextual-bandits.html">Post 1b</a> and the conditioning of <a href="../posts/04a-rag-as-bayesian-conditioning.html">Post 4a</a>; here it becomes Bayesian <em>decision-making</em> — a controller that maintains a calibrated posterior over task-relevant quantities and chooses actions to maximize expected utility. A recent position paper (Papamarkou et al., 2026) argues precisely that the orchestration layer of an agentic system — the logic that decides which tool to call, which expert to consult, when to stop — is where Bayesian principles should govern, even while the underlying LLM stays a black-box predictor. Our series arrives at the same place from the bottom up: calibration (this post) is what makes the controller’s beliefs trustworthy, and expected-utility action selection is what makes its choices coherent. Topic 5’s orchestration, and the nanoAgent of Post 5b, are this controller made concrete.</p>
 <p>The synthesis for Topic 4: an agent’s competence is bounded not only by what it knows (parametric memory), what it can look up (retrieval, 4a), and what it can reconsider (reflection, 4b), but by <strong>whether it knows which of those it needs</strong> — and that meta-knowledge is calibration. A perfectly knowledgeable model with broken calibration makes the same catastrophic move as an ignorant one: it acts when it should have checked. Knowing what you don’t know is not a nicety on top of agency; it is the control signal that makes agency work.</p>
 <hr>
 </section>
@@ -246,6 +910,7 @@
 <li><strong>OpenAI, “GPT-4 Technical Report” (2023), calibration section.</strong> The pretrained model is well-calibrated on multiple choice; RLHF makes it worse. The empirical basis for §1’s LLM twist.</li>
 <li><strong>Lakshminarayanan et al., “Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles” (NeurIPS 2017).</strong> Ensembles as a calibration-and-accuracy method; the basis for §8.4.</li>
 <li><strong>Ovadia et al., “Can You Trust Your Model’s Uncertainty?” (NeurIPS 2019).</strong> How calibration degrades under distribution shift — the §6 caveat, measured.</li>
+<li><strong>Papamarkou et al., “Position: Agentic AI Orchestration Should Be Bayes-Consistent” (2026).</strong> A recent position paper arguing that an agent’s control layer should maintain calibrated beliefs over latent task quantities and choose actions by expected utility / value of information — the orchestration-level view of the decision rule in §5, and a frame Topic 5 builds on.</li>
 </ul>
 <hr>
 <p><strong>Topic 4 in one line.</strong> An agent’s competence is bounded by what it knows, what it can retrieve (<a href="../posts/04a-rag-as-bayesian-conditioning.html">4a</a>), what it can reconsider (<a href="../posts/04b-self-reflection.html">4b</a>), and — the control signal tying those together — whether it knows which it needs, which is calibration. Memory, retrieval, reflection, and uncertainty are four faces of the same question: how should an agent marshal evidence, internal and external, to act well under uncertainty?</p>
