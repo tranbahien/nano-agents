@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ba-Hien Tran">
-<meta name="dcterms.date" content="2026-05-25">
+<meta name="dcterms.date" content="2026-03-29">
 <meta name="description" content="Policy gradient methods, from scratch — 4 of 4. We connect everything to LLM post-training. RLHF as PPO with a reward model trained on preferences. DPO as the algebraic bypass that skips both. GRPO as PPO without a critic. The full bridge from log-derivative trick (Post 2a) to ChatGPT/Claude/DeepSeek-R1.">
 
 <title>RLHF, DPO, and GRPO: From Classical RL to LLM Post-Training – nano-agents</title>
@@ -465,7 +465,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 25, 2026</p>
+      <p class="date">March 29, 2026</p>
     </div>
   </div>
   
@@ -920,13 +920,13 @@ P(y_w \succ y_l \mid x) \;=\; \sigma\!\left(\beta \log \frac{\pi^\star(y_w \mid 
   author = {Tran, Ba-Hien},
   title = {RLHF, {DPO,} and {GRPO:} {From} {Classical} {RL} to {LLM}
     {Post-Training}},
-  date = {2026-05-25},
+  date = {2026-03-29},
   url = {https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html},
   langid = {en}
 }
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
 Tran, Ba-Hien. 2026. <span>“RLHF, DPO, and GRPO: From Classical RL to
-LLM Post-Training.”</span> May 25. <a href="https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html">https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html</a>.
+LLM Post-Training.”</span> March 29. <a href="https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html">https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html</a>.
 </div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
@@ -1395,7 +1395,7 @@ LLM Post-Training.”</span> May 25. <a href="https://tranbahien.github.io/nano-
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "RLHF, DPO, and GRPO: From Classical RL to LLM Post-Training"</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Policy gradient methods, from scratch — 4 of 4. We connect everything to LLM post-training. RLHF as PPO with a reward model trained on preferences. DPO as the algebraic bypass that skips both. GRPO as PPO without a critic. The full bridge from log-derivative trick (Post 2a) to ChatGPT/Claude/DeepSeek-R1."</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-25"</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-03-29"</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [rlhf, dpo, grpo, bradley-terry, reward model, kl penalty]</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../assets/02d-rlhf-dpo-grpo.png</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>

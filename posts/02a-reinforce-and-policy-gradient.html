@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ba-Hien Tran">
-<meta name="dcterms.date" content="2026-05-22">
+<meta name="dcterms.date" content="2026-03-08">
 <meta name="description" content="Policy gradient methods, from scratch — 1 of 4. We derive the policy gradient theorem from first principles via the log-derivative trick, implement REINFORCE in clean NumPy, explore baselines and variance reduction, and demonstrate continuous-action policy gradient on a 1D bandit. The structural bridge from supervised learning to RLHF.">
 
 <title>REINFORCE and the Policy Gradient Theorem – nano-agents</title>
@@ -460,7 +460,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 22, 2026</p>
+      <p class="date">March 8, 2026</p>
     </div>
   </div>
   
@@ -847,13 +847,13 @@ b^\star(s) \;\approx\; \mathbb{E}_{\pi_\theta}[G_t \mid s_t = s] \;=\; V^{\pi_\t
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {REINFORCE and the {Policy} {Gradient} {Theorem}},
-  date = {2026-05-22},
+  date = {2026-03-08},
   url = {https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html},
   langid = {en}
 }
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
 Tran, Ba-Hien. 2026. <span>“REINFORCE and the Policy Gradient
-Theorem.”</span> May 22. <a href="https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html">https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</a>.
+Theorem.”</span> March 8. <a href="https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html">https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</a>.
 </div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
@@ -1322,7 +1322,7 @@ Theorem.”</span> May 22. <a href="https://tranbahien.github.io/nano-agents/pos
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "REINFORCE and the Policy Gradient Theorem"</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Policy gradient methods, from scratch — 1 of 4. We derive the policy gradient theorem from first principles via the log-derivative trick, implement REINFORCE in clean NumPy, explore baselines and variance reduction, and demonstrate continuous-action policy gradient on a 1D bandit. The structural bridge from supervised learning to RLHF."</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-22"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-03-08"</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [policy gradient, reinforce, log-derivative trick, variance reduction]</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../assets/02a-reinforce-and-policy-gradient.png</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>

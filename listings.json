@@ -15,8 +15,8 @@
       "/posts/02b-actor-critic.html",
       "/posts/02a-reinforce-and-policy-gradient.html",
       "/posts/01d-pomdps-and-q-learning.html",
-      "/posts/01b-contextual-bandits.html",
       "/posts/01c-mdps-and-bellman.html",
+      "/posts/01b-contextual-bandits.html",
       "/posts/01a-multi-armed-bandits.html"
     ]
   },

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Ba-Hien Tran">
-<meta name="dcterms.date" content="2026-05-23">
+<meta name="dcterms.date" content="2026-03-15">
 <meta name="description" content="Policy gradient methods, from scratch — 2 of 4. We make the baseline learnable. Two networks — an actor and a critic — learn together, with the critic providing a low-variance baseline for the policy gradient. We derive GAE (Generalized Advantage Estimation), implement A2C in NumPy, and trace the bias-variance trade-off that governs every modern policy-gradient method.">
 
 <title>Actor-Critic and Variance Reduction – nano-agents</title>
@@ -459,7 +459,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 23, 2026</p>
+      <p class="date">March 15, 2026</p>
     </div>
   </div>
   
@@ -818,13 +818,13 @@ V_\phi(s_t) \;\leftarrow\; V_\phi(s_t) + \alpha_\phi\big(\hat R_t - V_\phi(s_t)\
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {Actor-Critic and {Variance} {Reduction}},
-  date = {2026-05-23},
+  date = {2026-03-15},
   url = {https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html},
   langid = {en}
 }
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas" role="listitem">
 Tran, Ba-Hien. 2026. <span>“Actor-Critic and Variance Reduction.”</span>
-May 23. <a href="https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html">https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html</a>.
+March 15. <a href="https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html">https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html</a>.
 </div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
@@ -1293,7 +1293,7 @@ May 23. <a href="https://tranbahien.github.io/nano-agents/posts/02b-actor-critic
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Actor-Critic and Variance Reduction"</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "Policy gradient methods, from scratch — 2 of 4. We make the baseline learnable. Two networks — an actor and a critic — learn together, with the critic providing a low-variance baseline for the policy gradient. We derive GAE (Generalized Advantage Estimation), implement A2C in NumPy, and trace the bias-variance trade-off that governs every modern policy-gradient method."</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-05-23"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2026-03-15"</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> [actor-critic, gae, variance reduction, a2c]</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">image:</span><span class="co"> ../assets/02b-actor-critic.png</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="an">citation:</span><span class="co"> true</span></span>

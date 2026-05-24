@@ -10,7 +10,7 @@
 <atom:link href="https://tranbahien.github.io/nano-agents/posts.xml" rel="self" type="application/rss+xml"/>
 <description>Agentic AI from scratch, with a Bayesian lens</description>
 <generator>quarto-1.9.37</generator>
-<lastBuildDate>Wed, 24 Jun 2026 00:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 24 May 2026 00:00:00 GMT</lastBuildDate>
 <item>
   <title>nanoAgent: Wiring the Whole Curriculum into One Agent</title>
   <dc:creator>Ba-Hien Tran</dc:creator>
@@ -417,13 +417,13 @@ font-style: inherit;">=</span>world.is_correct(qid, answer), ...)</span></code><
   author = {Tran, Ba-Hien},
   title = {nanoAgent: {Wiring} the {Whole} {Curriculum} into {One}
     {Agent}},
-  date = {2026-06-24},
+  date = {2026-05-24},
   url = {https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“nanoAgent: Wiring the Whole Curriculum into
-One Agent.”</span> June 24. <a href="https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html">https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html</a>.
+One Agent.”</span> May 24. <a href="https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html">https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html</a>.
 </div></div></section></div> ]]></description>
   <category>agents</category>
   <category>orchestration</category>
@@ -431,7 +431,7 @@ One Agent.”</span> June 24. <a href="https://tranbahien.github.io/nano-agents/
   <category>reference implementation</category>
   <category>capstone</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/05b-nanoagent.html</guid>
-  <pubDate>Wed, 24 Jun 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 24 May 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/05b-nanoagent.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -656,13 +656,13 @@ One Agent.”</span> June 24. <a href="https://tranbahien.github.io/nano-agents/
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {Multi-Agent {Systems:} {When} {Do} {More} {Agents} {Help?}},
-  date = {2026-06-17},
+  date = {2026-05-17},
   url = {https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Multi-Agent Systems: When Do More Agents
-Help?”</span> June 17. <a href="https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html">https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html</a>.
+Help?”</span> May 17. <a href="https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html">https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html</a>.
 </div></div></section></div> ]]></description>
   <category>multi-agent</category>
   <category>debate</category>
@@ -670,7 +670,7 @@ Help?”</span> June 17. <a href="https://tranbahien.github.io/nano-agents/posts
   <category>condorcet</category>
   <category>coordination</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/05a-multi-agent-systems.html</guid>
-  <pubDate>Wed, 17 Jun 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 17 May 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/05a-multi-agent-systems.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -925,13 +925,13 @@ Help?”</span> June 17. <a href="https://tranbahien.github.io/nano-agents/posts
   author = {Tran, Ba-Hien},
   title = {Calibration: {Does} the {Model} {Know} {What} {It} {Doesn’t}
     {Know?}},
-  date = {2026-06-10},
+  date = {2026-05-10},
   url = {https://tranbahien.github.io/nano-agents/posts/04c-calibration.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Calibration: Does the Model Know What It
-Doesn’t Know?”</span> June 10. <a href="https://tranbahien.github.io/nano-agents/posts/04c-calibration.html">https://tranbahien.github.io/nano-agents/posts/04c-calibration.html</a>.
+Doesn’t Know?”</span> May 10. <a href="https://tranbahien.github.io/nano-agents/posts/04c-calibration.html">https://tranbahien.github.io/nano-agents/posts/04c-calibration.html</a>.
 </div></div></section></div> ]]></description>
   <category>calibration</category>
   <category>uncertainty</category>
@@ -939,7 +939,7 @@ Doesn’t Know?”</span> June 10. <a href="https://tranbahien.github.io/nano-ag
   <category>reliability diagram</category>
   <category>agents</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/04c-calibration.html</guid>
-  <pubDate>Wed, 10 Jun 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 10 May 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/04c-calibration.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -1198,13 +1198,13 @@ Doesn’t Know?”</span> June 10. <a href="https://tranbahien.github.io/nano-ag
   author = {Tran, Ba-Hien},
   title = {Self-Reflection as {Monte} {Carlo:} {When} {Thinking} {Twice}
     {Helps}},
-  date = {2026-06-03},
+  date = {2026-05-03},
   url = {https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Self-Reflection as Monte Carlo: When
-Thinking Twice Helps.”</span> June 3. <a href="https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html">https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html</a>.
+Thinking Twice Helps.”</span> May 3. <a href="https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html">https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html</a>.
 </div></div></section></div> ]]></description>
   <category>self-reflection</category>
   <category>reflexion</category>
@@ -1212,7 +1212,7 @@ Thinking Twice Helps.”</span> June 3. <a href="https://tranbahien.github.io/na
   <category>verification</category>
   <category>calibration</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/04b-self-reflection.html</guid>
-  <pubDate>Wed, 03 Jun 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 03 May 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/04b-self-reflection.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -1452,13 +1452,13 @@ Thinking Twice Helps.”</span> June 3. <a href="https://tranbahien.github.io/na
   author = {Tran, Ba-Hien},
   title = {Retrieval as {Bayesian} {Conditioning:} {When} and {How} to
     {Augment}},
-  date = {2026-05-30},
+  date = {2026-04-26},
   url = {https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Retrieval as Bayesian Conditioning: When and
-How to Augment.”</span> May 30. <a href="https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html">https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html</a>.
+How to Augment.”</span> April 26. <a href="https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html">https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html</a>.
 </div></div></section></div> ]]></description>
   <category>retrieval</category>
   <category>rag</category>
@@ -1466,7 +1466,7 @@ How to Augment.”</span> May 30. <a href="https://tranbahien.github.io/nano-age
   <category>calibration</category>
   <category>embeddings</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/04a-rag-as-bayesian-conditioning.html</guid>
-  <pubDate>Sat, 30 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 26 Apr 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/04a-rag-as-bayesian-conditioning.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -1736,13 +1736,13 @@ How to Augment.”</span> May 30. <a href="https://tranbahien.github.io/nano-age
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {Tree of {Thoughts} and {MCTS:} {Search} {Over} {Reasoning}},
-  date = {2026-05-28},
+  date = {2026-04-19},
   url = {https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Tree of Thoughts and MCTS: Search Over
-Reasoning.”</span> May 28. <a href="https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html">https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html</a>.
+Reasoning.”</span> April 19. <a href="https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html">https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html</a>.
 </div></div></section></div> ]]></description>
   <category>tree of thoughts</category>
   <category>mcts</category>
@@ -1751,7 +1751,7 @@ Reasoning.”</span> May 28. <a href="https://tranbahien.github.io/nano-agents/p
   <category>planning</category>
   <category>alphazero</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/03c-tree-of-thoughts.html</guid>
-  <pubDate>Thu, 28 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 19 Apr 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/03c-tree-of-thoughts.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -2011,13 +2011,13 @@ Reasoning.”</span> May 28. <a href="https://tranbahien.github.io/nano-agents/p
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {Tool {Use} as {Actions:} {ReAct} and the {Agent} {Loop}},
-  date = {2026-05-27},
+  date = {2026-04-12},
   url = {https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Tool Use as Actions: ReAct and the Agent
-Loop.”</span> May 27. <a href="https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html">https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html</a>.
+Loop.”</span> April 12. <a href="https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html">https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html</a>.
 </div></div></section></div> ]]></description>
   <category>tool use</category>
   <category>react</category>
@@ -2025,7 +2025,7 @@ Loop.”</span> May 27. <a href="https://tranbahien.github.io/nano-agents/posts/
   <category>pomdp</category>
   <category>multi-hop reasoning</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/03b-tool-use.html</guid>
-  <pubDate>Wed, 27 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 12 Apr 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/03b-tool-use.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -2379,13 +2379,13 @@ Loop.”</span> May 27. <a href="https://tranbahien.github.io/nano-agents/posts/
   author = {Tran, Ba-Hien},
   title = {Decoding as {Inference:} {Sampling,} {Search,} and
     {Test-Time} {Compute}},
-  date = {2026-05-26},
+  date = {2026-04-05},
   url = {https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Decoding as Inference: Sampling, Search, and
-Test-Time Compute.”</span> May 26. <a href="https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html">https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html</a>.
+Test-Time Compute.”</span> April 5. <a href="https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html">https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html</a>.
 </div></div></section></div> ]]></description>
   <category>decoding</category>
   <category>sampling</category>
@@ -2393,7 +2393,7 @@ Test-Time Compute.”</span> May 26. <a href="https://tranbahien.github.io/nano-
   <category>self-consistency</category>
   <category>test-time compute</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/03a-decoding-as-inference.html</guid>
-  <pubDate>Tue, 26 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 05 Apr 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/03a-decoding-as-inference.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -2817,13 +2817,13 @@ Test-Time Compute.”</span> May 26. <a href="https://tranbahien.github.io/nano-
   author = {Tran, Ba-Hien},
   title = {RLHF, {DPO,} and {GRPO:} {From} {Classical} {RL} to {LLM}
     {Post-Training}},
-  date = {2026-05-25},
+  date = {2026-03-29},
   url = {https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“RLHF, DPO, and GRPO: From Classical RL to
-LLM Post-Training.”</span> May 25. <a href="https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html">https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html</a>.
+LLM Post-Training.”</span> March 29. <a href="https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html">https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html</a>.
 </div></div></section></div> ]]></description>
   <category>rlhf</category>
   <category>dpo</category>
@@ -2832,7 +2832,7 @@ LLM Post-Training.”</span> May 25. <a href="https://tranbahien.github.io/nano-
   <category>reward model</category>
   <category>kl penalty</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02d-rlhf-dpo-grpo.html</guid>
-  <pubDate>Mon, 25 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 29 Mar 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/02d-rlhf-dpo-grpo.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -3236,20 +3236,20 @@ font-style: inherit;">-</span> V_phi[s])</span></code></pre></div></div>
   author = {Tran, Ba-Hien},
   title = {TRPO and {PPO:} {Trust} {Regions} for {Stable} {Policy}
     {Gradient}},
-  date = {2026-05-24},
+  date = {2026-03-22},
   url = {https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“TRPO and PPO: Trust Regions for Stable
-Policy Gradient.”</span> May 24. <a href="https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html">https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html</a>.
+Policy Gradient.”</span> March 22. <a href="https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html">https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html</a>.
 </div></div></section></div> ]]></description>
   <category>ppo</category>
   <category>trpo</category>
   <category>trust region</category>
   <category>clipped surrogate</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02c-trpo-and-ppo.html</guid>
-  <pubDate>Sun, 24 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 22 Mar 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/02c-trpo-and-ppo.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -3648,20 +3648,20 @@ font-style: inherit;">return</span> advantages</span></code></pre></div></div>
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {Actor-Critic and {Variance} {Reduction}},
-  date = {2026-05-23},
+  date = {2026-03-15},
   url = {https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Actor-Critic and Variance Reduction.”</span>
-May 23. <a href="https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html">https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html</a>.
+March 15. <a href="https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html">https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html</a>.
 </div></div></section></div> ]]></description>
   <category>actor-critic</category>
   <category>gae</category>
   <category>variance reduction</category>
   <category>a2c</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02b-actor-critic.html</guid>
-  <pubDate>Sat, 23 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 15 Mar 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/02b-actor-critic.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -4023,20 +4023,20 @@ font-style: inherit;">*</span> returns[t]</span></code></pre></div></div>
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {REINFORCE and the {Policy} {Gradient} {Theorem}},
-  date = {2026-05-22},
+  date = {2026-03-08},
   url = {https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“REINFORCE and the Policy Gradient
-Theorem.”</span> May 22. <a href="https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html">https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</a>.
+Theorem.”</span> March 8. <a href="https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html">https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</a>.
 </div></div></section></div> ]]></description>
   <category>policy gradient</category>
   <category>reinforce</category>
   <category>log-derivative trick</category>
   <category>variance reduction</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/02a-reinforce-and-policy-gradient.html</guid>
-  <pubDate>Fri, 22 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 08 Mar 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/02a-reinforce-and-policy-gradient.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
@@ -4428,426 +4428,21 @@ font-style: inherit;">len</span>(b)</span></code></pre></div></div>
   author = {Tran, Ba-Hien},
   title = {POMDPs and {Q-learning:} {Acting} {When} {You} {Can’t} {See}
     and {Can’t} {Plan}},
-  date = {2026-05-21},
+  date = {2026-03-01},
   url = {https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“POMDPs and Q-Learning: Acting When You Can’t
-See and Can’t Plan.”</span> May 21. <a href="https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html">https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html</a>.
+See and Can’t Plan.”</span> March 1. <a href="https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html">https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html</a>.
 </div></div></section></div> ]]></description>
   <category>pomdp</category>
   <category>q-learning</category>
   <category>td-learning</category>
   <category>belief states</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/01d-pomdps-and-q-learning.html</guid>
-  <pubDate>Thu, 21 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 01 Mar 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/01d-pomdps-and-q-learning.png" medium="image" type="image/png" height="81" width="144"/>
-</item>
-<item>
-  <title>Contextual Bandits: When the Best Action Depends on Who You’re Talking To</title>
-  <dc:creator>Ba-Hien Tran</dc:creator>
-  <link>https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p><img src="https://tranbahien.github.io/nano-agents/assets/01b-contextual-bandits.png" class="img-fluid"></p>
-<blockquote class="blockquote">
-<p><em>Decision-making under uncertainty, from scratch — 2 of 4.</em></p>
-</blockquote>
-<p>In <a href="../posts/01a-multi-armed-bandits.html">Part 1a</a> we built three algorithms for a world where each arm has a single unknown expected reward. That’s enough for some real problems (A/B testing two website designs), but it’s far from enough for any modern application. Netflix doesn’t recommend the same movie to everyone. A doctor doesn’t prescribe the same dose to every patient. An RLHF reward model doesn’t score every response the same.</p>
-<p>The missing piece is <strong>context</strong> — features describing the situation we’re in. The reward of pulling arm <img src="https://latex.codecogs.com/png.latex?k"> now depends on a context vector <img src="https://latex.codecogs.com/png.latex?x_t">, and the optimal arm changes with it. This post derives the linear contextual bandit from first principles, builds <strong>LinUCB</strong> and <strong>Linear Thompson Sampling</strong> on top, and lands at the place where reward models for RLHF actually live.</p>
-<p>The mathematical engine for both algorithms is <strong>Bayesian linear regression</strong>. We’ll spend serious time on it — not because the math is hard, but because many Bayesian deep learning methods, many uncertainty-aware LLM techniques, and many probabilistic agents come back to it. Treating BLR rigorously here pays off for the rest of the series.</p>
-<p><strong>Roadmap for the core of this post.</strong> The logic runs in three moves, and it’s worth holding them in mind: (1) we <em>first derive Bayesian linear regression</em> (§2) — the posterior over the reward parameters given the data; (2) we then build <strong>LinUCB</strong> (§3), which turns the posterior’s <em>uncertainty</em> into an optimism bonus and acts on the upper confidence bound; and (3) we build <strong>Linear Thompson Sampling</strong> (§4), which instead <em>samples</em> a parameter vector from the posterior and acts greedily under it. Same posterior, two different ways to let uncertainty drive exploration — optimism versus sampling. Everything else is detail around those three moves.</p>
-<hr>
-<section id="from-best-arm-to-best-arm-for-this-context" class="level2">
-<h2 class="anchored" data-anchor-id="from-best-arm-to-best-arm-for-this-context">0. From “best arm” to “best arm for this context”</h2>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_contextual_schematic.png" class="img-fluid figure-img"></p>
-<figcaption>Same four arms, two different contexts, two different best arms. Plain bandits can’t capture this — they assume a single best arm exists.</figcaption>
-</figure>
-</div>
-<p>The figure above shows two contexts <img src="https://latex.codecogs.com/png.latex?x_A%20=%20(0.8,%200.6)"> and <img src="https://latex.codecogs.com/png.latex?x_B%20=%20(-0.7,%200.7)">, and the predicted reward <img src="https://latex.codecogs.com/png.latex?x%5E%5Ctop%20%5Ctheta_k"> each of four arms produces under each. Same arms, same parameters; different best arm. For <img src="https://latex.codecogs.com/png.latex?x_A">, arm 3 wins. For <img src="https://latex.codecogs.com/png.latex?x_B">, arm 4 wins.</p>
-<p>If we ran the unstructured bandit algorithms from 1a on this data, they’d see a stream of rewards from each arm, average them out, and pick whichever arm had the highest <em>marginal</em> mean. They’d be solving the wrong problem. The marginal-best arm might lose to literally every other arm on every individual context, if the contexts arrive in the wrong proportions.</p>
-<p>This is why context-free UCB1 has linear regret on this kind of problem — we’ll see it explicitly in the regret figure at the end. The algorithm isn’t doing anything wrong given its assumptions; the assumptions just don’t match the world.</p>
-<hr>
-</section>
-<section id="formal-setup" class="level2">
-<h2 class="anchored" data-anchor-id="formal-setup">1. Formal setup</h2>
-<p>A <strong>contextual bandit</strong> is a tuple <img src="https://latex.codecogs.com/png.latex?(%5Cmathcal%7BX%7D,%20%5Cmathcal%7BA%7D,%20P_r)"> where:</p>
-<ul>
-<li><img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BX%7D"> is a context space (we’ll take <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BX%7D%20=%20%5Cmathbb%7BR%7D%5Ed">),</li>
-<li><img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BA%7D%20=%20%5C%7B1,%20%5Cdots,%20K%5C%7D"> is the action set, and</li>
-<li><img src="https://latex.codecogs.com/png.latex?P_r(%5Ccdot%20%5Cmid%20x,%20a)"> is the conditional reward distribution given context and action.</li>
-</ul>
-<p>At each timestep <img src="https://latex.codecogs.com/png.latex?t">:</p>
-<ol type="1">
-<li>The environment reveals context <img src="https://latex.codecogs.com/png.latex?x_t%20%5Cin%20%5Cmathcal%7BX%7D">.</li>
-<li>The agent picks action <img src="https://latex.codecogs.com/png.latex?a_t%20%5Cin%20%5Cmathcal%7BA%7D">.</li>
-<li>The environment returns reward <img src="https://latex.codecogs.com/png.latex?r_t%20%5Csim%20P_r(%5Ccdot%20%5Cmid%20x_t,%20a_t)">.</li>
-</ol>
-<p>We want to minimize <strong>regret</strong> relative to the best contextual policy:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AR(T)%20%5C;%5Cequiv%5C;%20%5Cmathbb%7BE%7D%5C!%5Cleft%5B%5Csum_%7Bt=1%7D%5E%7BT%7D%20%5Cmax_a%20%5Cmathbb%7BE%7D%5Br_t%20%5Cmid%20x_t,%20a%5D%20%5C;-%5C;%20r_t%5Cright%5D.%0A"></p>
-<p>This is the contextual analogue of the regret we defined for unstructured bandits. It compares the agent’s reward to an oracle that knows the true reward function and picks optimally per-context.</p>
-<section id="linearity-assumption" class="level3">
-<h3 class="anchored" data-anchor-id="linearity-assumption">1.1 Linearity assumption</h3>
-<p>To make progress we need structure. The simplest useful assumption is <strong>linearity</strong>: there exist unknown parameters <img src="https://latex.codecogs.com/png.latex?%5Ctheta_k%20%5Cin%20%5Cmathbb%7BR%7D%5Ed"> such that</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathbb%7BE%7D%5Br_t%20%5Cmid%20x_t,%20a_t%20=%20k%5D%20%5C;=%5C;%20x_t%5E%5Ctop%20%5Ctheta_k.%0A"></p>
-<p>Two common parameterizations:</p>
-<ul>
-<li><strong>Disjoint:</strong> each arm has its own <img src="https://latex.codecogs.com/png.latex?%5Ctheta_k">. The K reward functions are independent. Used when arms are heterogeneous (e.g., news articles, where each has its own coefficients on user features).</li>
-<li><strong>Shared (hybrid):</strong> there’s a single <img src="https://latex.codecogs.com/png.latex?%5Ctheta">, but features depend on both context and arm: <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BE%7D%5Br%20%5Cmid%20x,%20a%5D%20=%20%5Cphi(x,%20a)%5E%5Ctop%20%5Ctheta">. Used when arms share structure (e.g., recommending the same set of items with item-specific features).</li>
-</ul>
-<p>We’ll focus on the disjoint case — it’s conceptually cleaner and the math transfers to the shared case directly. In the implementation, both look identical: maintain the sufficient statistics of a Bayesian linear regression, predict and explore using them.</p>
-<p>Note: realized rewards add noise, <img src="https://latex.codecogs.com/png.latex?r_t%20=%20x_t%5E%5Ctop%20%5Ctheta_k%20+%20%5Cvarepsilon_t"> with <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon_t%20%5Csim%20%5Cmathcal%7BN%7D(0,%20%5Csigma%5E2)">. The Gaussian assumption is convenient (conjugate priors!) but not essential — most of what follows generalizes to sub-Gaussian noise.</p>
-<hr>
-</section>
-</section>
-<section id="the-engine-bayesian-linear-regression" class="level2">
-<h2 class="anchored" data-anchor-id="the-engine-bayesian-linear-regression">2. The engine: Bayesian linear regression</h2>
-<p>Both LinUCB and Linear Thompson Sampling are wrappers around Bayesian linear regression. The algorithm essentially reduces to “fit a Bayesian linear regression to each arm, then do something thoughtful with the resulting posterior.” So we need the posterior.</p>
-<p>This section is the deepest math in the post. The payoff is that <em>many</em> later techniques in the curriculum — neural bandits, reward models in RLHF, Bayesian neural networks, calibration of LLMs — reduce in some part to this calculation. Internalize it once, reuse it often.</p>
-<section id="the-model" class="level3">
-<h3 class="anchored" data-anchor-id="the-model">2.1 The model</h3>
-<p>We observe data <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BD%7D%20=%20%5C%7B(x_i,%20y_i)%5C%7D_%7Bi=1%7D%5En"> generated by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Ay_i%20%5C;=%5C;%20x_i%5E%5Ctop%20%5Ctheta%20+%20%5Cvarepsilon_i,%20%5Cqquad%20%5Cvarepsilon_i%20%5Csim%20%5Cmathcal%7BN%7D(0,%20%5Csigma%5E2),%0A"></p>
-<p>with <img src="https://latex.codecogs.com/png.latex?%5Ctheta%20%5Cin%20%5Cmathbb%7BR%7D%5Ed"> unknown. We place a Gaussian prior on <img src="https://latex.codecogs.com/png.latex?%5Ctheta">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctheta%20%5Csim%20%5Cmathcal%7BN%7D(%5Cmu_0,%20%5CSigma_0).%0A"></p>
-<p>A standard choice is <img src="https://latex.codecogs.com/png.latex?%5Cmu_0%20=%200">, <img src="https://latex.codecogs.com/png.latex?%5CSigma_0%20=%20%5Clambda%5E%7B-1%7D%20I"> — a centered, isotropic prior with precision <img src="https://latex.codecogs.com/png.latex?%5Clambda">. Large <img src="https://latex.codecogs.com/png.latex?%5Clambda"> means a tight prior (strong belief that <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> is near 0); small <img src="https://latex.codecogs.com/png.latex?%5Clambda"> means a vague prior.</p>
-</section>
-<section id="deriving-the-posterior" class="level3">
-<h3 class="anchored" data-anchor-id="deriving-the-posterior">2.2 Deriving the posterior</h3>
-<p>The posterior is also Gaussian — this is the magic of conjugacy. Let me derive it cleanly.</p>
-<p>By Bayes’ rule, <img src="https://latex.codecogs.com/png.latex?p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)%20%5Cpropto%20p(%5Cmathcal%7BD%7D%20%5Cmid%20%5Ctheta)%20%5C,%20p(%5Ctheta)">. Taking logs and dropping constants:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clog%20p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)%20%5C;=%5C;%20-%5Cfrac%7B1%7D%7B2%5Csigma%5E2%7D%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_i%20-%20x_i%5E%5Ctop%20%5Ctheta)%5E2%20%5C;-%5C;%20%5Cfrac%7B1%7D%7B2%7D%20(%5Ctheta%20-%20%5Cmu_0)%5E%5Ctop%20%5CSigma_0%5E%7B-1%7D%20(%5Ctheta%20-%20%5Cmu_0)%20%5C;+%5C;%20%5Ctext%7Bconst%7D.%0A"></p>
-<p>Both terms are quadratic in <img src="https://latex.codecogs.com/png.latex?%5Ctheta">. The posterior is therefore Gaussian. To find its mean and covariance, expand and collect terms in <img src="https://latex.codecogs.com/png.latex?%5Ctheta">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clog%20p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)%20%5C;=%5C;%20-%5Cfrac%7B1%7D%7B2%7D%20%5Ctheta%5E%5Ctop%20%5Cunderbrace%7B%5Cleft%5B%5CSigma_0%5E%7B-1%7D%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X%5Cright%5D%7D_%7B%5CSigma_n%5E%7B-1%7D%7D%20%5Ctheta%20%5C;+%5C;%20%5Ctheta%5E%5Ctop%20%5Cunderbrace%7B%5Cleft%5B%5CSigma_0%5E%7B-1%7D%20%5Cmu_0%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20y%5Cright%5D%7D_%7B%5CSigma_n%5E%7B-1%7D%20%5Cmu_n%7D%20+%20%5Ctext%7Bconst%7D,%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?X%20%5Cin%20%5Cmathbb%7BR%7D%5E%7Bn%20%5Ctimes%20d%7D"> is the design matrix with rows <img src="https://latex.codecogs.com/png.latex?x_i%5E%5Ctop"> and <img src="https://latex.codecogs.com/png.latex?y%20%5Cin%20%5Cmathbb%7BR%7D%5En"> is the response vector. Reading off the coefficients of <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Ctop%20(%5Ccdot)%20%5Ctheta"> and <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Ctop%20(%5Ccdot)"> gives the <strong>posterior</strong></p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboxed%7B%5C;%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D%20%5C;%5Csim%5C;%20%5Cmathcal%7BN%7D(%5Cmu_n,%20%5CSigma_n),%20%5Cqquad%20%5CSigma_n%5E%7B-1%7D%20=%20%5CSigma_0%5E%7B-1%7D%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X,%20%5Cqquad%20%5Cmu_n%20=%20%5CSigma_n%20%5Cbig%5B%5CSigma_0%5E%7B-1%7D%20%5Cmu_0%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20y%5Cbig%5D.%5C;%7D%0A"></p>
-<p>With the standard isotropic prior <img src="https://latex.codecogs.com/png.latex?%5Cmu_0%20=%200">, <img src="https://latex.codecogs.com/png.latex?%5CSigma_0%20=%20%5Clambda%5E%7B-1%7D%20I">, this simplifies to</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5CSigma_n%5E%7B-1%7D%20%5C;=%5C;%20%5Clambda%20I%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X,%20%5Cqquad%20%5Cmu_n%20%5C;=%5C;%20%5Csigma%5E%7B-2%7D%20%5CSigma_n%20X%5E%5Ctop%20y%20%5C;=%5C;%20%5Cleft(%5Clambda%20%5Csigma%5E2%20I%20+%20X%5E%5Ctop%20X%5Cright)%5E%7B-1%7D%20X%5E%5Ctop%20y.%0A"></p>
-<p>This is the <strong>ridge regression</strong> estimator with regularization <img src="https://latex.codecogs.com/png.latex?%5Clambda%20%5Csigma%5E2">. Bayesian linear regression with a zero-mean Gaussian prior <em>is</em> ridge regression — the posterior mean coincides with the MAP estimate, which coincides with the regularized least-squares solution. Three views, one object.</p>
-</section>
-<section id="visualizing-the-contraction" class="level3">
-<h3 class="anchored" data-anchor-id="visualizing-the-contraction">2.3 Visualizing the contraction</h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_blr_posterior_evolution.png" class="img-fluid figure-img"></p>
-<figcaption>The Gaussian posterior over θ contracts toward the true parameter as data accumulates. The 95% region (dashed) and 68% region (solid) both shrink at rate 1/√n.</figcaption>
-</figure>
-</div>
-<p>The figure shows the posterior at <img src="https://latex.codecogs.com/png.latex?n%20=%200,%2010,%20100,%20500"> for a 2D problem with <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%200.7"> noise. Notice how:</p>
-<ul>
-<li>At <img src="https://latex.codecogs.com/png.latex?n%20=%200">, the posterior is the prior — wide and centered at zero, with the true parameter <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar%20=%20(1.2,%20-0.6)"> near the boundary.</li>
-<li>By <img src="https://latex.codecogs.com/png.latex?n%20=%2010">, the posterior has clearly moved toward <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar">, though with significant uncertainty.</li>
-<li>At <img src="https://latex.codecogs.com/png.latex?n%20=%20100">, the 95% region is tight and contains the truth.</li>
-<li>At <img src="https://latex.codecogs.com/png.latex?n%20=%20500">, the posterior is essentially a delta at <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar">.</li>
-</ul>
-<p>The rate of contraction is <strong><img src="https://latex.codecogs.com/png.latex?1/%5Csqrt%7Bn%7D"> per dimension</strong>. Specifically, the posterior covariance <img src="https://latex.codecogs.com/png.latex?%5CSigma_n%20=%20(%5Clambda%20I%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X)%5E%7B-1%7D">. If <img src="https://latex.codecogs.com/png.latex?X%5E%5Ctop%20X"> grows like <img src="https://latex.codecogs.com/png.latex?n"> times the identity (true on average for isotropic contexts), then <img src="https://latex.codecogs.com/png.latex?%5CSigma_n%20%5Capprox%20%5Csigma%5E2%20/%20n%20%5Ccdot%20I">. The standard deviation in each direction is <img src="https://latex.codecogs.com/png.latex?%5Csigma%20/%20%5Csqrt%7Bn%7D">. This is the same rate that frequentist concentration inequalities give you — Bayesian and frequentist agree on the <em>amount</em> of information in <img src="https://latex.codecogs.com/png.latex?n"> samples.</p>
-</section>
-<section id="online-updates-and-sherman-morrison" class="level3">
-<h3 class="anchored" data-anchor-id="online-updates-and-sherman-morrison">2.4 Online updates and Sherman-Morrison</h3>
-<p>Bandit algorithms need to update the posterior every step. Recomputing <img src="https://latex.codecogs.com/png.latex?%5CSigma_n%5E%7B-1%7D"> from scratch and inverting it takes <img src="https://latex.codecogs.com/png.latex?O(n%20d%5E2%20+%20d%5E3)"> — way too expensive online. We want <strong><img src="https://latex.codecogs.com/png.latex?O(d%5E2)"> per step</strong>.</p>
-<p>The Sherman-Morrison formula gives it to us. For an invertible matrix <img src="https://latex.codecogs.com/png.latex?A"> and vectors <img src="https://latex.codecogs.com/png.latex?u,%20v"> with <img src="https://latex.codecogs.com/png.latex?1%20+%20v%5E%5Ctop%20A%5E%7B-1%7D%20u%20%5Cneq%200">,</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A(A%20+%20u%20v%5E%5Ctop)%5E%7B-1%7D%20%5C;=%5C;%20A%5E%7B-1%7D%20%5C;-%5C;%20%5Cfrac%7BA%5E%7B-1%7D%20u%20v%5E%5Ctop%20A%5E%7B-1%7D%7D%7B1%20+%20v%5E%5Ctop%20A%5E%7B-1%7D%20u%7D.%0A"></p>
-<p>In our case, when a new data point <img src="https://latex.codecogs.com/png.latex?(x_%7Bn+1%7D,%20y_%7Bn+1%7D)"> arrives, the precision matrix updates as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AA_%7Bn+1%7D%20%5C;=%5C;%20A_n%20+%20%5Csigma%5E%7B-2%7D%20x_%7Bn+1%7D%20x_%7Bn+1%7D%5E%5Ctop,%20%5Cquad%20%5Ctext%7Bwhere%20%7D%20A_n%20%5Cequiv%20%5CSigma_n%5E%7B-1%7D.%0A"></p>
-<p>Applying Sherman-Morrison with <img src="https://latex.codecogs.com/png.latex?u%20=%20v%20=%20%5Csigma%5E%7B-1%7D%20x_%7Bn+1%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AA_%7Bn+1%7D%5E%7B-1%7D%20%5C;=%5C;%20A_n%5E%7B-1%7D%20%5C;-%5C;%20%5Cfrac%7BA_n%5E%7B-1%7D%20x_%7Bn+1%7D%20x_%7Bn+1%7D%5E%5Ctop%20A_n%5E%7B-1%7D%7D%7B%5Csigma%5E2%20+%20x_%7Bn+1%7D%5E%5Ctop%20A_n%5E%7B-1%7D%20x_%7Bn+1%7D%7D.%0A"></p>
-<p>So we maintain <img src="https://latex.codecogs.com/png.latex?A_n%5E%7B-1%7D"> directly, update it in <img src="https://latex.codecogs.com/png.latex?O(d%5E2)"> per step (one matrix-vector product, one outer product), and never call <code>np.linalg.inv</code> again. The posterior mean <img src="https://latex.codecogs.com/png.latex?%5Cmu_n%20=%20A_n%5E%7B-1%7D%20b_n"> where <img src="https://latex.codecogs.com/png.latex?b_n%20=%20%5Csigma%5E%7B-2%7D%20%5Csum_i%20y_i%20x_i"> also updates incrementally: <img src="https://latex.codecogs.com/png.latex?b_%7Bn+1%7D%20=%20b_n%20+%20%5Csigma%5E%7B-2%7D%20y_%7Bn+1%7D%20x_%7Bn+1%7D">, with <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bn+1%7D%20=%20A_%7Bn+1%7D%5E%7B-1%7D%20b_%7Bn+1%7D">.</p>
-<p>In our reference implementation we use the simpler <code>np.linalg.solve(A, b)</code> because <img src="https://latex.codecogs.com/png.latex?d"> is small and clarity wins over micro-optimization. For production at large <img src="https://latex.codecogs.com/png.latex?d">, switch to Sherman-Morrison.</p>
-</section>
-<section id="the-variational-kl-view" class="level3">
-<h3 class="anchored" data-anchor-id="the-variational-kl-view">2.5 The variational / KL view</h3>
-<p>Here’s a perspective that becomes essential later in the curriculum. The Bayesian posterior is the unique distribution <img src="https://latex.codecogs.com/png.latex?q%5E%5Cstar(%5Ctheta)"> that minimizes the <strong>variational free energy</strong>:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Aq%5E%5Cstar%20%5C;=%5C;%20%5Carg%5Cmin_q%20%5C;%5CBig%5B%5C,%20%5Cmathrm%7BKL%7D(q%20%5C,%5C%7C%5C,%20p_0)%20%5C;-%5C;%20%5Cmathbb%7BE%7D_%7Bq%7D%5B%5Clog%20p(%5Cmathcal%7BD%7D%20%5Cmid%20%5Ctheta)%5D%20%5C,%5CBig%5D,%0A"></p>
-<p>where the minimization is over all distributions <img src="https://latex.codecogs.com/png.latex?q"> on <img src="https://latex.codecogs.com/png.latex?%5Ctheta">. When <img src="https://latex.codecogs.com/png.latex?q"> is restricted to Gaussians and the model is conjugate, this optimization is exact: the optimal <img src="https://latex.codecogs.com/png.latex?q"> equals the true posterior <img src="https://latex.codecogs.com/png.latex?p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)">. When <img src="https://latex.codecogs.com/png.latex?q"> is restricted to a more limited family (mean-field, low-rank Gaussians, etc.) you get <strong>variational inference</strong> — an approximate posterior that minimizes the same objective.</p>
-<p>Two takeaways:</p>
-<ol type="1">
-<li><p><strong>The Bayesian update is an optimization.</strong> Each step minimizes a tradeoff between (a) staying close to the prior (the KL term) and (b) fitting the data (the expected log-likelihood). Online, the previous posterior becomes the new prior, and each new data point pulls the distribution slightly toward better fit.</p></li>
-<li><p><strong>This is the gateway to variational neural networks.</strong> Replace <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> with neural network weights, replace <img src="https://latex.codecogs.com/png.latex?p(y%20%5Cmid%20x,%20%5Ctheta)"> with a deep model, restrict <img src="https://latex.codecogs.com/png.latex?q"> to a tractable family (e.g., factorized Gaussian over weights), and you get variational BNNs. The objective is identical. Bayesian linear regression is the simplest non-trivial instance of an idea that scales all the way up.</p></li>
-</ol>
-<p>This isn’t a digression — it’s the through-line from contextual bandits to modern Bayesian deep learning. Every uncertainty-aware LLM technique in the literature is some descendant of the variational view applied here.</p>
-</section>
-<section id="predictive-distribution" class="level3">
-<h3 class="anchored" data-anchor-id="predictive-distribution">2.6 Predictive distribution</h3>
-<p>For a new context <img src="https://latex.codecogs.com/png.latex?x_*">, the predictive distribution of the reward is also Gaussian:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Ar_*%20%5Cmid%20x_*,%20%5Cmathcal%7BD%7D%20%5C;%5Csim%5C;%20%5Cmathcal%7BN%7D%5C!%5Cleft(%5C,%20x_*%5E%5Ctop%20%5Cmu_n,%20%5C;%20%5Csigma%5E2%20+%20x_*%5E%5Ctop%20%5CSigma_n%20x_*%20%5C,%5Cright).%0A"></p>
-<p>The variance has two parts:</p>
-<ul>
-<li><strong><img src="https://latex.codecogs.com/png.latex?%5Csigma%5E2"> — irreducible noise.</strong> Even if we knew <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> exactly, we couldn’t predict <img src="https://latex.codecogs.com/png.latex?r_*"> exactly because of the noise term <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon">. This is <strong>aleatoric</strong> uncertainty.</li>
-<li><strong><img src="https://latex.codecogs.com/png.latex?x_*%5E%5Ctop%20%5CSigma_n%20x_*"> — parameter uncertainty.</strong> Our uncertainty about <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> projected into the direction <img src="https://latex.codecogs.com/png.latex?x_*">. This is <strong>epistemic</strong> uncertainty — it shrinks to 0 as <img src="https://latex.codecogs.com/png.latex?n%20%5Cto%20%5Cinfty">.</li>
-</ul>
-<p>Both LinUCB and LinTS use the epistemic piece. UCB bonuses are scaled by <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7Bx_*%5E%5Ctop%20%5CSigma_n%20x_*%7D">; TS samples from the parameter posterior. The aleatoric noise is fixed and irreducible — we can’t explore it away.</p>
-<p>This decomposition matters in agentic AI. When an LLM is uncertain, you want to know whether it’s because the world is genuinely ambiguous (aleatoric — can’t help by asking again) or because the model is undertrained (epistemic — more data would help). Same math, much bigger problem.</p>
-<hr>
-</section>
-</section>
-<section id="linucb" class="level2">
-<h2 class="anchored" data-anchor-id="linucb">3. LinUCB</h2>
-<p>The LinUCB recipe: at each step <img src="https://latex.codecogs.com/png.latex?t">, for each arm <img src="https://latex.codecogs.com/png.latex?k">, compute the <strong>upper confidence bound</strong> on the expected reward <img src="https://latex.codecogs.com/png.latex?x_t%5E%5Ctop%20%5Ctheta_k">. Pick the arm with the highest UCB.</p>
-<section id="the-algorithm" class="level3">
-<h3 class="anchored" data-anchor-id="the-algorithm">3.1 The algorithm</h3>
-<p>For each arm <img src="https://latex.codecogs.com/png.latex?k">, maintain the sufficient statistics for arm-<img src="https://latex.codecogs.com/png.latex?k">’s Bayesian linear regression:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AA_k%20%5C;%5Cequiv%5C;%20%5Clambda%20I%20+%20%5Csum_%7Bi:%5C,%20a_i%20=%20k%7D%20x_i%20x_i%5E%5Ctop,%20%5Cqquad%20b_k%20%5C;%5Cequiv%5C;%20%5Csum_%7Bi:%5C,%20a_i%20=%20k%7D%20r_i%20%5C,%20x_i,%0A"></p>
-<p>where the sums are over timesteps when arm <img src="https://latex.codecogs.com/png.latex?k"> was pulled. We’ve set <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%201"> to keep notation light. Then the posterior mean and predictive variance are</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%5Ctheta_k%20%5C;=%5C;%20A_k%5E%7B-1%7D%20b_k,%20%5Cqquad%20%5Cmathrm%7BVar%7D%5C!%5Cleft(x%5E%5Ctop%20%5Ctheta_k%20%5Cmid%20%5Cmathcal%7BD%7D%5Cright)%20%5C;=%5C;%20x%5E%5Ctop%20A_k%5E%7B-1%7D%20x.%0A"></p>
-<p>LinUCB picks</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboxed%7B%5C;a_t%20%5C;=%5C;%20%5Carg%5Cmax_k%20%5C;%20%5Cleft%5B%5C,%20x_t%5E%5Ctop%20%5Chat%5Ctheta_k%20%5C,+%5C,%20%5Calpha%20%5Csqrt%7Bx_t%5E%5Ctop%20A_k%5E%7B-1%7D%20x_t%7D%20%5C,%5Cright%5D.%5C;%7D%0A"></p>
-<p>The first term is the predicted reward — pure exploitation. The second is <img src="https://latex.codecogs.com/png.latex?%5Calpha"> times the predictive standard deviation — exploration. Just like UCB1, but the bonus is now context-dependent. <strong>Contexts in poorly-explored directions get higher bonuses; well-explored contexts get smaller bonuses.</strong></p>
-<p>The hyperparameter <img src="https://latex.codecogs.com/png.latex?%5Calpha"> controls exploration aggressiveness. It plays the role of a confidence radius, and the theory does <em>not</em> reduce it to a clean <img src="https://latex.codecogs.com/png.latex?O(%5Csqrt%7B%5Clog%20T%7D)">: the honest confidence width from Abbasi-Yadkori et al.&nbsp;(2011) depends on the feature dimension <img src="https://latex.codecogs.com/png.latex?d">, the regularization <img src="https://latex.codecogs.com/png.latex?%5Clambda">, the noise scale <img src="https://latex.codecogs.com/png.latex?%5Csigma">, a bound on <img src="https://latex.codecogs.com/png.latex?%5ClVert%5Ctheta_k%5CrVert">, and the failure probability <img src="https://latex.codecogs.com/png.latex?%5Cdelta"> — it grows roughly like <img src="https://latex.codecogs.com/png.latex?%5Csigma%5Csqrt%7Bd%20%5Clog((1%20+%20T/%5Clambda)/%5Cdelta)%7D%20+%20%5Csqrt%7B%5Clambda%7D%5C,%5ClVert%5Ctheta_k%5CrVert">. The <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7B%5Clog%20T%7D"> is just the leading time-dependence; the constants matter in practice. In implementations, <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%201"> is a strong, simple default.</p>
-</section>
-<section id="what-the-algorithm-looks-like-in-practice" class="level3">
-<h3 class="anchored" data-anchor-id="what-the-algorithm-looks-like-in-practice">3.2 What the algorithm looks like in practice</h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_linucb_ellipsoid.png" class="img-fluid figure-img"></p>
-<figcaption>LinUCB at n=20 (left) and n=200 (right). The orange line is the upper-confidence index; the blue band is the 95% credible region; the dashed black is the true function. As data accumulates, the band tightens around truth and the bonus shrinks.</figcaption>
-</figure>
-</div>
-<p>This figure uses a scalar feature <img src="https://latex.codecogs.com/png.latex?z"> with <img src="https://latex.codecogs.com/png.latex?d%20=%202"> (intercept plus <img src="https://latex.codecogs.com/png.latex?z">), so we can plot the predicted reward as a function of <img src="https://latex.codecogs.com/png.latex?z">. The shaded blue band is the 95% credible region for the reward; the orange line is the LinUCB upper-confidence index.</p>
-<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%2020">, the band is visibly wide and the UCB sits noticeably above the posterior mean. The algorithm is uncertain and bonuses are large.</p>
-<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%20200">, the band is tight, the UCB is barely above the mean, and both have essentially converged to the true function. Exploration has finished its job.</p>
-<p>The bonus is largest in directions where <img src="https://latex.codecogs.com/png.latex?x%5E%5Ctop%20A_k%5E%7B-1%7D%20x"> is large — directions where the data didn’t constrain <img src="https://latex.codecogs.com/png.latex?%5Ctheta_k"> much. If we’d pulled arm <img src="https://latex.codecogs.com/png.latex?k"> only on contexts living in a 2D subspace of <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BR%7D%5Ed">, the predictive variance would be huge for any context outside that subspace, and LinUCB would aggressively pull that arm under such a context to find out. This is <strong>exploration in the direction of information gain</strong> — exactly the right behavior.</p>
-</section>
-<section id="regret-bound" class="level3">
-<h3 class="anchored" data-anchor-id="regret-bound">3.3 Regret bound</h3>
-<p>For LinUCB with appropriate <img src="https://latex.codecogs.com/png.latex?%5Calpha">, Abbasi-Yadkori, Pál &amp; Szepesvári (2011) prove</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AR(T)%20%5C;=%5C;%20%5Ctilde%20O%5C!%5Cleft(d%20%5Csqrt%7BT%7D%5Cright),%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O"> hides logarithmic factors. The matching lower bound for linear contextual bandits is <img src="https://latex.codecogs.com/png.latex?%5COmega(d%20%5Csqrt%7BT%7D)">, so LinUCB is near-optimal.</p>
-<p>Note the <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7BT%7D"> here. It is worth being careful about what it is being contrasted <em>with</em>, because finite-arm bandits actually have two regret regimes. The gap-dependent bound for <img src="https://latex.codecogs.com/png.latex?K">-armed stochastic bandits is logarithmic, <img src="https://latex.codecogs.com/png.latex?O(%5Clog%20T)">, when there is a fixed positive gap between the best and second-best arm (this is the bound we cited in 1a). But the same finite-arm problem also has a <em>gap-free</em> (worst-case, minimax) bound of order <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7BKT%7D">, achieved when gaps can be arbitrarily small. So the meaningful contrast is not “linear contextual is <img src="https://latex.codecogs.com/png.latex?%5Csqrt%20T"> while finite-arm is <img src="https://latex.codecogs.com/png.latex?%5Clog%20T">” — it is between the <em>gap-dependent finite-arm</em> bound (<img src="https://latex.codecogs.com/png.latex?%5Clog%20T">) and the <em>worst-case linear contextual</em> bound (<img src="https://latex.codecogs.com/png.latex?d%5Csqrt%20T">). Learning a <img src="https://latex.codecogs.com/png.latex?d">-dimensional reward function, rather than <img src="https://latex.codecogs.com/png.latex?K"> independent scalar means, puts us in the function-estimation regime, where the <img src="https://latex.codecogs.com/png.latex?%5Csqrt%20T"> minimax rate is fundamental and there is no gap-dependent escape to <img src="https://latex.codecogs.com/png.latex?%5Clog%20T"> in general.</p>
-<hr>
-</section>
-</section>
-<section id="linear-thompson-sampling" class="level2">
-<h2 class="anchored" data-anchor-id="linear-thompson-sampling">4. Linear Thompson Sampling</h2>
-<p>The Bayesian counterpart. Instead of optimistic point estimates, <strong>sample</strong> parameters from each arm’s posterior and act greedily under the samples.</p>
-<section id="the-algorithm-1" class="level3">
-<h3 class="anchored" data-anchor-id="the-algorithm-1">4.1 The algorithm</h3>
-<p>Maintain the same <img src="https://latex.codecogs.com/png.latex?A_k">, <img src="https://latex.codecogs.com/png.latex?b_k"> as LinUCB. At each step:</p>
-<ol type="1">
-<li>For each arm <img src="https://latex.codecogs.com/png.latex?k">, sample <img src="https://latex.codecogs.com/png.latex?%5Ctilde%5Ctheta_k%20%5Csim%20%5Cmathcal%7BN%7D%5C!%5Cleft(%5Chat%5Ctheta_k,%20%5C,%20v%5E2%20A_k%5E%7B-1%7D%5Cright)">.</li>
-<li>Play <img src="https://latex.codecogs.com/png.latex?a_t%20=%20%5Carg%5Cmax_k%20x_t%5E%5Ctop%20%5Ctilde%5Ctheta_k">.</li>
-<li>Observe <img src="https://latex.codecogs.com/png.latex?r_t"> and update <img src="https://latex.codecogs.com/png.latex?A_%7Ba_t%7D,%20b_%7Ba_t%7D">.</li>
-</ol>
-<p>The hyperparameter <img src="https://latex.codecogs.com/png.latex?v"> rescales the posterior variance. <img src="https://latex.codecogs.com/png.latex?v%20=%201"> corresponds to the exact Bayesian Thompson posterior under unit-variance noise. Agrawal &amp; Goyal (2013) show that inflating <img src="https://latex.codecogs.com/png.latex?v"> beyond 1 yields the tightest regret bounds; in practice <img src="https://latex.codecogs.com/png.latex?v%20%5Cin%20%5B0.25,%201%5D"> usually works well. Smaller <img src="https://latex.codecogs.com/png.latex?v"> → less exploration; larger → more.</p>
-</section>
-<section id="the-each-draw-is-a-hypothesis-view" class="level3">
-<h3 class="anchored" data-anchor-id="the-each-draw-is-a-hypothesis-view">4.2 The “each draw is a hypothesis” view</h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_lints_draws.png" class="img-fluid figure-img"></p>
-<figcaption>Each posterior draw (faint blue) is one hypothesis about the world. The agent commits to that hypothesis for one step and acts optimally under it. At n=10 the hypotheses disagree and the algorithm explores; at n=200 they agree and the algorithm exploits.</figcaption>
-</figure>
-</div>
-<p>This figure shows ten posterior draws of the function <img src="https://latex.codecogs.com/png.latex?f(z)%20=%20%5Ctheta_0%20+%20%5Ctheta_1%20z"> at two timesteps. Each draw <img src="https://latex.codecogs.com/png.latex?%5Ctilde%5Ctheta"> is a possible truth — one of the worlds consistent with the data. The agent picks one (randomly), commits to it for the round, and acts as if that world is real.</p>
-<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%2010">, the ten hypotheses fan out: some slopes are higher, some lower, intercepts vary. Different hypotheses imply <em>different best arms</em> at a given context. This natural disagreement drives exploration — the agent will visit whichever arm looks best under the sample it drew, and that varies stochastically.</p>
-<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%20200">, all ten draws cluster tightly around the true function. The agent acts almost as if it knew <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar">, because all plausible <img src="https://latex.codecogs.com/png.latex?%5Ctheta">’s now agree on what to do.</p>
-<p>Compare to plain Thompson Sampling from 1a, where each “hypothesis” was a single number per arm (a Beta sample). The same idea, scaled to functions: sample the function, act under it.</p>
-</section>
-<section id="probability-matching-generalized" class="level3">
-<h3 class="anchored" data-anchor-id="probability-matching-generalized">4.3 Probability matching, generalized</h3>
-<p>In 1a we showed that Thompson Sampling picks arm <img src="https://latex.codecogs.com/png.latex?k"> with probability equal to the posterior probability that <img src="https://latex.codecogs.com/png.latex?k"> is optimal. The same property holds here — but <em>only when we sample from the true posterior</em>, i.e.&nbsp;at <img src="https://latex.codecogs.com/png.latex?v%20=%201">. With the contextual twist:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AP(a_t%20=%20k%20%5Cmid%20x_t,%20%5Cmathcal%7BD%7D_t)%20%5C;=%5C;%20P%5C!%5Cleft(%5C,%20k%20=%20%5Carg%5Cmax_%7Bj%7D%20x_t%5E%5Ctop%20%5Ctheta_j%20%5C;%5CBig%7C%5C;%20x_t,%20%5Cmathcal%7BD%7D_t%20%5C,%5Cright).%0A"></p>
-<p>The probability that LinTS picks arm <img src="https://latex.codecogs.com/png.latex?k"> for context <img src="https://latex.codecogs.com/png.latex?x_t"> equals the posterior probability that <img src="https://latex.codecogs.com/png.latex?k"> is the optimal arm at <img src="https://latex.codecogs.com/png.latex?x_t">. This is a strictly more nuanced statement than the unstructured version: the same arm can have high optimality probability at one context and low at another, and LinTS will track that automatically.</p>
-</section>
-<section id="regret-bound-1" class="level3">
-<h3 class="anchored" data-anchor-id="regret-bound-1">4.4 Regret bound</h3>
-<p>Agrawal &amp; Goyal (2013) prove <img src="https://latex.codecogs.com/png.latex?R(T)%20=%20%5Ctilde%20O(d%5E%7B3/2%7D%20%5Csqrt%7BT%7D)"> for Linear Thompson Sampling — a factor of <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7Bd%7D"> worse than LinUCB. In practice the bound is loose and LinTS is often empirically competitive with LinUCB. Which wins depends on the problem.</p>
-<hr>
-</section>
-</section>
-<section id="the-showdown" class="level2">
-<h2 class="anchored" data-anchor-id="the-showdown">5. The showdown</h2>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_contextual_regret_curves.png" class="img-fluid figure-img"></p>
-<figcaption>Cumulative regret on a linear contextual bandit with K=5 arms, d=8 features. Context-free UCB1 is linear (it’s solving the wrong problem). The contextual algorithms all curve into sublinear behavior, with LinUCB winning here.</figcaption>
-</figure>
-</div>
-<p>Four algorithms on the same problem:</p>
-<ul>
-<li><strong>Context-free UCB1</strong> ignores <img src="https://latex.codecogs.com/png.latex?x_t"> entirely, treating rewards from each arm as i.i.d. samples from some marginal distribution. Its regret grows linearly — about 4 per step on this problem — because there <em>is</em> no single best arm. The marginal “best” arm is bad on a substantial fraction of contexts.</li>
-<li><strong>Contextual ε-greedy</strong> uses ridge regression to estimate <img src="https://latex.codecogs.com/png.latex?%5Chat%5Ctheta_k"> and acts greedily with probability <img src="https://latex.codecogs.com/png.latex?1%20-%20%5Cvarepsilon">. A subtlety the curve hides: with a <em>fixed</em> <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon%20=%200.1"> it never stops taking random actions, so it pays a constant exploration tax every step and its <em>asymptotic</em> regret is actually linear — it only looks competitive over a finite horizon because the tax is small. To get genuinely sublinear regret you must <em>decay</em> <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon"> over time (under suitable conditions on the decay schedule). The fixed-<img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon"> version here is the simple, practical default; it is not asymptotically optimal.</li>
-<li><strong>LinUCB</strong> wins decisively here. Its principled exploration (Hoeffding-style bounds in feature space) is very efficient.</li>
-<li><strong>Linear Thompson Sampling</strong> is also sublinear but slightly behind LinUCB on this particular instance. This is the opposite of what we saw in 1a, and it’s instance-dependent — try different feature dimensions and noise levels and you’ll see the ranking shift.</li>
-</ul>
-<p><strong>The key message: using context buys you orders of magnitude.</strong> At <img src="https://latex.codecogs.com/png.latex?T%20=%202000">, the context-free baseline has accumulated ~800 regret; the contextual algorithms have ~10–100. The gap widens with <img src="https://latex.codecogs.com/png.latex?T"> — context-free regret is linear, contextual is sublinear. Asymptotically, the ratio diverges.</p>
-<p>This is the empirical case for why every modern personalization system, recommender, or LLM reward model is contextual.</p>
-<hr>
-</section>
-<section id="forward-connections" class="level2">
-<h2 class="anchored" data-anchor-id="forward-connections">6. Forward connections</h2>
-<p>We’re now at a junction with two important downstream applications. Let me make both explicit because they’re central to the rest of the agentic AI curriculum.</p>
-<section id="rlhf-reward-models-and-the-contextual-bandit-analogy" class="level3">
-<h3 class="anchored" data-anchor-id="rlhf-reward-models-and-the-contextual-bandit-analogy">6.1 RLHF reward models and the contextual-bandit analogy</h3>
-<p>Reinforcement learning from human feedback trains a <strong>reward model</strong> <img src="https://latex.codecogs.com/png.latex?r_%5Cphi(x,%20y)"> that scores how good a response <img src="https://latex.codecogs.com/png.latex?y"> is to a prompt <img src="https://latex.codecogs.com/png.latex?x">. At heart a reward model is a <em>contextual scoring function</em> trained from preference data — and that is exactly the object at the centre of this post, a function of a context (the prompt) and an action (the response). The bandit framing is an analogy rather than an identity: a reward model is fit offline from a fixed preference dataset, not by a bandit actively pulling arms. The analogy becomes <em>most</em> direct when you actively choose which prompts and responses to label next — at that point you really are running an exploration policy over a reward-model posterior. The reward model is fit from preference data: humans see pairs <img src="https://latex.codecogs.com/png.latex?(y_1,%20y_2)"> for the same prompt <img src="https://latex.codecogs.com/png.latex?x"> and pick which they prefer. The standard model is <strong>Bradley-Terry</strong>:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AP(y_1%20%5Csucc%20y_2%20%5Cmid%20x)%20%5C;=%5C;%20%5Cfrac%7B%5Cexp%20r_%5Cphi(x,%20y_1)%7D%7B%5Cexp%20r_%5Cphi(x,%20y_1)%20+%20%5Cexp%20r_%5Cphi(x,%20y_2)%7D%20%5C;=%5C;%20%5Csigma%5C!%5Cbig(r_%5Cphi(x,%20y_1)%20-%20r_%5Cphi(x,%20y_2)%5Cbig).%0A"></p>
-<p>Take logs: this is <strong>logistic regression</strong> on the difference of rewards. If <img src="https://latex.codecogs.com/png.latex?r_%5Cphi"> is linear, <img src="https://latex.codecogs.com/png.latex?r_%5Cphi(x,%20y)%20=%20%5Cphi(x,%20y)%5E%5Ctop%20%5Ctheta">, you get linear logistic regression — a contextual bandit one-step removed. The features depend on prompt <em>and</em> response, fitting our “shared parameterization” case.</p>
-<p>In practice <img src="https://latex.codecogs.com/png.latex?r_%5Cphi"> is a neural network, so the linear model is too simple. But two ideas from this post transfer directly:</p>
-<ol type="1">
-<li><strong>Uncertainty in the reward model is the same problem we just solved.</strong> Whether you use Bayesian last-layer ridge regression, deep ensembles, or variational neural networks — all of these are approximations to the posterior over <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> we computed exactly here. The Bayesian view of RLHF asks: how do we maintain calibrated uncertainty about which response is preferred?</li>
-<li><strong>Exploration in RLHF.</strong> Active learning for reward models — picking which prompts to label next — is exactly an exploration problem over the reward-model posterior. Should you label a prompt where the current model is confident (low information gain) or one where it’s uncertain (high gain)? This is the bandit problem at the data-collection level.</li>
-</ol>
-<p>There’s published work in this direction; there’s also room for more. Calibrated, uncertainty-aware reward modeling is one of the active research areas in safe RL from preferences, and the foundations are exactly what we just built.</p>
-</section>
-<section id="neural-bandits-and-deep-uncertainty" class="level3">
-<h3 class="anchored" data-anchor-id="neural-bandits-and-deep-uncertainty">6.2 Neural bandits and deep uncertainty</h3>
-<p>What if the reward function isn’t linear? Replace <img src="https://latex.codecogs.com/png.latex?x%5E%5Ctop%20%5Ctheta_k"> with a neural network <img src="https://latex.codecogs.com/png.latex?f_%7B%5Ctheta_k%7D(x)">. The problem becomes a <strong>neural bandit</strong>.</p>
-<p>The difficulty: we no longer have closed-form posteriors. Several approaches:</p>
-<ul>
-<li><strong>Bootstrap and ensembles</strong> (Osband et al., 2016). Train <img src="https://latex.codecogs.com/png.latex?M"> networks on bootstrapped samples of the data. Use the ensemble disagreement as a proxy for posterior variance. Pick actions by sampling one ensemble member (Bootstrapped Thompson) or by averaging means + ensemble-std bonus (ensemble UCB).</li>
-<li><strong>Bayesian neural networks</strong> (Blundell et al., 2015 and successors). Place a prior on the weights, do variational inference. Same KL view as §2.5, but on a deep model. The variational families are restricted, so the approximation introduces error, but the formalism is identical.</li>
-<li><strong>Neural linear</strong> (Riquelme et al., 2018). Use the neural net as a feature extractor and apply Bayesian linear regression on the last layer. The features are learned but the uncertainty is closed-form. Practical and surprisingly strong; the recommended starting point.</li>
-<li><strong>Laplace approximation</strong> (Daxberger et al., 2021). Fit a deterministic neural net, then approximate the posterior as Gaussian centered at the MAP with covariance equal to the inverse Hessian. Plays nicely with pretrained models.</li>
-</ul>
-<p>The unifying view: any neural bandit is <em>Bayesian linear regression in a richer feature space</em>. The math you built here is the limiting case where the features are fixed. Everything else is a way of learning the features adaptively while still maintaining usable uncertainty.</p>
-<p>This is also the connection point to <strong>calibrated LLMs</strong>. Modern LLMs produce probabilities over tokens, but those probabilities are notoriously miscalibrated. The deepest framing is: the model has implicit uncertainty about its own predictions, and treating that uncertainty as Bayesian — with priors, posteriors, and information-theoretic exploration — turns out to be a productive research direction. Conformal prediction, semantic entropy, ensembles of LLMs: all are coarse approximations to the Bayesian story you’ve now seen exactly.</p>
-<hr>
-</section>
-</section>
-<section id="experiments-to-actually-run" class="level2">
-<h2 class="anchored" data-anchor-id="experiments-to-actually-run">7. Experiments to actually run</h2>
-<section id="how-does-regret-scale-with-dimension" class="level3">
-<h3 class="anchored" data-anchor-id="how-does-regret-scale-with-dimension">7.1 How does regret scale with dimension?</h3>
-<p>Run LinUCB and LinTS at <img src="https://latex.codecogs.com/png.latex?d%20%5Cin%20%5C%7B2,%205,%2010,%2025,%2050%5C%7D">, holding everything else fixed. Plot the cumulative regret at <img src="https://latex.codecogs.com/png.latex?T%20=%202000"> as a function of <img src="https://latex.codecogs.com/png.latex?d">. You should see roughly linear growth in <img src="https://latex.codecogs.com/png.latex?d"> for LinUCB (consistent with the <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%5Csqrt%7BT%7D)"> bound). Check whether LinTS follows the predicted <img src="https://latex.codecogs.com/png.latex?d%5E%7B3/2%7D"> scaling.</p>
-<p>The point: dimension matters a lot. Practical applications with many features need either much more data or function-class structure (sparsity, low-rank, etc.).</p>
-</section>
-<section id="calibration-of-the-posterior" class="level3">
-<h3 class="anchored" data-anchor-id="calibration-of-the-posterior">7.2 Calibration of the posterior</h3>
-<p>In a held-out sense, are LinUCB’s 95% credible intervals actually calibrated? At each step, predict the reward and check whether the realized reward falls within the predictive 95% band. Track the coverage rate. Under correct model specification it should converge to 95%; under misspecification it may be far off.</p>
-<p>This is a microcosm of LLM calibration. Models often produce confident-sounding answers whose actual reliability doesn’t match. Testing calibration is the first step toward fixing it.</p>
-</section>
-<section id="misspecified-model" class="level3">
-<h3 class="anchored" data-anchor-id="misspecified-model">7.3 Misspecified model</h3>
-<p>What if the true reward function is non-linear? Generate data with <img src="https://latex.codecogs.com/png.latex?r%20=%20%5Csin(x_1)%20+%20x_2%20+%20%5Cvarepsilon"> and run LinUCB pretending the model is linear. The algorithm will fit the best linear approximation but its regret will not be <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(%5Csqrt%7BT%7D)"> — it will eventually be linear (because no linear approximation gets you to the truth). Empirically observe this. Then think: how would you detect misspecification in real life?</p>
-</section>
-<section id="reproduce-one-figure-from-the-linucb-paper" class="level3">
-<h3 class="anchored" data-anchor-id="reproduce-one-figure-from-the-linucb-paper">7.4 Reproduce one figure from the LinUCB paper</h3>
-<p>Li et al.&nbsp;(2010) ran LinUCB on a Yahoo! news recommendation dataset. The figure showing cumulative clicks vs LinUCB exploration rate is a classic. Replicate it on synthetic data: vary <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Cin%20%5C%7B0.1,%200.5,%201.0,%202.0,%205.0%5C%7D"> and plot how regret depends on the exploration parameter. There’s an optimal <img src="https://latex.codecogs.com/png.latex?%5Calpha"> — find it.</p>
-<hr>
-</section>
-</section>
-<section id="solutions" class="level2">
-<h2 class="anchored" data-anchor-id="solutions">8. Solutions</h2>
-<p>As with the previous post, try first. Once you’ve struggled with each, here are the reference solutions and discussions.</p>
-<section id="regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py" class="level3">
-<h3 class="anchored" data-anchor-id="regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py">8.1 Regret scaling with dimension — <code>experiments/01b_sol1_regret_vs_dim.py</code></h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol1_regret_vs_dim.png" class="img-fluid figure-img"></p>
-<figcaption>Cumulative regret at fixed T as a function of feature dimension d (log-log axes). Both LinUCB and LinTS grow with d; the fitted power-law exponents (0.42 and 0.53) are below the theoretical upper bounds (1.0 and 1.5).</figcaption>
-</figure>
-</div>
-<p><strong>What you should see.</strong> Both algorithms’ final regret grows with <img src="https://latex.codecogs.com/png.latex?d">. The fitted power-law exponents — LinUCB at <img src="https://latex.codecogs.com/png.latex?d%5E%7B0.42%7D">, LinTS at <img src="https://latex.codecogs.com/png.latex?d%5E%7B0.53%7D"> — are well below the theoretical bounds of <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d)"> and <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%5E%7B3/2%7D)">. The qualitative ordering (LinTS grows slightly faster than LinUCB) matches theory.</p>
-<p><strong>Why the gap between theory and practice.</strong> Several reasons:</p>
-<ol type="1">
-<li><strong>The bounds are worst-case upper bounds</strong>, not exact rates. They hold over all problem instances; the <em>average</em> instance is much easier. Our random thetas are isotropic; the worst case has thetas adversarially aligned with the contexts.</li>
-<li><strong>Finite-T effects.</strong> The theoretical <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%20%5Csqrt%20T)"> has hidden constants and <img src="https://latex.codecogs.com/png.latex?%5Clog%20T"> factors. At <img src="https://latex.codecogs.com/png.latex?T%20=%20600"> we’re in the regime where lower-order terms still matter.</li>
-<li><strong>The constants depend on <img src="https://latex.codecogs.com/png.latex?%5Csigma">, <img src="https://latex.codecogs.com/png.latex?%5Clambda">, and the diameter of the parameter space.</strong> Different choices give different constants in front of the same exponent.</li>
-</ol>
-<p><strong>The deeper lesson.</strong> In this synthetic setup, empirical scaling came out <em>better</em> than worst-case theory predicts — but the headline to take away is the <strong>shape</strong>, not the specific exponents, which are properties of this particular instance (isotropic Gaussian contexts, well-specified linear rewards, this noise level). What generalizes is that regret grows polynomially in <img src="https://latex.codecogs.com/png.latex?d"> rather than catastrophically: a 10× increase in feature dimension was, here, only a <img src="https://latex.codecogs.com/png.latex?10%5E%7B0.4%7D">–<img src="https://latex.codecogs.com/png.latex?10%5E%7B0.5%7D%20%5Capprox%202.5">–<img src="https://latex.codecogs.com/png.latex?3%5Ctimes"> increase in regret. Treat that as the right <em>intuition</em> for “how much harder does it get if I add features?” — not as a law to quote. On real problems the exponent depends on the geometry of your contexts and the degree of model misspecification.</p>
-<p>For practical work: if your features explode in dimension (sparse one-hot encodings, embedding dimensions), this scaling is your friend. If you can keep the <em>effective</em> dimension low (sparsity, low-rank structure), you can do dramatically better than this. Both LinUCB and LinTS have variants that exploit sparsity (LASSO-based; see Bastani &amp; Bayati 2020).</p>
-</section>
-<section id="calibration-experiments01b_sol2_calibration.py" class="level3">
-<h3 class="anchored" data-anchor-id="calibration-experiments01b_sol2_calibration.py">8.2 Calibration — <code>experiments/01b_sol2_calibration.py</code></h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol2_calibration.png" class="img-fluid figure-img"></p>
-<figcaption>Empirical coverage of LinUCB’s 95% predictive interval. Blue: matched noise (algorithm’s σ matches truth) — converges to ~95.3%, well-calibrated. Red: mismatched noise (algorithm assumes σ=1 but truth is σ=0.1) — over-coverage at 100%, intervals are too wide.</figcaption>
-</figure>
-</div>
-<p><strong>What you should see.</strong> Under matched noise — the bandit’s <img src="https://latex.codecogs.com/png.latex?%5Csigma"> equals the algorithm’s implicit assumption — coverage converges to 95.3%, essentially right on the nominal 95%. The brief over-shoot to ~98% early on is the prior dominating before enough data arrives. Under mismatched noise (algorithm thinks <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%201">, truth is <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%200.1">), coverage is <em>100% from the start</em>: every realized reward falls in the predicted interval. The intervals are about <img src="https://latex.codecogs.com/png.latex?10%5Ctimes"> too wide.</p>
-<p><strong>Why it happens.</strong> LinUCB’s predictive variance is <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7B%5Ctext%7Balg%7D%7D%5E2%20+%20x%5E%5Ctop%20A%5E%7B-1%7D%20x">, where the first term is the assumed aleatoric noise and the second is epistemic uncertainty about <img src="https://latex.codecogs.com/png.latex?%5Ctheta">. When <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7B%5Ctext%7Balg%7D%7D%5E2%20%5Cgg%20%5Csigma_%7B%5Ctext%7Btrue%7D%7D%5E2">, you’ve inflated the noise term tenfold. The 95% interval is mostly capturing irreducible noise the algorithm <em>thinks</em> exists but doesn’t. Realized rewards essentially always land inside.</p>
-<p><strong>The deeper lesson — this is the canonical case of <em>calibration</em>.</strong> Calibration asks: when you say “I’m 95% confident,” does that statement bear out empirically? Three failure modes:</p>
-<ul>
-<li><strong>Over-coverage / under-confidence</strong>: stated intervals are too wide. You’re being lazy about your beliefs and missing decisions. <em>This is what we see in the mismatched case.</em></li>
-<li><strong>Under-coverage / over-confidence</strong>: stated intervals are too narrow. You’re being reckless and will be wrong more often than you think.</li>
-<li><strong>Calibration drift</strong>: coverage starts good but degrades as the problem changes (non-stationarity, distribution shift).</li>
-</ul>
-<p>Modern LLMs have all three failure modes, depending on the question type. Calibrating LLM uncertainty — making “the model says 90%” match empirical 90% accuracy — is an active research area. The mathematical <em>pattern</em> is analogous to what we just did here: maintain a posterior, ask whether its stated confidence matches observed frequencies. <strong>You have built, in this experiment, the simplest non-trivial calibration test that exists.</strong> Every paper on LLM calibration is doing some version of this, with a more complex model class standing in for the linear one.</p>
-<p><strong>What you should build next.</strong> Conformal prediction is a technique that takes any predictive model — including a miscalibrated one — and produces intervals with finite-sample coverage guarantees. It’s a beautifully simple idea worth your time. Once you’ve internalized this experiment, conformal prediction is a 30-minute read away.</p>
-</section>
-<section id="misspecification-experiments01b_sol3_misspecification.py" class="level3">
-<h3 class="anchored" data-anchor-id="misspecification-experiments01b_sol3_misspecification.py">8.3 Misspecification — <code>experiments/01b_sol3_misspecification.py</code></h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol3_misspecification.png" class="img-fluid figure-img"></p>
-<figcaption>LinUCB on a misspecified problem. Blue: linear bandit (correctly specified), regret plateaus near 9. Red: non-linear bandit (rewards depend on sin(ω_k x_1)), regret grows linearly at 0.017/step. The linear approximation has irreducible bias.</figcaption>
-</figure>
-</div>
-<p><strong>What you should see.</strong> When the model is well-specified (true rewards are linear), LinUCB’s regret plateaus around 9 by <img src="https://latex.codecogs.com/png.latex?T%20=%203000"> — sublinear and consistent with the <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%20%5Csqrt%20T)"> bound. When the model is misspecified (true rewards include <img src="https://latex.codecogs.com/png.latex?%5Csin(%5Comega_k%20x_1)">, which no linear function captures), regret grows linearly at <img src="https://latex.codecogs.com/png.latex?%5Csim%200.017"> per step from start to finish. After <img src="https://latex.codecogs.com/png.latex?T%20=%203000">, cumulative regret is <img src="https://latex.codecogs.com/png.latex?%5Csim%2063">, with no sign of plateauing.</p>
-<p><strong>Why it happens.</strong> LinUCB fits the best <em>linear approximation</em> to the true function, since that’s the only thing its model class allows. Call this best linear fit <img src="https://latex.codecogs.com/png.latex?%5Cbar%5Ctheta_k">. The algorithm’s regret with respect to the <em>best linear policy</em> would be sublinear. But the optimal <em>contextual</em> policy uses the true non-linear <img src="https://latex.codecogs.com/png.latex?r_k(x)">, not its linear approximation. The gap between “best linear policy” and “true optimal policy” is the <strong>approximation error</strong>, and it’s constant per step. Cumulative approximation error grows linearly.</p>
-<p>You can decompose total regret: <img src="https://latex.codecogs.com/png.latex?%0AR_%7B%5Ctext%7Btotal%7D%7D(T)%20%5C;=%5C;%20%5Cunderbrace%7BR_%7B%5Ctext%7Blinear%7D%7D(T)%7D_%7B%5Ctilde%20O(d%5Csqrt%20T)%20%5Ctext%7B%20if%20linear%20is%20correct%7D%7D%20%5C;+%5C;%20%5Cunderbrace%7BR_%7B%5Ctext%7Bapprox%7D%7D(T)%7D_%7B%5COmega(T)%20%5Ctext%7B%20if%20misspecified%7D%7D.%0A"></p>
-<p>The second term dominates asymptotically. There’s no algorithm in our linear class that can do better — we’ve hit the ceiling of what the model can express.</p>
-<p><strong>The deeper lesson.</strong> Model class matters more than algorithm. A wrong-class model with a clever algorithm is beaten by a right-class model with a dumb algorithm, eventually. This is why neural bandits and Bayesian deep learning exist: when the truth isn’t linear, you need a richer model class even at the cost of harder inference.</p>
-<p><strong>Misspecification detection.</strong> Can you tell from the regret curve that you’re misspecified, before you know the answer? Yes — look at the second derivative of cumulative regret. Well-specified algorithms should produce regret curves that <em>bend down</em> (sublinear); persistent linearity is a red flag. In practice, you’d also do residual analysis: if your model’s residuals show structure (e.g., correlation with some feature), you’re missing something.</p>
-<p><strong>What you should build next.</strong> Two natural extensions: (a) Replace LinUCB with a neural-linear UCB (last-layer Bayesian regression on a neural feature extractor) and see if regret returns to sublinear. (b) Implement <em>model-class testing</em>: fit several model classes (linear, polynomial degree 2, neural net) and use held-out predictive likelihood to pick. Misspecification stops being a silent killer when you actively look for it.</p>
-</section>
-<section id="alpha-sweep-experiments01b_sol4_alpha_sweep.py" class="level3">
-<h3 class="anchored" data-anchor-id="alpha-sweep-experiments01b_sol4_alpha_sweep.py">8.4 Alpha sweep — <code>experiments/01b_sol4_alpha_sweep.py</code></h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol4_alpha_sweep.png" class="img-fluid figure-img"></p>
-<figcaption>LinUCB regret as a function of the exploration parameter α (log-x scale). Classic U-shape: under-exploration (α &lt; 0.5) wastes pulls on suboptimal arms; over-exploration (α &gt; 2) wastes pulls on known-good arms. Optimum near α = 0.5.</figcaption>
-</figure>
-</div>
-<p><strong>What you should see.</strong> Final regret at <img src="https://latex.codecogs.com/png.latex?T%20=%201500"> has a clear minimum at <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Capprox%200.5">, where regret is <img src="https://latex.codecogs.com/png.latex?%5Csim%2013">. Going to <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%200.05"> (almost no exploration) costs you <img src="https://latex.codecogs.com/png.latex?%5Csim%205"> extra regret. Going to <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%208"> (massive over-exploration) costs you <img src="https://latex.codecogs.com/png.latex?%5Csim%2057"> extra regret — far worse. The curve is asymmetric: <strong>over-exploration hurts more than under-exploration</strong>, at least on this instance.</p>
-<p><strong>Why the U-shape.</strong> Two competing effects, each unbounded at one end:</p>
-<ul>
-<li><strong><img src="https://latex.codecogs.com/png.latex?%5Calpha"> too small → exploitation trap.</strong> Without enough bonus to overcome small noise advantages, the algorithm can settle on a suboptimal arm and keep pulling it. Regret is approximately <em>linear</em> until enough random noise eventually causes a switch.</li>
-<li><strong><img src="https://latex.codecogs.com/png.latex?%5Calpha"> too large → wasted exploration.</strong> Big bonuses mean even well-explored arms keep getting probed. The algorithm keeps trying arms it should already know are bad. Per-pull regret is high; cumulative regret grows fast.</li>
-</ul>
-<p>The optimum is where these two costs balance.</p>
-<p><strong>Why over-exploration is worse here.</strong> At the high-<img src="https://latex.codecogs.com/png.latex?%5Calpha"> end, every step is genuinely costly — you’re pulling clearly-suboptimal arms by direct choice. At the low-<img src="https://latex.codecogs.com/png.latex?%5Calpha"> end, you’re <em>not</em> pulling clearly-suboptimal arms; you’re failing to discover that one of your “good” arms is actually better. The first error is constant per step; the second is bounded by the gap between near-tied top arms, which can be small. Hence the asymmetry.</p>
-<p><strong>The deeper lesson — agentic AI implication.</strong> Every exploration mechanism has a tunable temperature: <img src="https://latex.codecogs.com/png.latex?%5Calpha"> in UCB-like methods, <img src="https://latex.codecogs.com/png.latex?v"> in Thompson, <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon"> in ε-greedy, the entropy bonus in policy gradients, the temperature parameter in LLM decoding. They all have this U-shape. The whole point of the principled methods (Thompson, Bayesian RL) is that <strong>the optimal temperature is set automatically by the posterior</strong> — you don’t have to sweep. But every system still has <em>some</em> knob, and the U-shape governs it.</p>
-<p><strong>Practical guidance.</strong> For a new contextual bandit problem, sweep <img src="https://latex.codecogs.com/png.latex?%5Calpha"> logarithmically over <img src="https://latex.codecogs.com/png.latex?%5C%7B0.1,%200.3,%201,%203,%2010%5C%7D"> before fixing it. The optimum often sits in <img src="https://latex.codecogs.com/png.latex?%5B0.5,%202.0%5D">; <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%201"> is a strong default if you have no budget for tuning. Thompson Sampling with <img src="https://latex.codecogs.com/png.latex?v%20=%201"> is even more strongly self-tuning and often a safer choice for production.</p>
-<hr>
-</section>
-</section>
-<section id="further-reading" class="level2">
-<h2 class="anchored" data-anchor-id="further-reading">9. Further reading</h2>
-<ul>
-<li><strong>Lattimore &amp; Szepesvári, <em>Bandit Algorithms</em> (2020), Chapters 18–22.</strong> The rigorous treatment of contextual bandits. Worth reading carefully if you want the tight regret proofs.</li>
-<li><strong>Li, Chu, Langford &amp; Schapire, “A Contextual-Bandit Approach to Personalized News Article Recommendation” (WWW 2010).</strong> The original LinUCB paper. Surprisingly readable and full of practical wisdom.</li>
-<li><strong>Abbasi-Yadkori, Pál &amp; Szepesvári, “Improved Algorithms for Linear Stochastic Bandits” (NeurIPS 2011).</strong> The cleanest analysis of LinUCB and the source of the <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%5Csqrt%7BT%7D)"> bound.</li>
-<li><strong>Agrawal &amp; Goyal, “Thompson Sampling for Contextual Bandits with Linear Payoffs” (ICML 2013).</strong> The contextual TS paper. The variance inflation analysis is the technical crux.</li>
-<li><strong>Bishop, <em>Pattern Recognition and Machine Learning</em> (2006), Chapter 3.</strong> The cleanest exposition of Bayesian linear regression I know of. Worth reading even if you’ve seen it before.</li>
-<li><strong>Riquelme, Tucker &amp; Snoek, “Deep Bayesian Bandits Showdown” (ICLR 2018).</strong> An empirical comparison of neural bandit methods. Neural-linear holds up surprisingly well — read for both the methods and the meta-lesson that simple methods often win.</li>
-<li><strong>Ouyang et al., “Training Language Models to Follow Instructions with Human Feedback” (NeurIPS 2022).</strong> The InstructGPT paper. The reward modeling section is exactly the contextual bandit framing from §6.1.</li>
-</ul>
-<hr>
-<p><strong>Next up — Part 1c: MDPs and the Bellman equations.</strong> We add state transitions. Now the action you take changes the world, not just the reward you receive. Value functions, the Bellman optimality equation, value iteration. The bandit-to-MDP relationship is worth stating precisely: an <em>ordinary</em> (context-free) bandit is a one-state MDP; a <em>contextual</em> bandit is an MDP with an exogenous state — the context arrives from outside and your action does <em>not</em> influence the next context. What 1c adds is exactly that missing ingredient: action-dependent state transitions, where what you do now shapes the situations you face later.</p>
-
-
-<!-- -->
-
-</section>
-
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
-  author = {Tran, Ba-Hien},
-  title = {Contextual {Bandits:} {When} the {Best} {Action} {Depends} on
-    {Who} {You’re} {Talking} {To}},
-  date = {2026-05-20},
-  url = {https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html},
-  langid = {en}
-}
-</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
-Tran, Ba-Hien. 2026. <span>“Contextual Bandits: When the Best Action
-Depends on Who You’re Talking To.”</span> May 20. <a href="https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html">https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</a>.
-</div></div></section></div> ]]></description>
-  <category>bandits</category>
-  <category>bayesian</category>
-  <category>contextual</category>
-  <category>blr</category>
-  <category>RLHF</category>
-  <guid>https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</guid>
-  <pubDate>Wed, 20 May 2026 00:00:00 GMT</pubDate>
-  <media:content url="https://tranbahien.github.io/nano-agents/assets/01b-contextual-bandits.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>MDPs and the Bellman Equations: When Actions Have Consequences</title>
@@ -5301,21 +4896,426 @@ font-style: inherit;">=</span> pi_new</span></code></pre></div></div>
   author = {Tran, Ba-Hien},
   title = {MDPs and the {Bellman} {Equations:} {When} {Actions} {Have}
     {Consequences}},
-  date = {2026-05-20},
+  date = {2026-02-22},
   url = {https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“MDPs and the Bellman Equations: When Actions
-Have Consequences.”</span> May 20. <a href="https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html">https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html</a>.
+Have Consequences.”</span> February 22. <a href="https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html">https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html</a>.
 </div></div></section></div> ]]></description>
   <category>mdp</category>
   <category>dynamic programming</category>
   <category>bellman</category>
   <category>value iteration</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/01c-mdps-and-bellman.html</guid>
-  <pubDate>Wed, 20 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 22 Feb 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/01c-mdps-and-bellman.png" medium="image" type="image/png" height="81" width="144"/>
+</item>
+<item>
+  <title>Contextual Bandits: When the Best Action Depends on Who You’re Talking To</title>
+  <dc:creator>Ba-Hien Tran</dc:creator>
+  <link>https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p><img src="https://tranbahien.github.io/nano-agents/assets/01b-contextual-bandits.png" class="img-fluid"></p>
+<blockquote class="blockquote">
+<p><em>Decision-making under uncertainty, from scratch — 2 of 4.</em></p>
+</blockquote>
+<p>In <a href="../posts/01a-multi-armed-bandits.html">Part 1a</a> we built three algorithms for a world where each arm has a single unknown expected reward. That’s enough for some real problems (A/B testing two website designs), but it’s far from enough for any modern application. Netflix doesn’t recommend the same movie to everyone. A doctor doesn’t prescribe the same dose to every patient. An RLHF reward model doesn’t score every response the same.</p>
+<p>The missing piece is <strong>context</strong> — features describing the situation we’re in. The reward of pulling arm <img src="https://latex.codecogs.com/png.latex?k"> now depends on a context vector <img src="https://latex.codecogs.com/png.latex?x_t">, and the optimal arm changes with it. This post derives the linear contextual bandit from first principles, builds <strong>LinUCB</strong> and <strong>Linear Thompson Sampling</strong> on top, and lands at the place where reward models for RLHF actually live.</p>
+<p>The mathematical engine for both algorithms is <strong>Bayesian linear regression</strong>. We’ll spend serious time on it — not because the math is hard, but because many Bayesian deep learning methods, many uncertainty-aware LLM techniques, and many probabilistic agents come back to it. Treating BLR rigorously here pays off for the rest of the series.</p>
+<p><strong>Roadmap for the core of this post.</strong> The logic runs in three moves, and it’s worth holding them in mind: (1) we <em>first derive Bayesian linear regression</em> (§2) — the posterior over the reward parameters given the data; (2) we then build <strong>LinUCB</strong> (§3), which turns the posterior’s <em>uncertainty</em> into an optimism bonus and acts on the upper confidence bound; and (3) we build <strong>Linear Thompson Sampling</strong> (§4), which instead <em>samples</em> a parameter vector from the posterior and acts greedily under it. Same posterior, two different ways to let uncertainty drive exploration — optimism versus sampling. Everything else is detail around those three moves.</p>
+<hr>
+<section id="from-best-arm-to-best-arm-for-this-context" class="level2">
+<h2 class="anchored" data-anchor-id="from-best-arm-to-best-arm-for-this-context">0. From “best arm” to “best arm for this context”</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_contextual_schematic.png" class="img-fluid figure-img"></p>
+<figcaption>Same four arms, two different contexts, two different best arms. Plain bandits can’t capture this — they assume a single best arm exists.</figcaption>
+</figure>
+</div>
+<p>The figure above shows two contexts <img src="https://latex.codecogs.com/png.latex?x_A%20=%20(0.8,%200.6)"> and <img src="https://latex.codecogs.com/png.latex?x_B%20=%20(-0.7,%200.7)">, and the predicted reward <img src="https://latex.codecogs.com/png.latex?x%5E%5Ctop%20%5Ctheta_k"> each of four arms produces under each. Same arms, same parameters; different best arm. For <img src="https://latex.codecogs.com/png.latex?x_A">, arm 3 wins. For <img src="https://latex.codecogs.com/png.latex?x_B">, arm 4 wins.</p>
+<p>If we ran the unstructured bandit algorithms from 1a on this data, they’d see a stream of rewards from each arm, average them out, and pick whichever arm had the highest <em>marginal</em> mean. They’d be solving the wrong problem. The marginal-best arm might lose to literally every other arm on every individual context, if the contexts arrive in the wrong proportions.</p>
+<p>This is why context-free UCB1 has linear regret on this kind of problem — we’ll see it explicitly in the regret figure at the end. The algorithm isn’t doing anything wrong given its assumptions; the assumptions just don’t match the world.</p>
+<hr>
+</section>
+<section id="formal-setup" class="level2">
+<h2 class="anchored" data-anchor-id="formal-setup">1. Formal setup</h2>
+<p>A <strong>contextual bandit</strong> is a tuple <img src="https://latex.codecogs.com/png.latex?(%5Cmathcal%7BX%7D,%20%5Cmathcal%7BA%7D,%20P_r)"> where:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BX%7D"> is a context space (we’ll take <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BX%7D%20=%20%5Cmathbb%7BR%7D%5Ed">),</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BA%7D%20=%20%5C%7B1,%20%5Cdots,%20K%5C%7D"> is the action set, and</li>
+<li><img src="https://latex.codecogs.com/png.latex?P_r(%5Ccdot%20%5Cmid%20x,%20a)"> is the conditional reward distribution given context and action.</li>
+</ul>
+<p>At each timestep <img src="https://latex.codecogs.com/png.latex?t">:</p>
+<ol type="1">
+<li>The environment reveals context <img src="https://latex.codecogs.com/png.latex?x_t%20%5Cin%20%5Cmathcal%7BX%7D">.</li>
+<li>The agent picks action <img src="https://latex.codecogs.com/png.latex?a_t%20%5Cin%20%5Cmathcal%7BA%7D">.</li>
+<li>The environment returns reward <img src="https://latex.codecogs.com/png.latex?r_t%20%5Csim%20P_r(%5Ccdot%20%5Cmid%20x_t,%20a_t)">.</li>
+</ol>
+<p>We want to minimize <strong>regret</strong> relative to the best contextual policy:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR(T)%20%5C;%5Cequiv%5C;%20%5Cmathbb%7BE%7D%5C!%5Cleft%5B%5Csum_%7Bt=1%7D%5E%7BT%7D%20%5Cmax_a%20%5Cmathbb%7BE%7D%5Br_t%20%5Cmid%20x_t,%20a%5D%20%5C;-%5C;%20r_t%5Cright%5D.%0A"></p>
+<p>This is the contextual analogue of the regret we defined for unstructured bandits. It compares the agent’s reward to an oracle that knows the true reward function and picks optimally per-context.</p>
+<section id="linearity-assumption" class="level3">
+<h3 class="anchored" data-anchor-id="linearity-assumption">1.1 Linearity assumption</h3>
+<p>To make progress we need structure. The simplest useful assumption is <strong>linearity</strong>: there exist unknown parameters <img src="https://latex.codecogs.com/png.latex?%5Ctheta_k%20%5Cin%20%5Cmathbb%7BR%7D%5Ed"> such that</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathbb%7BE%7D%5Br_t%20%5Cmid%20x_t,%20a_t%20=%20k%5D%20%5C;=%5C;%20x_t%5E%5Ctop%20%5Ctheta_k.%0A"></p>
+<p>Two common parameterizations:</p>
+<ul>
+<li><strong>Disjoint:</strong> each arm has its own <img src="https://latex.codecogs.com/png.latex?%5Ctheta_k">. The K reward functions are independent. Used when arms are heterogeneous (e.g., news articles, where each has its own coefficients on user features).</li>
+<li><strong>Shared (hybrid):</strong> there’s a single <img src="https://latex.codecogs.com/png.latex?%5Ctheta">, but features depend on both context and arm: <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BE%7D%5Br%20%5Cmid%20x,%20a%5D%20=%20%5Cphi(x,%20a)%5E%5Ctop%20%5Ctheta">. Used when arms share structure (e.g., recommending the same set of items with item-specific features).</li>
+</ul>
+<p>We’ll focus on the disjoint case — it’s conceptually cleaner and the math transfers to the shared case directly. In the implementation, both look identical: maintain the sufficient statistics of a Bayesian linear regression, predict and explore using them.</p>
+<p>Note: realized rewards add noise, <img src="https://latex.codecogs.com/png.latex?r_t%20=%20x_t%5E%5Ctop%20%5Ctheta_k%20+%20%5Cvarepsilon_t"> with <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon_t%20%5Csim%20%5Cmathcal%7BN%7D(0,%20%5Csigma%5E2)">. The Gaussian assumption is convenient (conjugate priors!) but not essential — most of what follows generalizes to sub-Gaussian noise.</p>
+<hr>
+</section>
+</section>
+<section id="the-engine-bayesian-linear-regression" class="level2">
+<h2 class="anchored" data-anchor-id="the-engine-bayesian-linear-regression">2. The engine: Bayesian linear regression</h2>
+<p>Both LinUCB and Linear Thompson Sampling are wrappers around Bayesian linear regression. The algorithm essentially reduces to “fit a Bayesian linear regression to each arm, then do something thoughtful with the resulting posterior.” So we need the posterior.</p>
+<p>This section is the deepest math in the post. The payoff is that <em>many</em> later techniques in the curriculum — neural bandits, reward models in RLHF, Bayesian neural networks, calibration of LLMs — reduce in some part to this calculation. Internalize it once, reuse it often.</p>
+<section id="the-model" class="level3">
+<h3 class="anchored" data-anchor-id="the-model">2.1 The model</h3>
+<p>We observe data <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BD%7D%20=%20%5C%7B(x_i,%20y_i)%5C%7D_%7Bi=1%7D%5En"> generated by</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay_i%20%5C;=%5C;%20x_i%5E%5Ctop%20%5Ctheta%20+%20%5Cvarepsilon_i,%20%5Cqquad%20%5Cvarepsilon_i%20%5Csim%20%5Cmathcal%7BN%7D(0,%20%5Csigma%5E2),%0A"></p>
+<p>with <img src="https://latex.codecogs.com/png.latex?%5Ctheta%20%5Cin%20%5Cmathbb%7BR%7D%5Ed"> unknown. We place a Gaussian prior on <img src="https://latex.codecogs.com/png.latex?%5Ctheta">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctheta%20%5Csim%20%5Cmathcal%7BN%7D(%5Cmu_0,%20%5CSigma_0).%0A"></p>
+<p>A standard choice is <img src="https://latex.codecogs.com/png.latex?%5Cmu_0%20=%200">, <img src="https://latex.codecogs.com/png.latex?%5CSigma_0%20=%20%5Clambda%5E%7B-1%7D%20I"> — a centered, isotropic prior with precision <img src="https://latex.codecogs.com/png.latex?%5Clambda">. Large <img src="https://latex.codecogs.com/png.latex?%5Clambda"> means a tight prior (strong belief that <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> is near 0); small <img src="https://latex.codecogs.com/png.latex?%5Clambda"> means a vague prior.</p>
+</section>
+<section id="deriving-the-posterior" class="level3">
+<h3 class="anchored" data-anchor-id="deriving-the-posterior">2.2 Deriving the posterior</h3>
+<p>The posterior is also Gaussian — this is the magic of conjugacy. Let me derive it cleanly.</p>
+<p>By Bayes’ rule, <img src="https://latex.codecogs.com/png.latex?p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)%20%5Cpropto%20p(%5Cmathcal%7BD%7D%20%5Cmid%20%5Ctheta)%20%5C,%20p(%5Ctheta)">. Taking logs and dropping constants:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clog%20p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)%20%5C;=%5C;%20-%5Cfrac%7B1%7D%7B2%5Csigma%5E2%7D%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_i%20-%20x_i%5E%5Ctop%20%5Ctheta)%5E2%20%5C;-%5C;%20%5Cfrac%7B1%7D%7B2%7D%20(%5Ctheta%20-%20%5Cmu_0)%5E%5Ctop%20%5CSigma_0%5E%7B-1%7D%20(%5Ctheta%20-%20%5Cmu_0)%20%5C;+%5C;%20%5Ctext%7Bconst%7D.%0A"></p>
+<p>Both terms are quadratic in <img src="https://latex.codecogs.com/png.latex?%5Ctheta">. The posterior is therefore Gaussian. To find its mean and covariance, expand and collect terms in <img src="https://latex.codecogs.com/png.latex?%5Ctheta">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clog%20p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)%20%5C;=%5C;%20-%5Cfrac%7B1%7D%7B2%7D%20%5Ctheta%5E%5Ctop%20%5Cunderbrace%7B%5Cleft%5B%5CSigma_0%5E%7B-1%7D%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X%5Cright%5D%7D_%7B%5CSigma_n%5E%7B-1%7D%7D%20%5Ctheta%20%5C;+%5C;%20%5Ctheta%5E%5Ctop%20%5Cunderbrace%7B%5Cleft%5B%5CSigma_0%5E%7B-1%7D%20%5Cmu_0%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20y%5Cright%5D%7D_%7B%5CSigma_n%5E%7B-1%7D%20%5Cmu_n%7D%20+%20%5Ctext%7Bconst%7D,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?X%20%5Cin%20%5Cmathbb%7BR%7D%5E%7Bn%20%5Ctimes%20d%7D"> is the design matrix with rows <img src="https://latex.codecogs.com/png.latex?x_i%5E%5Ctop"> and <img src="https://latex.codecogs.com/png.latex?y%20%5Cin%20%5Cmathbb%7BR%7D%5En"> is the response vector. Reading off the coefficients of <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Ctop%20(%5Ccdot)%20%5Ctheta"> and <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Ctop%20(%5Ccdot)"> gives the <strong>posterior</strong></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboxed%7B%5C;%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D%20%5C;%5Csim%5C;%20%5Cmathcal%7BN%7D(%5Cmu_n,%20%5CSigma_n),%20%5Cqquad%20%5CSigma_n%5E%7B-1%7D%20=%20%5CSigma_0%5E%7B-1%7D%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X,%20%5Cqquad%20%5Cmu_n%20=%20%5CSigma_n%20%5Cbig%5B%5CSigma_0%5E%7B-1%7D%20%5Cmu_0%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20y%5Cbig%5D.%5C;%7D%0A"></p>
+<p>With the standard isotropic prior <img src="https://latex.codecogs.com/png.latex?%5Cmu_0%20=%200">, <img src="https://latex.codecogs.com/png.latex?%5CSigma_0%20=%20%5Clambda%5E%7B-1%7D%20I">, this simplifies to</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CSigma_n%5E%7B-1%7D%20%5C;=%5C;%20%5Clambda%20I%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X,%20%5Cqquad%20%5Cmu_n%20%5C;=%5C;%20%5Csigma%5E%7B-2%7D%20%5CSigma_n%20X%5E%5Ctop%20y%20%5C;=%5C;%20%5Cleft(%5Clambda%20%5Csigma%5E2%20I%20+%20X%5E%5Ctop%20X%5Cright)%5E%7B-1%7D%20X%5E%5Ctop%20y.%0A"></p>
+<p>This is the <strong>ridge regression</strong> estimator with regularization <img src="https://latex.codecogs.com/png.latex?%5Clambda%20%5Csigma%5E2">. Bayesian linear regression with a zero-mean Gaussian prior <em>is</em> ridge regression — the posterior mean coincides with the MAP estimate, which coincides with the regularized least-squares solution. Three views, one object.</p>
+</section>
+<section id="visualizing-the-contraction" class="level3">
+<h3 class="anchored" data-anchor-id="visualizing-the-contraction">2.3 Visualizing the contraction</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_blr_posterior_evolution.png" class="img-fluid figure-img"></p>
+<figcaption>The Gaussian posterior over θ contracts toward the true parameter as data accumulates. The 95% region (dashed) and 68% region (solid) both shrink at rate 1/√n.</figcaption>
+</figure>
+</div>
+<p>The figure shows the posterior at <img src="https://latex.codecogs.com/png.latex?n%20=%200,%2010,%20100,%20500"> for a 2D problem with <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%200.7"> noise. Notice how:</p>
+<ul>
+<li>At <img src="https://latex.codecogs.com/png.latex?n%20=%200">, the posterior is the prior — wide and centered at zero, with the true parameter <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar%20=%20(1.2,%20-0.6)"> near the boundary.</li>
+<li>By <img src="https://latex.codecogs.com/png.latex?n%20=%2010">, the posterior has clearly moved toward <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar">, though with significant uncertainty.</li>
+<li>At <img src="https://latex.codecogs.com/png.latex?n%20=%20100">, the 95% region is tight and contains the truth.</li>
+<li>At <img src="https://latex.codecogs.com/png.latex?n%20=%20500">, the posterior is essentially a delta at <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar">.</li>
+</ul>
+<p>The rate of contraction is <strong><img src="https://latex.codecogs.com/png.latex?1/%5Csqrt%7Bn%7D"> per dimension</strong>. Specifically, the posterior covariance <img src="https://latex.codecogs.com/png.latex?%5CSigma_n%20=%20(%5Clambda%20I%20+%20%5Csigma%5E%7B-2%7D%20X%5E%5Ctop%20X)%5E%7B-1%7D">. If <img src="https://latex.codecogs.com/png.latex?X%5E%5Ctop%20X"> grows like <img src="https://latex.codecogs.com/png.latex?n"> times the identity (true on average for isotropic contexts), then <img src="https://latex.codecogs.com/png.latex?%5CSigma_n%20%5Capprox%20%5Csigma%5E2%20/%20n%20%5Ccdot%20I">. The standard deviation in each direction is <img src="https://latex.codecogs.com/png.latex?%5Csigma%20/%20%5Csqrt%7Bn%7D">. This is the same rate that frequentist concentration inequalities give you — Bayesian and frequentist agree on the <em>amount</em> of information in <img src="https://latex.codecogs.com/png.latex?n"> samples.</p>
+</section>
+<section id="online-updates-and-sherman-morrison" class="level3">
+<h3 class="anchored" data-anchor-id="online-updates-and-sherman-morrison">2.4 Online updates and Sherman-Morrison</h3>
+<p>Bandit algorithms need to update the posterior every step. Recomputing <img src="https://latex.codecogs.com/png.latex?%5CSigma_n%5E%7B-1%7D"> from scratch and inverting it takes <img src="https://latex.codecogs.com/png.latex?O(n%20d%5E2%20+%20d%5E3)"> — way too expensive online. We want <strong><img src="https://latex.codecogs.com/png.latex?O(d%5E2)"> per step</strong>.</p>
+<p>The Sherman-Morrison formula gives it to us. For an invertible matrix <img src="https://latex.codecogs.com/png.latex?A"> and vectors <img src="https://latex.codecogs.com/png.latex?u,%20v"> with <img src="https://latex.codecogs.com/png.latex?1%20+%20v%5E%5Ctop%20A%5E%7B-1%7D%20u%20%5Cneq%200">,</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(A%20+%20u%20v%5E%5Ctop)%5E%7B-1%7D%20%5C;=%5C;%20A%5E%7B-1%7D%20%5C;-%5C;%20%5Cfrac%7BA%5E%7B-1%7D%20u%20v%5E%5Ctop%20A%5E%7B-1%7D%7D%7B1%20+%20v%5E%5Ctop%20A%5E%7B-1%7D%20u%7D.%0A"></p>
+<p>In our case, when a new data point <img src="https://latex.codecogs.com/png.latex?(x_%7Bn+1%7D,%20y_%7Bn+1%7D)"> arrives, the precision matrix updates as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA_%7Bn+1%7D%20%5C;=%5C;%20A_n%20+%20%5Csigma%5E%7B-2%7D%20x_%7Bn+1%7D%20x_%7Bn+1%7D%5E%5Ctop,%20%5Cquad%20%5Ctext%7Bwhere%20%7D%20A_n%20%5Cequiv%20%5CSigma_n%5E%7B-1%7D.%0A"></p>
+<p>Applying Sherman-Morrison with <img src="https://latex.codecogs.com/png.latex?u%20=%20v%20=%20%5Csigma%5E%7B-1%7D%20x_%7Bn+1%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA_%7Bn+1%7D%5E%7B-1%7D%20%5C;=%5C;%20A_n%5E%7B-1%7D%20%5C;-%5C;%20%5Cfrac%7BA_n%5E%7B-1%7D%20x_%7Bn+1%7D%20x_%7Bn+1%7D%5E%5Ctop%20A_n%5E%7B-1%7D%7D%7B%5Csigma%5E2%20+%20x_%7Bn+1%7D%5E%5Ctop%20A_n%5E%7B-1%7D%20x_%7Bn+1%7D%7D.%0A"></p>
+<p>So we maintain <img src="https://latex.codecogs.com/png.latex?A_n%5E%7B-1%7D"> directly, update it in <img src="https://latex.codecogs.com/png.latex?O(d%5E2)"> per step (one matrix-vector product, one outer product), and never call <code>np.linalg.inv</code> again. The posterior mean <img src="https://latex.codecogs.com/png.latex?%5Cmu_n%20=%20A_n%5E%7B-1%7D%20b_n"> where <img src="https://latex.codecogs.com/png.latex?b_n%20=%20%5Csigma%5E%7B-2%7D%20%5Csum_i%20y_i%20x_i"> also updates incrementally: <img src="https://latex.codecogs.com/png.latex?b_%7Bn+1%7D%20=%20b_n%20+%20%5Csigma%5E%7B-2%7D%20y_%7Bn+1%7D%20x_%7Bn+1%7D">, with <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bn+1%7D%20=%20A_%7Bn+1%7D%5E%7B-1%7D%20b_%7Bn+1%7D">.</p>
+<p>In our reference implementation we use the simpler <code>np.linalg.solve(A, b)</code> because <img src="https://latex.codecogs.com/png.latex?d"> is small and clarity wins over micro-optimization. For production at large <img src="https://latex.codecogs.com/png.latex?d">, switch to Sherman-Morrison.</p>
+</section>
+<section id="the-variational-kl-view" class="level3">
+<h3 class="anchored" data-anchor-id="the-variational-kl-view">2.5 The variational / KL view</h3>
+<p>Here’s a perspective that becomes essential later in the curriculum. The Bayesian posterior is the unique distribution <img src="https://latex.codecogs.com/png.latex?q%5E%5Cstar(%5Ctheta)"> that minimizes the <strong>variational free energy</strong>:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Aq%5E%5Cstar%20%5C;=%5C;%20%5Carg%5Cmin_q%20%5C;%5CBig%5B%5C,%20%5Cmathrm%7BKL%7D(q%20%5C,%5C%7C%5C,%20p_0)%20%5C;-%5C;%20%5Cmathbb%7BE%7D_%7Bq%7D%5B%5Clog%20p(%5Cmathcal%7BD%7D%20%5Cmid%20%5Ctheta)%5D%20%5C,%5CBig%5D,%0A"></p>
+<p>where the minimization is over all distributions <img src="https://latex.codecogs.com/png.latex?q"> on <img src="https://latex.codecogs.com/png.latex?%5Ctheta">. When <img src="https://latex.codecogs.com/png.latex?q"> is restricted to Gaussians and the model is conjugate, this optimization is exact: the optimal <img src="https://latex.codecogs.com/png.latex?q"> equals the true posterior <img src="https://latex.codecogs.com/png.latex?p(%5Ctheta%20%5Cmid%20%5Cmathcal%7BD%7D)">. When <img src="https://latex.codecogs.com/png.latex?q"> is restricted to a more limited family (mean-field, low-rank Gaussians, etc.) you get <strong>variational inference</strong> — an approximate posterior that minimizes the same objective.</p>
+<p>Two takeaways:</p>
+<ol type="1">
+<li><p><strong>The Bayesian update is an optimization.</strong> Each step minimizes a tradeoff between (a) staying close to the prior (the KL term) and (b) fitting the data (the expected log-likelihood). Online, the previous posterior becomes the new prior, and each new data point pulls the distribution slightly toward better fit.</p></li>
+<li><p><strong>This is the gateway to variational neural networks.</strong> Replace <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> with neural network weights, replace <img src="https://latex.codecogs.com/png.latex?p(y%20%5Cmid%20x,%20%5Ctheta)"> with a deep model, restrict <img src="https://latex.codecogs.com/png.latex?q"> to a tractable family (e.g., factorized Gaussian over weights), and you get variational BNNs. The objective is identical. Bayesian linear regression is the simplest non-trivial instance of an idea that scales all the way up.</p></li>
+</ol>
+<p>This isn’t a digression — it’s the through-line from contextual bandits to modern Bayesian deep learning. Every uncertainty-aware LLM technique in the literature is some descendant of the variational view applied here.</p>
+</section>
+<section id="predictive-distribution" class="level3">
+<h3 class="anchored" data-anchor-id="predictive-distribution">2.6 Predictive distribution</h3>
+<p>For a new context <img src="https://latex.codecogs.com/png.latex?x_*">, the predictive distribution of the reward is also Gaussian:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ar_*%20%5Cmid%20x_*,%20%5Cmathcal%7BD%7D%20%5C;%5Csim%5C;%20%5Cmathcal%7BN%7D%5C!%5Cleft(%5C,%20x_*%5E%5Ctop%20%5Cmu_n,%20%5C;%20%5Csigma%5E2%20+%20x_*%5E%5Ctop%20%5CSigma_n%20x_*%20%5C,%5Cright).%0A"></p>
+<p>The variance has two parts:</p>
+<ul>
+<li><strong><img src="https://latex.codecogs.com/png.latex?%5Csigma%5E2"> — irreducible noise.</strong> Even if we knew <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> exactly, we couldn’t predict <img src="https://latex.codecogs.com/png.latex?r_*"> exactly because of the noise term <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon">. This is <strong>aleatoric</strong> uncertainty.</li>
+<li><strong><img src="https://latex.codecogs.com/png.latex?x_*%5E%5Ctop%20%5CSigma_n%20x_*"> — parameter uncertainty.</strong> Our uncertainty about <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> projected into the direction <img src="https://latex.codecogs.com/png.latex?x_*">. This is <strong>epistemic</strong> uncertainty — it shrinks to 0 as <img src="https://latex.codecogs.com/png.latex?n%20%5Cto%20%5Cinfty">.</li>
+</ul>
+<p>Both LinUCB and LinTS use the epistemic piece. UCB bonuses are scaled by <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7Bx_*%5E%5Ctop%20%5CSigma_n%20x_*%7D">; TS samples from the parameter posterior. The aleatoric noise is fixed and irreducible — we can’t explore it away.</p>
+<p>This decomposition matters in agentic AI. When an LLM is uncertain, you want to know whether it’s because the world is genuinely ambiguous (aleatoric — can’t help by asking again) or because the model is undertrained (epistemic — more data would help). Same math, much bigger problem.</p>
+<hr>
+</section>
+</section>
+<section id="linucb" class="level2">
+<h2 class="anchored" data-anchor-id="linucb">3. LinUCB</h2>
+<p>The LinUCB recipe: at each step <img src="https://latex.codecogs.com/png.latex?t">, for each arm <img src="https://latex.codecogs.com/png.latex?k">, compute the <strong>upper confidence bound</strong> on the expected reward <img src="https://latex.codecogs.com/png.latex?x_t%5E%5Ctop%20%5Ctheta_k">. Pick the arm with the highest UCB.</p>
+<section id="the-algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="the-algorithm">3.1 The algorithm</h3>
+<p>For each arm <img src="https://latex.codecogs.com/png.latex?k">, maintain the sufficient statistics for arm-<img src="https://latex.codecogs.com/png.latex?k">’s Bayesian linear regression:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA_k%20%5C;%5Cequiv%5C;%20%5Clambda%20I%20+%20%5Csum_%7Bi:%5C,%20a_i%20=%20k%7D%20x_i%20x_i%5E%5Ctop,%20%5Cqquad%20b_k%20%5C;%5Cequiv%5C;%20%5Csum_%7Bi:%5C,%20a_i%20=%20k%7D%20r_i%20%5C,%20x_i,%0A"></p>
+<p>where the sums are over timesteps when arm <img src="https://latex.codecogs.com/png.latex?k"> was pulled. We’ve set <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%201"> to keep notation light. Then the posterior mean and predictive variance are</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%5Ctheta_k%20%5C;=%5C;%20A_k%5E%7B-1%7D%20b_k,%20%5Cqquad%20%5Cmathrm%7BVar%7D%5C!%5Cleft(x%5E%5Ctop%20%5Ctheta_k%20%5Cmid%20%5Cmathcal%7BD%7D%5Cright)%20%5C;=%5C;%20x%5E%5Ctop%20A_k%5E%7B-1%7D%20x.%0A"></p>
+<p>LinUCB picks</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboxed%7B%5C;a_t%20%5C;=%5C;%20%5Carg%5Cmax_k%20%5C;%20%5Cleft%5B%5C,%20x_t%5E%5Ctop%20%5Chat%5Ctheta_k%20%5C,+%5C,%20%5Calpha%20%5Csqrt%7Bx_t%5E%5Ctop%20A_k%5E%7B-1%7D%20x_t%7D%20%5C,%5Cright%5D.%5C;%7D%0A"></p>
+<p>The first term is the predicted reward — pure exploitation. The second is <img src="https://latex.codecogs.com/png.latex?%5Calpha"> times the predictive standard deviation — exploration. Just like UCB1, but the bonus is now context-dependent. <strong>Contexts in poorly-explored directions get higher bonuses; well-explored contexts get smaller bonuses.</strong></p>
+<p>The hyperparameter <img src="https://latex.codecogs.com/png.latex?%5Calpha"> controls exploration aggressiveness. It plays the role of a confidence radius, and the theory does <em>not</em> reduce it to a clean <img src="https://latex.codecogs.com/png.latex?O(%5Csqrt%7B%5Clog%20T%7D)">: the honest confidence width from Abbasi-Yadkori et al.&nbsp;(2011) depends on the feature dimension <img src="https://latex.codecogs.com/png.latex?d">, the regularization <img src="https://latex.codecogs.com/png.latex?%5Clambda">, the noise scale <img src="https://latex.codecogs.com/png.latex?%5Csigma">, a bound on <img src="https://latex.codecogs.com/png.latex?%5ClVert%5Ctheta_k%5CrVert">, and the failure probability <img src="https://latex.codecogs.com/png.latex?%5Cdelta"> — it grows roughly like <img src="https://latex.codecogs.com/png.latex?%5Csigma%5Csqrt%7Bd%20%5Clog((1%20+%20T/%5Clambda)/%5Cdelta)%7D%20+%20%5Csqrt%7B%5Clambda%7D%5C,%5ClVert%5Ctheta_k%5CrVert">. The <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7B%5Clog%20T%7D"> is just the leading time-dependence; the constants matter in practice. In implementations, <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%201"> is a strong, simple default.</p>
+</section>
+<section id="what-the-algorithm-looks-like-in-practice" class="level3">
+<h3 class="anchored" data-anchor-id="what-the-algorithm-looks-like-in-practice">3.2 What the algorithm looks like in practice</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_linucb_ellipsoid.png" class="img-fluid figure-img"></p>
+<figcaption>LinUCB at n=20 (left) and n=200 (right). The orange line is the upper-confidence index; the blue band is the 95% credible region; the dashed black is the true function. As data accumulates, the band tightens around truth and the bonus shrinks.</figcaption>
+</figure>
+</div>
+<p>This figure uses a scalar feature <img src="https://latex.codecogs.com/png.latex?z"> with <img src="https://latex.codecogs.com/png.latex?d%20=%202"> (intercept plus <img src="https://latex.codecogs.com/png.latex?z">), so we can plot the predicted reward as a function of <img src="https://latex.codecogs.com/png.latex?z">. The shaded blue band is the 95% credible region for the reward; the orange line is the LinUCB upper-confidence index.</p>
+<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%2020">, the band is visibly wide and the UCB sits noticeably above the posterior mean. The algorithm is uncertain and bonuses are large.</p>
+<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%20200">, the band is tight, the UCB is barely above the mean, and both have essentially converged to the true function. Exploration has finished its job.</p>
+<p>The bonus is largest in directions where <img src="https://latex.codecogs.com/png.latex?x%5E%5Ctop%20A_k%5E%7B-1%7D%20x"> is large — directions where the data didn’t constrain <img src="https://latex.codecogs.com/png.latex?%5Ctheta_k"> much. If we’d pulled arm <img src="https://latex.codecogs.com/png.latex?k"> only on contexts living in a 2D subspace of <img src="https://latex.codecogs.com/png.latex?%5Cmathbb%7BR%7D%5Ed">, the predictive variance would be huge for any context outside that subspace, and LinUCB would aggressively pull that arm under such a context to find out. This is <strong>exploration in the direction of information gain</strong> — exactly the right behavior.</p>
+</section>
+<section id="regret-bound" class="level3">
+<h3 class="anchored" data-anchor-id="regret-bound">3.3 Regret bound</h3>
+<p>For LinUCB with appropriate <img src="https://latex.codecogs.com/png.latex?%5Calpha">, Abbasi-Yadkori, Pál &amp; Szepesvári (2011) prove</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AR(T)%20%5C;=%5C;%20%5Ctilde%20O%5C!%5Cleft(d%20%5Csqrt%7BT%7D%5Cright),%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O"> hides logarithmic factors. The matching lower bound for linear contextual bandits is <img src="https://latex.codecogs.com/png.latex?%5COmega(d%20%5Csqrt%7BT%7D)">, so LinUCB is near-optimal.</p>
+<p>Note the <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7BT%7D"> here. It is worth being careful about what it is being contrasted <em>with</em>, because finite-arm bandits actually have two regret regimes. The gap-dependent bound for <img src="https://latex.codecogs.com/png.latex?K">-armed stochastic bandits is logarithmic, <img src="https://latex.codecogs.com/png.latex?O(%5Clog%20T)">, when there is a fixed positive gap between the best and second-best arm (this is the bound we cited in 1a). But the same finite-arm problem also has a <em>gap-free</em> (worst-case, minimax) bound of order <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7BKT%7D">, achieved when gaps can be arbitrarily small. So the meaningful contrast is not “linear contextual is <img src="https://latex.codecogs.com/png.latex?%5Csqrt%20T"> while finite-arm is <img src="https://latex.codecogs.com/png.latex?%5Clog%20T">” — it is between the <em>gap-dependent finite-arm</em> bound (<img src="https://latex.codecogs.com/png.latex?%5Clog%20T">) and the <em>worst-case linear contextual</em> bound (<img src="https://latex.codecogs.com/png.latex?d%5Csqrt%20T">). Learning a <img src="https://latex.codecogs.com/png.latex?d">-dimensional reward function, rather than <img src="https://latex.codecogs.com/png.latex?K"> independent scalar means, puts us in the function-estimation regime, where the <img src="https://latex.codecogs.com/png.latex?%5Csqrt%20T"> minimax rate is fundamental and there is no gap-dependent escape to <img src="https://latex.codecogs.com/png.latex?%5Clog%20T"> in general.</p>
+<hr>
+</section>
+</section>
+<section id="linear-thompson-sampling" class="level2">
+<h2 class="anchored" data-anchor-id="linear-thompson-sampling">4. Linear Thompson Sampling</h2>
+<p>The Bayesian counterpart. Instead of optimistic point estimates, <strong>sample</strong> parameters from each arm’s posterior and act greedily under the samples.</p>
+<section id="the-algorithm-1" class="level3">
+<h3 class="anchored" data-anchor-id="the-algorithm-1">4.1 The algorithm</h3>
+<p>Maintain the same <img src="https://latex.codecogs.com/png.latex?A_k">, <img src="https://latex.codecogs.com/png.latex?b_k"> as LinUCB. At each step:</p>
+<ol type="1">
+<li>For each arm <img src="https://latex.codecogs.com/png.latex?k">, sample <img src="https://latex.codecogs.com/png.latex?%5Ctilde%5Ctheta_k%20%5Csim%20%5Cmathcal%7BN%7D%5C!%5Cleft(%5Chat%5Ctheta_k,%20%5C,%20v%5E2%20A_k%5E%7B-1%7D%5Cright)">.</li>
+<li>Play <img src="https://latex.codecogs.com/png.latex?a_t%20=%20%5Carg%5Cmax_k%20x_t%5E%5Ctop%20%5Ctilde%5Ctheta_k">.</li>
+<li>Observe <img src="https://latex.codecogs.com/png.latex?r_t"> and update <img src="https://latex.codecogs.com/png.latex?A_%7Ba_t%7D,%20b_%7Ba_t%7D">.</li>
+</ol>
+<p>The hyperparameter <img src="https://latex.codecogs.com/png.latex?v"> rescales the posterior variance. <img src="https://latex.codecogs.com/png.latex?v%20=%201"> corresponds to the exact Bayesian Thompson posterior under unit-variance noise. Agrawal &amp; Goyal (2013) show that inflating <img src="https://latex.codecogs.com/png.latex?v"> beyond 1 yields the tightest regret bounds; in practice <img src="https://latex.codecogs.com/png.latex?v%20%5Cin%20%5B0.25,%201%5D"> usually works well. Smaller <img src="https://latex.codecogs.com/png.latex?v"> → less exploration; larger → more.</p>
+</section>
+<section id="the-each-draw-is-a-hypothesis-view" class="level3">
+<h3 class="anchored" data-anchor-id="the-each-draw-is-a-hypothesis-view">4.2 The “each draw is a hypothesis” view</h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_lints_draws.png" class="img-fluid figure-img"></p>
+<figcaption>Each posterior draw (faint blue) is one hypothesis about the world. The agent commits to that hypothesis for one step and acts optimally under it. At n=10 the hypotheses disagree and the algorithm explores; at n=200 they agree and the algorithm exploits.</figcaption>
+</figure>
+</div>
+<p>This figure shows ten posterior draws of the function <img src="https://latex.codecogs.com/png.latex?f(z)%20=%20%5Ctheta_0%20+%20%5Ctheta_1%20z"> at two timesteps. Each draw <img src="https://latex.codecogs.com/png.latex?%5Ctilde%5Ctheta"> is a possible truth — one of the worlds consistent with the data. The agent picks one (randomly), commits to it for the round, and acts as if that world is real.</p>
+<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%2010">, the ten hypotheses fan out: some slopes are higher, some lower, intercepts vary. Different hypotheses imply <em>different best arms</em> at a given context. This natural disagreement drives exploration — the agent will visit whichever arm looks best under the sample it drew, and that varies stochastically.</p>
+<p>At <img src="https://latex.codecogs.com/png.latex?n%20=%20200">, all ten draws cluster tightly around the true function. The agent acts almost as if it knew <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%5Cstar">, because all plausible <img src="https://latex.codecogs.com/png.latex?%5Ctheta">’s now agree on what to do.</p>
+<p>Compare to plain Thompson Sampling from 1a, where each “hypothesis” was a single number per arm (a Beta sample). The same idea, scaled to functions: sample the function, act under it.</p>
+</section>
+<section id="probability-matching-generalized" class="level3">
+<h3 class="anchored" data-anchor-id="probability-matching-generalized">4.3 Probability matching, generalized</h3>
+<p>In 1a we showed that Thompson Sampling picks arm <img src="https://latex.codecogs.com/png.latex?k"> with probability equal to the posterior probability that <img src="https://latex.codecogs.com/png.latex?k"> is optimal. The same property holds here — but <em>only when we sample from the true posterior</em>, i.e.&nbsp;at <img src="https://latex.codecogs.com/png.latex?v%20=%201">. With the contextual twist:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP(a_t%20=%20k%20%5Cmid%20x_t,%20%5Cmathcal%7BD%7D_t)%20%5C;=%5C;%20P%5C!%5Cleft(%5C,%20k%20=%20%5Carg%5Cmax_%7Bj%7D%20x_t%5E%5Ctop%20%5Ctheta_j%20%5C;%5CBig%7C%5C;%20x_t,%20%5Cmathcal%7BD%7D_t%20%5C,%5Cright).%0A"></p>
+<p>The probability that LinTS picks arm <img src="https://latex.codecogs.com/png.latex?k"> for context <img src="https://latex.codecogs.com/png.latex?x_t"> equals the posterior probability that <img src="https://latex.codecogs.com/png.latex?k"> is the optimal arm at <img src="https://latex.codecogs.com/png.latex?x_t">. This is a strictly more nuanced statement than the unstructured version: the same arm can have high optimality probability at one context and low at another, and LinTS will track that automatically.</p>
+</section>
+<section id="regret-bound-1" class="level3">
+<h3 class="anchored" data-anchor-id="regret-bound-1">4.4 Regret bound</h3>
+<p>Agrawal &amp; Goyal (2013) prove <img src="https://latex.codecogs.com/png.latex?R(T)%20=%20%5Ctilde%20O(d%5E%7B3/2%7D%20%5Csqrt%7BT%7D)"> for Linear Thompson Sampling — a factor of <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7Bd%7D"> worse than LinUCB. In practice the bound is loose and LinTS is often empirically competitive with LinUCB. Which wins depends on the problem.</p>
+<hr>
+</section>
+</section>
+<section id="the-showdown" class="level2">
+<h2 class="anchored" data-anchor-id="the-showdown">5. The showdown</h2>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_contextual_regret_curves.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative regret on a linear contextual bandit with K=5 arms, d=8 features. Context-free UCB1 is linear (it’s solving the wrong problem). The contextual algorithms all curve into sublinear behavior, with LinUCB winning here.</figcaption>
+</figure>
+</div>
+<p>Four algorithms on the same problem:</p>
+<ul>
+<li><strong>Context-free UCB1</strong> ignores <img src="https://latex.codecogs.com/png.latex?x_t"> entirely, treating rewards from each arm as i.i.d. samples from some marginal distribution. Its regret grows linearly — about 4 per step on this problem — because there <em>is</em> no single best arm. The marginal “best” arm is bad on a substantial fraction of contexts.</li>
+<li><strong>Contextual ε-greedy</strong> uses ridge regression to estimate <img src="https://latex.codecogs.com/png.latex?%5Chat%5Ctheta_k"> and acts greedily with probability <img src="https://latex.codecogs.com/png.latex?1%20-%20%5Cvarepsilon">. A subtlety the curve hides: with a <em>fixed</em> <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon%20=%200.1"> it never stops taking random actions, so it pays a constant exploration tax every step and its <em>asymptotic</em> regret is actually linear — it only looks competitive over a finite horizon because the tax is small. To get genuinely sublinear regret you must <em>decay</em> <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon"> over time (under suitable conditions on the decay schedule). The fixed-<img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon"> version here is the simple, practical default; it is not asymptotically optimal.</li>
+<li><strong>LinUCB</strong> wins decisively here. Its principled exploration (Hoeffding-style bounds in feature space) is very efficient.</li>
+<li><strong>Linear Thompson Sampling</strong> is also sublinear but slightly behind LinUCB on this particular instance. This is the opposite of what we saw in 1a, and it’s instance-dependent — try different feature dimensions and noise levels and you’ll see the ranking shift.</li>
+</ul>
+<p><strong>The key message: using context buys you orders of magnitude.</strong> At <img src="https://latex.codecogs.com/png.latex?T%20=%202000">, the context-free baseline has accumulated ~800 regret; the contextual algorithms have ~10–100. The gap widens with <img src="https://latex.codecogs.com/png.latex?T"> — context-free regret is linear, contextual is sublinear. Asymptotically, the ratio diverges.</p>
+<p>This is the empirical case for why every modern personalization system, recommender, or LLM reward model is contextual.</p>
+<hr>
+</section>
+<section id="forward-connections" class="level2">
+<h2 class="anchored" data-anchor-id="forward-connections">6. Forward connections</h2>
+<p>We’re now at a junction with two important downstream applications. Let me make both explicit because they’re central to the rest of the agentic AI curriculum.</p>
+<section id="rlhf-reward-models-and-the-contextual-bandit-analogy" class="level3">
+<h3 class="anchored" data-anchor-id="rlhf-reward-models-and-the-contextual-bandit-analogy">6.1 RLHF reward models and the contextual-bandit analogy</h3>
+<p>Reinforcement learning from human feedback trains a <strong>reward model</strong> <img src="https://latex.codecogs.com/png.latex?r_%5Cphi(x,%20y)"> that scores how good a response <img src="https://latex.codecogs.com/png.latex?y"> is to a prompt <img src="https://latex.codecogs.com/png.latex?x">. At heart a reward model is a <em>contextual scoring function</em> trained from preference data — and that is exactly the object at the centre of this post, a function of a context (the prompt) and an action (the response). The bandit framing is an analogy rather than an identity: a reward model is fit offline from a fixed preference dataset, not by a bandit actively pulling arms. The analogy becomes <em>most</em> direct when you actively choose which prompts and responses to label next — at that point you really are running an exploration policy over a reward-model posterior. The reward model is fit from preference data: humans see pairs <img src="https://latex.codecogs.com/png.latex?(y_1,%20y_2)"> for the same prompt <img src="https://latex.codecogs.com/png.latex?x"> and pick which they prefer. The standard model is <strong>Bradley-Terry</strong>:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP(y_1%20%5Csucc%20y_2%20%5Cmid%20x)%20%5C;=%5C;%20%5Cfrac%7B%5Cexp%20r_%5Cphi(x,%20y_1)%7D%7B%5Cexp%20r_%5Cphi(x,%20y_1)%20+%20%5Cexp%20r_%5Cphi(x,%20y_2)%7D%20%5C;=%5C;%20%5Csigma%5C!%5Cbig(r_%5Cphi(x,%20y_1)%20-%20r_%5Cphi(x,%20y_2)%5Cbig).%0A"></p>
+<p>Take logs: this is <strong>logistic regression</strong> on the difference of rewards. If <img src="https://latex.codecogs.com/png.latex?r_%5Cphi"> is linear, <img src="https://latex.codecogs.com/png.latex?r_%5Cphi(x,%20y)%20=%20%5Cphi(x,%20y)%5E%5Ctop%20%5Ctheta">, you get linear logistic regression — a contextual bandit one-step removed. The features depend on prompt <em>and</em> response, fitting our “shared parameterization” case.</p>
+<p>In practice <img src="https://latex.codecogs.com/png.latex?r_%5Cphi"> is a neural network, so the linear model is too simple. But two ideas from this post transfer directly:</p>
+<ol type="1">
+<li><strong>Uncertainty in the reward model is the same problem we just solved.</strong> Whether you use Bayesian last-layer ridge regression, deep ensembles, or variational neural networks — all of these are approximations to the posterior over <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> we computed exactly here. The Bayesian view of RLHF asks: how do we maintain calibrated uncertainty about which response is preferred?</li>
+<li><strong>Exploration in RLHF.</strong> Active learning for reward models — picking which prompts to label next — is exactly an exploration problem over the reward-model posterior. Should you label a prompt where the current model is confident (low information gain) or one where it’s uncertain (high gain)? This is the bandit problem at the data-collection level.</li>
+</ol>
+<p>There’s published work in this direction; there’s also room for more. Calibrated, uncertainty-aware reward modeling is one of the active research areas in safe RL from preferences, and the foundations are exactly what we just built.</p>
+</section>
+<section id="neural-bandits-and-deep-uncertainty" class="level3">
+<h3 class="anchored" data-anchor-id="neural-bandits-and-deep-uncertainty">6.2 Neural bandits and deep uncertainty</h3>
+<p>What if the reward function isn’t linear? Replace <img src="https://latex.codecogs.com/png.latex?x%5E%5Ctop%20%5Ctheta_k"> with a neural network <img src="https://latex.codecogs.com/png.latex?f_%7B%5Ctheta_k%7D(x)">. The problem becomes a <strong>neural bandit</strong>.</p>
+<p>The difficulty: we no longer have closed-form posteriors. Several approaches:</p>
+<ul>
+<li><strong>Bootstrap and ensembles</strong> (Osband et al., 2016). Train <img src="https://latex.codecogs.com/png.latex?M"> networks on bootstrapped samples of the data. Use the ensemble disagreement as a proxy for posterior variance. Pick actions by sampling one ensemble member (Bootstrapped Thompson) or by averaging means + ensemble-std bonus (ensemble UCB).</li>
+<li><strong>Bayesian neural networks</strong> (Blundell et al., 2015 and successors). Place a prior on the weights, do variational inference. Same KL view as §2.5, but on a deep model. The variational families are restricted, so the approximation introduces error, but the formalism is identical.</li>
+<li><strong>Neural linear</strong> (Riquelme et al., 2018). Use the neural net as a feature extractor and apply Bayesian linear regression on the last layer. The features are learned but the uncertainty is closed-form. Practical and surprisingly strong; the recommended starting point.</li>
+<li><strong>Laplace approximation</strong> (Daxberger et al., 2021). Fit a deterministic neural net, then approximate the posterior as Gaussian centered at the MAP with covariance equal to the inverse Hessian. Plays nicely with pretrained models.</li>
+</ul>
+<p>The unifying view: any neural bandit is <em>Bayesian linear regression in a richer feature space</em>. The math you built here is the limiting case where the features are fixed. Everything else is a way of learning the features adaptively while still maintaining usable uncertainty.</p>
+<p>This is also the connection point to <strong>calibrated LLMs</strong>. Modern LLMs produce probabilities over tokens, but those probabilities are notoriously miscalibrated. The deepest framing is: the model has implicit uncertainty about its own predictions, and treating that uncertainty as Bayesian — with priors, posteriors, and information-theoretic exploration — turns out to be a productive research direction. Conformal prediction, semantic entropy, ensembles of LLMs: all are coarse approximations to the Bayesian story you’ve now seen exactly.</p>
+<hr>
+</section>
+</section>
+<section id="experiments-to-actually-run" class="level2">
+<h2 class="anchored" data-anchor-id="experiments-to-actually-run">7. Experiments to actually run</h2>
+<section id="how-does-regret-scale-with-dimension" class="level3">
+<h3 class="anchored" data-anchor-id="how-does-regret-scale-with-dimension">7.1 How does regret scale with dimension?</h3>
+<p>Run LinUCB and LinTS at <img src="https://latex.codecogs.com/png.latex?d%20%5Cin%20%5C%7B2,%205,%2010,%2025,%2050%5C%7D">, holding everything else fixed. Plot the cumulative regret at <img src="https://latex.codecogs.com/png.latex?T%20=%202000"> as a function of <img src="https://latex.codecogs.com/png.latex?d">. You should see roughly linear growth in <img src="https://latex.codecogs.com/png.latex?d"> for LinUCB (consistent with the <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%5Csqrt%7BT%7D)"> bound). Check whether LinTS follows the predicted <img src="https://latex.codecogs.com/png.latex?d%5E%7B3/2%7D"> scaling.</p>
+<p>The point: dimension matters a lot. Practical applications with many features need either much more data or function-class structure (sparsity, low-rank, etc.).</p>
+</section>
+<section id="calibration-of-the-posterior" class="level3">
+<h3 class="anchored" data-anchor-id="calibration-of-the-posterior">7.2 Calibration of the posterior</h3>
+<p>In a held-out sense, are LinUCB’s 95% credible intervals actually calibrated? At each step, predict the reward and check whether the realized reward falls within the predictive 95% band. Track the coverage rate. Under correct model specification it should converge to 95%; under misspecification it may be far off.</p>
+<p>This is a microcosm of LLM calibration. Models often produce confident-sounding answers whose actual reliability doesn’t match. Testing calibration is the first step toward fixing it.</p>
+</section>
+<section id="misspecified-model" class="level3">
+<h3 class="anchored" data-anchor-id="misspecified-model">7.3 Misspecified model</h3>
+<p>What if the true reward function is non-linear? Generate data with <img src="https://latex.codecogs.com/png.latex?r%20=%20%5Csin(x_1)%20+%20x_2%20+%20%5Cvarepsilon"> and run LinUCB pretending the model is linear. The algorithm will fit the best linear approximation but its regret will not be <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(%5Csqrt%7BT%7D)"> — it will eventually be linear (because no linear approximation gets you to the truth). Empirically observe this. Then think: how would you detect misspecification in real life?</p>
+</section>
+<section id="reproduce-one-figure-from-the-linucb-paper" class="level3">
+<h3 class="anchored" data-anchor-id="reproduce-one-figure-from-the-linucb-paper">7.4 Reproduce one figure from the LinUCB paper</h3>
+<p>Li et al.&nbsp;(2010) ran LinUCB on a Yahoo! news recommendation dataset. The figure showing cumulative clicks vs LinUCB exploration rate is a classic. Replicate it on synthetic data: vary <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Cin%20%5C%7B0.1,%200.5,%201.0,%202.0,%205.0%5C%7D"> and plot how regret depends on the exploration parameter. There’s an optimal <img src="https://latex.codecogs.com/png.latex?%5Calpha"> — find it.</p>
+<hr>
+</section>
+</section>
+<section id="solutions" class="level2">
+<h2 class="anchored" data-anchor-id="solutions">8. Solutions</h2>
+<p>As with the previous post, try first. Once you’ve struggled with each, here are the reference solutions and discussions.</p>
+<section id="regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py" class="level3">
+<h3 class="anchored" data-anchor-id="regret-scaling-with-dimension-experiments01b_sol1_regret_vs_dim.py">8.1 Regret scaling with dimension — <code>experiments/01b_sol1_regret_vs_dim.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol1_regret_vs_dim.png" class="img-fluid figure-img"></p>
+<figcaption>Cumulative regret at fixed T as a function of feature dimension d (log-log axes). Both LinUCB and LinTS grow with d; the fitted power-law exponents (0.42 and 0.53) are below the theoretical upper bounds (1.0 and 1.5).</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Both algorithms’ final regret grows with <img src="https://latex.codecogs.com/png.latex?d">. The fitted power-law exponents — LinUCB at <img src="https://latex.codecogs.com/png.latex?d%5E%7B0.42%7D">, LinTS at <img src="https://latex.codecogs.com/png.latex?d%5E%7B0.53%7D"> — are well below the theoretical bounds of <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d)"> and <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%5E%7B3/2%7D)">. The qualitative ordering (LinTS grows slightly faster than LinUCB) matches theory.</p>
+<p><strong>Why the gap between theory and practice.</strong> Several reasons:</p>
+<ol type="1">
+<li><strong>The bounds are worst-case upper bounds</strong>, not exact rates. They hold over all problem instances; the <em>average</em> instance is much easier. Our random thetas are isotropic; the worst case has thetas adversarially aligned with the contexts.</li>
+<li><strong>Finite-T effects.</strong> The theoretical <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%20%5Csqrt%20T)"> has hidden constants and <img src="https://latex.codecogs.com/png.latex?%5Clog%20T"> factors. At <img src="https://latex.codecogs.com/png.latex?T%20=%20600"> we’re in the regime where lower-order terms still matter.</li>
+<li><strong>The constants depend on <img src="https://latex.codecogs.com/png.latex?%5Csigma">, <img src="https://latex.codecogs.com/png.latex?%5Clambda">, and the diameter of the parameter space.</strong> Different choices give different constants in front of the same exponent.</li>
+</ol>
+<p><strong>The deeper lesson.</strong> In this synthetic setup, empirical scaling came out <em>better</em> than worst-case theory predicts — but the headline to take away is the <strong>shape</strong>, not the specific exponents, which are properties of this particular instance (isotropic Gaussian contexts, well-specified linear rewards, this noise level). What generalizes is that regret grows polynomially in <img src="https://latex.codecogs.com/png.latex?d"> rather than catastrophically: a 10× increase in feature dimension was, here, only a <img src="https://latex.codecogs.com/png.latex?10%5E%7B0.4%7D">–<img src="https://latex.codecogs.com/png.latex?10%5E%7B0.5%7D%20%5Capprox%202.5">–<img src="https://latex.codecogs.com/png.latex?3%5Ctimes"> increase in regret. Treat that as the right <em>intuition</em> for “how much harder does it get if I add features?” — not as a law to quote. On real problems the exponent depends on the geometry of your contexts and the degree of model misspecification.</p>
+<p>For practical work: if your features explode in dimension (sparse one-hot encodings, embedding dimensions), this scaling is your friend. If you can keep the <em>effective</em> dimension low (sparsity, low-rank structure), you can do dramatically better than this. Both LinUCB and LinTS have variants that exploit sparsity (LASSO-based; see Bastani &amp; Bayati 2020).</p>
+</section>
+<section id="calibration-experiments01b_sol2_calibration.py" class="level3">
+<h3 class="anchored" data-anchor-id="calibration-experiments01b_sol2_calibration.py">8.2 Calibration — <code>experiments/01b_sol2_calibration.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol2_calibration.png" class="img-fluid figure-img"></p>
+<figcaption>Empirical coverage of LinUCB’s 95% predictive interval. Blue: matched noise (algorithm’s σ matches truth) — converges to ~95.3%, well-calibrated. Red: mismatched noise (algorithm assumes σ=1 but truth is σ=0.1) — over-coverage at 100%, intervals are too wide.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Under matched noise — the bandit’s <img src="https://latex.codecogs.com/png.latex?%5Csigma"> equals the algorithm’s implicit assumption — coverage converges to 95.3%, essentially right on the nominal 95%. The brief over-shoot to ~98% early on is the prior dominating before enough data arrives. Under mismatched noise (algorithm thinks <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%201">, truth is <img src="https://latex.codecogs.com/png.latex?%5Csigma%20=%200.1">), coverage is <em>100% from the start</em>: every realized reward falls in the predicted interval. The intervals are about <img src="https://latex.codecogs.com/png.latex?10%5Ctimes"> too wide.</p>
+<p><strong>Why it happens.</strong> LinUCB’s predictive variance is <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7B%5Ctext%7Balg%7D%7D%5E2%20+%20x%5E%5Ctop%20A%5E%7B-1%7D%20x">, where the first term is the assumed aleatoric noise and the second is epistemic uncertainty about <img src="https://latex.codecogs.com/png.latex?%5Ctheta">. When <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7B%5Ctext%7Balg%7D%7D%5E2%20%5Cgg%20%5Csigma_%7B%5Ctext%7Btrue%7D%7D%5E2">, you’ve inflated the noise term tenfold. The 95% interval is mostly capturing irreducible noise the algorithm <em>thinks</em> exists but doesn’t. Realized rewards essentially always land inside.</p>
+<p><strong>The deeper lesson — this is the canonical case of <em>calibration</em>.</strong> Calibration asks: when you say “I’m 95% confident,” does that statement bear out empirically? Three failure modes:</p>
+<ul>
+<li><strong>Over-coverage / under-confidence</strong>: stated intervals are too wide. You’re being lazy about your beliefs and missing decisions. <em>This is what we see in the mismatched case.</em></li>
+<li><strong>Under-coverage / over-confidence</strong>: stated intervals are too narrow. You’re being reckless and will be wrong more often than you think.</li>
+<li><strong>Calibration drift</strong>: coverage starts good but degrades as the problem changes (non-stationarity, distribution shift).</li>
+</ul>
+<p>Modern LLMs have all three failure modes, depending on the question type. Calibrating LLM uncertainty — making “the model says 90%” match empirical 90% accuracy — is an active research area. The mathematical <em>pattern</em> is analogous to what we just did here: maintain a posterior, ask whether its stated confidence matches observed frequencies. <strong>You have built, in this experiment, the simplest non-trivial calibration test that exists.</strong> Every paper on LLM calibration is doing some version of this, with a more complex model class standing in for the linear one.</p>
+<p><strong>What you should build next.</strong> Conformal prediction is a technique that takes any predictive model — including a miscalibrated one — and produces intervals with finite-sample coverage guarantees. It’s a beautifully simple idea worth your time. Once you’ve internalized this experiment, conformal prediction is a 30-minute read away.</p>
+</section>
+<section id="misspecification-experiments01b_sol3_misspecification.py" class="level3">
+<h3 class="anchored" data-anchor-id="misspecification-experiments01b_sol3_misspecification.py">8.3 Misspecification — <code>experiments/01b_sol3_misspecification.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol3_misspecification.png" class="img-fluid figure-img"></p>
+<figcaption>LinUCB on a misspecified problem. Blue: linear bandit (correctly specified), regret plateaus near 9. Red: non-linear bandit (rewards depend on sin(ω_k x_1)), regret grows linearly at 0.017/step. The linear approximation has irreducible bias.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> When the model is well-specified (true rewards are linear), LinUCB’s regret plateaus around 9 by <img src="https://latex.codecogs.com/png.latex?T%20=%203000"> — sublinear and consistent with the <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%20%5Csqrt%20T)"> bound. When the model is misspecified (true rewards include <img src="https://latex.codecogs.com/png.latex?%5Csin(%5Comega_k%20x_1)">, which no linear function captures), regret grows linearly at <img src="https://latex.codecogs.com/png.latex?%5Csim%200.017"> per step from start to finish. After <img src="https://latex.codecogs.com/png.latex?T%20=%203000">, cumulative regret is <img src="https://latex.codecogs.com/png.latex?%5Csim%2063">, with no sign of plateauing.</p>
+<p><strong>Why it happens.</strong> LinUCB fits the best <em>linear approximation</em> to the true function, since that’s the only thing its model class allows. Call this best linear fit <img src="https://latex.codecogs.com/png.latex?%5Cbar%5Ctheta_k">. The algorithm’s regret with respect to the <em>best linear policy</em> would be sublinear. But the optimal <em>contextual</em> policy uses the true non-linear <img src="https://latex.codecogs.com/png.latex?r_k(x)">, not its linear approximation. The gap between “best linear policy” and “true optimal policy” is the <strong>approximation error</strong>, and it’s constant per step. Cumulative approximation error grows linearly.</p>
+<p>You can decompose total regret: <img src="https://latex.codecogs.com/png.latex?%0AR_%7B%5Ctext%7Btotal%7D%7D(T)%20%5C;=%5C;%20%5Cunderbrace%7BR_%7B%5Ctext%7Blinear%7D%7D(T)%7D_%7B%5Ctilde%20O(d%5Csqrt%20T)%20%5Ctext%7B%20if%20linear%20is%20correct%7D%7D%20%5C;+%5C;%20%5Cunderbrace%7BR_%7B%5Ctext%7Bapprox%7D%7D(T)%7D_%7B%5COmega(T)%20%5Ctext%7B%20if%20misspecified%7D%7D.%0A"></p>
+<p>The second term dominates asymptotically. There’s no algorithm in our linear class that can do better — we’ve hit the ceiling of what the model can express.</p>
+<p><strong>The deeper lesson.</strong> Model class matters more than algorithm. A wrong-class model with a clever algorithm is beaten by a right-class model with a dumb algorithm, eventually. This is why neural bandits and Bayesian deep learning exist: when the truth isn’t linear, you need a richer model class even at the cost of harder inference.</p>
+<p><strong>Misspecification detection.</strong> Can you tell from the regret curve that you’re misspecified, before you know the answer? Yes — look at the second derivative of cumulative regret. Well-specified algorithms should produce regret curves that <em>bend down</em> (sublinear); persistent linearity is a red flag. In practice, you’d also do residual analysis: if your model’s residuals show structure (e.g., correlation with some feature), you’re missing something.</p>
+<p><strong>What you should build next.</strong> Two natural extensions: (a) Replace LinUCB with a neural-linear UCB (last-layer Bayesian regression on a neural feature extractor) and see if regret returns to sublinear. (b) Implement <em>model-class testing</em>: fit several model classes (linear, polynomial degree 2, neural net) and use held-out predictive likelihood to pick. Misspecification stops being a silent killer when you actively look for it.</p>
+</section>
+<section id="alpha-sweep-experiments01b_sol4_alpha_sweep.py" class="level3">
+<h3 class="anchored" data-anchor-id="alpha-sweep-experiments01b_sol4_alpha_sweep.py">8.4 Alpha sweep — <code>experiments/01b_sol4_alpha_sweep.py</code></h3>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://tranbahien.github.io/nano-agents/figures/01b_sol4_alpha_sweep.png" class="img-fluid figure-img"></p>
+<figcaption>LinUCB regret as a function of the exploration parameter α (log-x scale). Classic U-shape: under-exploration (α &lt; 0.5) wastes pulls on suboptimal arms; over-exploration (α &gt; 2) wastes pulls on known-good arms. Optimum near α = 0.5.</figcaption>
+</figure>
+</div>
+<p><strong>What you should see.</strong> Final regret at <img src="https://latex.codecogs.com/png.latex?T%20=%201500"> has a clear minimum at <img src="https://latex.codecogs.com/png.latex?%5Calpha%20%5Capprox%200.5">, where regret is <img src="https://latex.codecogs.com/png.latex?%5Csim%2013">. Going to <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%200.05"> (almost no exploration) costs you <img src="https://latex.codecogs.com/png.latex?%5Csim%205"> extra regret. Going to <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%208"> (massive over-exploration) costs you <img src="https://latex.codecogs.com/png.latex?%5Csim%2057"> extra regret — far worse. The curve is asymmetric: <strong>over-exploration hurts more than under-exploration</strong>, at least on this instance.</p>
+<p><strong>Why the U-shape.</strong> Two competing effects, each unbounded at one end:</p>
+<ul>
+<li><strong><img src="https://latex.codecogs.com/png.latex?%5Calpha"> too small → exploitation trap.</strong> Without enough bonus to overcome small noise advantages, the algorithm can settle on a suboptimal arm and keep pulling it. Regret is approximately <em>linear</em> until enough random noise eventually causes a switch.</li>
+<li><strong><img src="https://latex.codecogs.com/png.latex?%5Calpha"> too large → wasted exploration.</strong> Big bonuses mean even well-explored arms keep getting probed. The algorithm keeps trying arms it should already know are bad. Per-pull regret is high; cumulative regret grows fast.</li>
+</ul>
+<p>The optimum is where these two costs balance.</p>
+<p><strong>Why over-exploration is worse here.</strong> At the high-<img src="https://latex.codecogs.com/png.latex?%5Calpha"> end, every step is genuinely costly — you’re pulling clearly-suboptimal arms by direct choice. At the low-<img src="https://latex.codecogs.com/png.latex?%5Calpha"> end, you’re <em>not</em> pulling clearly-suboptimal arms; you’re failing to discover that one of your “good” arms is actually better. The first error is constant per step; the second is bounded by the gap between near-tied top arms, which can be small. Hence the asymmetry.</p>
+<p><strong>The deeper lesson — agentic AI implication.</strong> Every exploration mechanism has a tunable temperature: <img src="https://latex.codecogs.com/png.latex?%5Calpha"> in UCB-like methods, <img src="https://latex.codecogs.com/png.latex?v"> in Thompson, <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon"> in ε-greedy, the entropy bonus in policy gradients, the temperature parameter in LLM decoding. They all have this U-shape. The whole point of the principled methods (Thompson, Bayesian RL) is that <strong>the optimal temperature is set automatically by the posterior</strong> — you don’t have to sweep. But every system still has <em>some</em> knob, and the U-shape governs it.</p>
+<p><strong>Practical guidance.</strong> For a new contextual bandit problem, sweep <img src="https://latex.codecogs.com/png.latex?%5Calpha"> logarithmically over <img src="https://latex.codecogs.com/png.latex?%5C%7B0.1,%200.3,%201,%203,%2010%5C%7D"> before fixing it. The optimum often sits in <img src="https://latex.codecogs.com/png.latex?%5B0.5,%202.0%5D">; <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%201"> is a strong default if you have no budget for tuning. Thompson Sampling with <img src="https://latex.codecogs.com/png.latex?v%20=%201"> is even more strongly self-tuning and often a safer choice for production.</p>
+<hr>
+</section>
+</section>
+<section id="further-reading" class="level2">
+<h2 class="anchored" data-anchor-id="further-reading">9. Further reading</h2>
+<ul>
+<li><strong>Lattimore &amp; Szepesvári, <em>Bandit Algorithms</em> (2020), Chapters 18–22.</strong> The rigorous treatment of contextual bandits. Worth reading carefully if you want the tight regret proofs.</li>
+<li><strong>Li, Chu, Langford &amp; Schapire, “A Contextual-Bandit Approach to Personalized News Article Recommendation” (WWW 2010).</strong> The original LinUCB paper. Surprisingly readable and full of practical wisdom.</li>
+<li><strong>Abbasi-Yadkori, Pál &amp; Szepesvári, “Improved Algorithms for Linear Stochastic Bandits” (NeurIPS 2011).</strong> The cleanest analysis of LinUCB and the source of the <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(d%5Csqrt%7BT%7D)"> bound.</li>
+<li><strong>Agrawal &amp; Goyal, “Thompson Sampling for Contextual Bandits with Linear Payoffs” (ICML 2013).</strong> The contextual TS paper. The variance inflation analysis is the technical crux.</li>
+<li><strong>Bishop, <em>Pattern Recognition and Machine Learning</em> (2006), Chapter 3.</strong> The cleanest exposition of Bayesian linear regression I know of. Worth reading even if you’ve seen it before.</li>
+<li><strong>Riquelme, Tucker &amp; Snoek, “Deep Bayesian Bandits Showdown” (ICLR 2018).</strong> An empirical comparison of neural bandit methods. Neural-linear holds up surprisingly well — read for both the methods and the meta-lesson that simple methods often win.</li>
+<li><strong>Ouyang et al., “Training Language Models to Follow Instructions with Human Feedback” (NeurIPS 2022).</strong> The InstructGPT paper. The reward modeling section is exactly the contextual bandit framing from §6.1.</li>
+</ul>
+<hr>
+<p><strong>Next up — Part 1c: MDPs and the Bellman equations.</strong> We add state transitions. Now the action you take changes the world, not just the reward you receive. Value functions, the Bellman optimality equation, value iteration. The bandit-to-MDP relationship is worth stating precisely: an <em>ordinary</em> (context-free) bandit is a one-state MDP; a <em>contextual</em> bandit is an MDP with an exogenous state — the context arrives from outside and your action does <em>not</em> influence the next context. What 1c adds is exactly that missing ingredient: action-dependent state transitions, where what you do now shapes the situations you face later.</p>
+
+
+<!-- -->
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
+  author = {Tran, Ba-Hien},
+  title = {Contextual {Bandits:} {When} the {Best} {Action} {Depends} on
+    {Who} {You’re} {Talking} {To}},
+  date = {2026-02-15},
+  url = {https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html},
+  langid = {en}
+}
+</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
+Tran, Ba-Hien. 2026. <span>“Contextual Bandits: When the Best Action
+Depends on Who You’re Talking To.”</span> February 15. <a href="https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html">https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</a>.
+</div></div></section></div> ]]></description>
+  <category>bandits</category>
+  <category>bayesian</category>
+  <category>contextual</category>
+  <category>blr</category>
+  <category>RLHF</category>
+  <guid>https://tranbahien.github.io/nano-agents/posts/01b-contextual-bandits.html</guid>
+  <pubDate>Sun, 15 Feb 2026 00:00:00 GMT</pubDate>
+  <media:content url="https://tranbahien.github.io/nano-agents/assets/01b-contextual-bandits.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 <item>
   <title>Multi-Armed Bandits: The Atom of Decision-Making</title>
@@ -5917,19 +5917,19 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 </section><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{tran2026,
   author = {Tran, Ba-Hien},
   title = {Multi-Armed {Bandits:} {The} {Atom} of {Decision-Making}},
-  date = {2026-05-19},
+  date = {2026-02-08},
   url = {https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-tran2026" class="csl-entry quarto-appendix-citeas">
 Tran, Ba-Hien. 2026. <span>“Multi-Armed Bandits: The Atom of
-Decision-Making.”</span> May 19. <a href="https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html">https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html</a>.
+Decision-Making.”</span> February 8. <a href="https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html">https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html</a>.
 </div></div></section></div> ]]></description>
   <category>bandits</category>
   <category>bayesian</category>
   <category>decision-making</category>
   <guid>https://tranbahien.github.io/nano-agents/posts/01a-multi-armed-bandits.html</guid>
-  <pubDate>Tue, 19 May 2026 00:00:00 GMT</pubDate>
+  <pubDate>Sun, 08 Feb 2026 00:00:00 GMT</pubDate>
   <media:content url="https://tranbahien.github.io/nano-agents/assets/01a-multi-armed-bandits.png" medium="image" type="image/png" height="81" width="144"/>
 </item>
 </channel>
