@@ -1,7 +1,7 @@
 ---
 title: "Contextual Bandits: When the Best Action Depends on Who You're Talking To"
 description: "Decision-making under uncertainty, from scratch — 2 of 4. We derive Bayesian linear regression from scratch (with Sherman-Morrison online updates and the variational view), then build LinUCB and Linear Thompson Sampling on top of it. The bridge to RLHF reward models and neural bandits."
-date: "2026-05-20"
+date: "2026-02-15"
 categories: [bandits, bayesian, contextual, blr, RLHF]
 image: ../assets/01b-contextual-bandits.png
 citation: true

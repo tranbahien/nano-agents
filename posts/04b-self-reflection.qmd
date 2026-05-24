@@ -1,7 +1,7 @@
 ---
 title: "Self-Reflection as Monte Carlo: When Thinking Twice Helps"
 description: "Topic 4, post 2 of 3. If retrieval brings in external evidence, self-reflection generates internal evidence — the model critiques and revises its own output. We frame reflection as sequential, adaptive sampling, derive in closed form exactly when it helps versus when it amplifies the model's own bias, and connect it to best-of-N and self-consistency from Post 3a. The honest result: reflection only works across the generation–verification gap."
-date: "2026-06-03"
+date: "2026-05-03"
 categories: [self-reflection, reflexion, monte carlo, verification, calibration]
 image: ../assets/04b-self-reflection.png
 citation: true

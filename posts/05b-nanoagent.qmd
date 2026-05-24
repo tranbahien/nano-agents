@@ -1,7 +1,7 @@
 ---
 title: "nanoAgent: Wiring the Whole Curriculum into One Agent"
 description: "Topic 5, post 2 of 2 — the finale. We build nanoAgent: a small, readable, from-scratch agent that plans, calls tools, retrieves, reflects, votes, and knows when it is unsure. Its control loop is a Bayes-consistent controller — it holds one calibrated belief and, at each step, takes the action whose expected gain beats its cost. Routing, adaptive compute, and graceful stopping all emerge from that single rule, and the controller literally reuses the analytic models we derived in earlier posts as its value estimates."
-date: "2026-06-24"
+date: "2026-05-24"
 categories: [agents, orchestration, bayesian control, reference implementation, capstone]
 image: ../assets/05b-nanoagent.png
 citation: true

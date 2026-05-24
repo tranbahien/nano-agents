@@ -1,7 +1,7 @@
 ---
 title: "REINFORCE and the Policy Gradient Theorem"
 description: "Policy gradient methods, from scratch — 1 of 4. We derive the policy gradient theorem from first principles via the log-derivative trick, implement REINFORCE in clean NumPy, explore baselines and variance reduction, and demonstrate continuous-action policy gradient on a 1D bandit. The structural bridge from supervised learning to RLHF."
-date: "2026-05-22"
+date: "2026-03-08"
 categories: [policy gradient, reinforce, log-derivative trick, variance reduction]
 image: ../assets/02a-reinforce-and-policy-gradient.png
 citation: true

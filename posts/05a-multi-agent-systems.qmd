@@ -1,7 +1,7 @@
 ---
 title: "Multi-Agent Systems: When Do More Agents Help?"
 description: "Topic 5, post 1 of 2. Several agents can vote, debate, specialize, or be orchestrated — but more agents means more cost and more ways for errors to compound. We frame multi-agent systems as the problem of combining noisy estimators, prove with the Condorcet jury theorem when voting works, show how correlated errors (shared base models, shared blind spots) cap the gains, and find the honest limits: diversity is the resource, debate can herd, and pipelines compound errors multiplicatively."
-date: "2026-06-17"
+date: "2026-05-17"
 categories: [multi-agent, debate, voting, condorcet, coordination]
 image: ../assets/05a-multi-agent-systems.png
 citation: true

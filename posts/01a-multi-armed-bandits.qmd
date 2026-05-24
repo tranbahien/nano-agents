@@ -1,7 +1,7 @@
 ---
 title: "Multi-Armed Bandits: The Atom of Decision-Making"
 description: "Decision-making under uncertainty, from scratch — 1 of 4. ε-greedy, UCB1, and Thompson Sampling derived from first principles, with intuition, worked examples, and all three implemented in ~80 lines of NumPy."
-date: "2026-05-19"
+date: "2026-02-08"
 categories: [bandits, bayesian, decision-making]
 image: ../assets/01a-multi-armed-bandits.png
 citation: true

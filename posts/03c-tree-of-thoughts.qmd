@@ -1,7 +1,7 @@
 ---
 title: "Tree of Thoughts and MCTS: Search Over Reasoning"
 description: "Topic 3, post 3 of 3. A ReAct path is a single trajectory; one bad step derails it. We turn reasoning into search over a tree — Tree of Thoughts (BFS/DFS) and MCTS with UCT — and use backtracking and exploration to recover from the errors that compound for a single path. Built from first principles, in the AlphaZero mould."
-date: "2026-05-28"
+date: "2026-04-19"
 categories: [tree of thoughts, mcts, uct, search, planning, alphazero]
 image: ../assets/03c-tree-of-thoughts.png
 citation: true

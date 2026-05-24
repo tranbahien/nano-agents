@@ -1,7 +1,7 @@
 ---
 title: "Decoding as Inference: Sampling, Search, and Test-Time Compute"
 description: "Topic 3, post 1 of 3. Once you have a trained language model, what should you do with it? We treat decoding — temperature, top-k, top-p, beam search, self-consistency, best-of-N — as approximate Bayesian inference, and see why test-time compute scales."
-date: "2026-05-26"
+date: "2026-04-05"
 categories: [decoding, sampling, beam search, self-consistency, test-time compute]
 image: ../assets/03a-decoding-as-inference.png
 citation: true

@@ -1,7 +1,7 @@
 ---
 title: "Calibration: Does the Model Know What It Doesn't Know?"
 description: "Topic 4, post 3 of 3. Every agentic decision in this series — when to retrieve, when to reflect, when to act — has hinged on the model knowing when it is likely wrong. That property is calibration: does 'the model is 90% confident' mean it is right 90% of the time? We measure it with the reliability diagram and ECE, explain why neural networks are systematically overconfident, fix it with temperature scaling (the same temperature knob from decoding), and close the loop on confidence-gated agency. The honest twist: calibration is not the same as knowing which answers are right."
-date: "2026-06-10"
+date: "2026-05-10"
 categories: [calibration, uncertainty, temperature scaling, reliability diagram, agents]
 image: ../assets/04c-calibration.png
 citation: true

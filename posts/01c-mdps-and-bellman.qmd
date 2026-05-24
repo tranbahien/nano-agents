@@ -1,7 +1,7 @@
 ---
 title: "MDPs and the Bellman Equations: When Actions Have Consequences"
 description: "Decision-making under uncertainty, from scratch — 3 of 4. We derive the Bellman equations from first principles, prove value iteration converges via the contraction mapping theorem, and solve a gridworld with both VI and PI. The bridge from bandits to full sequential decision-making."
-date: "2026-05-20"
+date: "2026-02-22"
 categories: [mdp, dynamic programming, bellman, value iteration]
 image: ../assets/01c-mdps-and-bellman.png
 citation: true

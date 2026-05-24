@@ -1,7 +1,7 @@
 ---
 title: "Tool Use as Actions: ReAct and the Agent Loop"
 description: "Topic 3, post 2 of 3. When an LM can call tools, it becomes an agent acting in an extended MDP. We build the ReAct loop from scratch, frame tool use as a POMDP, derive when to call a tool, and watch errors compound over multi-hop chains."
-date: "2026-05-27"
+date: "2026-04-12"
 categories: [tool use, react, agents, pomdp, multi-hop reasoning]
 image: ../assets/03b-tool-use.png
 citation: true

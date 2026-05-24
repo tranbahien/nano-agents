@@ -1,7 +1,7 @@
 ---
 title: "POMDPs and Q-learning: Acting When You Can't See and Can't Plan"
 description: "Decision-making under uncertainty, from scratch — 4 of 4. We add hidden state (POMDPs) and remove the model (Q-learning). Belief states, the Tiger problem, Bayesian belief updates, temporal-difference learning, and Watkins' convergence theorem. The bridge to LLM agents."
-date: "2026-05-21"
+date: "2026-03-01"
 categories: [pomdp, q-learning, td-learning, belief states]
 image: ../assets/01d-pomdps-and-q-learning.png
 citation: true

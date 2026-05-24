@@ -1,7 +1,7 @@
 ---
 title: "Retrieval as Bayesian Conditioning: When and How to Augment"
 description: "Topic 4, post 1 of 3. What retrieval-augmented generation actually is — the embed, search, and read pipeline — and why it is Bayesian inference: parametric memory is a prior, retrieved documents are evidence, the answer is a posterior. We derive when retrieval helps, when it hurts, the optimal retrieval budget, and the confidence-gated policy that ties it all to calibration."
-date: "2026-05-30"
+date: "2026-04-26"
 categories: [retrieval, rag, bayesian inference, calibration, embeddings]
 image: ../assets/04a-rag-as-bayesian-conditioning.png
 citation: true
