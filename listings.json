@@ -23,22 +23,22 @@
   {
     "listing": "/index.html",
     "items": [
-      "/posts/05b-nanoagent.html",
-      "/posts/05a-multi-agent-systems.html",
-      "/posts/04c-calibration.html",
-      "/posts/04b-self-reflection.html",
-      "/posts/04a-rag-as-bayesian-conditioning.html",
-      "/posts/03c-tree-of-thoughts.html",
-      "/posts/03b-tool-use.html",
-      "/posts/03a-decoding-as-inference.html",
-      "/posts/02d-rlhf-dpo-grpo.html",
-      "/posts/02c-trpo-and-ppo.html",
-      "/posts/02b-actor-critic.html",
-      "/posts/02a-reinforce-and-policy-gradient.html",
-      "/posts/01d-pomdps-and-q-learning.html",
+      "/posts/01a-multi-armed-bandits.html",
       "/posts/01b-contextual-bandits.html",
       "/posts/01c-mdps-and-bellman.html",
-      "/posts/01a-multi-armed-bandits.html"
+      "/posts/01d-pomdps-and-q-learning.html",
+      "/posts/02a-reinforce-and-policy-gradient.html",
+      "/posts/02b-actor-critic.html",
+      "/posts/02c-trpo-and-ppo.html",
+      "/posts/02d-rlhf-dpo-grpo.html",
+      "/posts/03a-decoding-as-inference.html",
+      "/posts/03b-tool-use.html",
+      "/posts/03c-tree-of-thoughts.html",
+      "/posts/04a-rag-as-bayesian-conditioning.html",
+      "/posts/04b-self-reflection.html",
+      "/posts/04c-calibration.html",
+      "/posts/05a-multi-agent-systems.html",
+      "/posts/05b-nanoagent.html"
     ]
   }
 ]

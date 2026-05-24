@@ -79,20 +79,20 @@ ul.task-list li input[type="checkbox"] {
 <script>
 
   window.document.addEventListener("DOMContentLoaded", function (_event) {
-    const listingTargetEl = window.document.querySelector('#listing-latest-posts .list');
+    const listingTargetEl = window.document.querySelector('#listing-all-posts .list');
     if (!listingTargetEl) {
       // No listing discovered, do not attach.
       return; 
     }
 
     const options = {
-      valueNames: ['listing-date','listing-title','listing-description','listing-reading-time',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
+      valueNames: ['listing-image','listing-date','listing-title','listing-description','listing-categories','listing-reading-time',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
       
-      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description"],
+      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description","listing-categories"],
     };
 
     window['quarto-listings'] = window['quarto-listings'] || {};
-    window['quarto-listings']['listing-latest-posts'] = new List('listing-latest-posts', options);
+    window['quarto-listings']['listing-all-posts'] = new List('listing-all-posts', options);
 
     if (window['quarto-listing-loaded']) {
       window['quarto-listing-loaded']();
@@ -105,6 +105,11 @@ ul.task-list li input[type="checkbox"] {
     }
   })
   </script>
+<script>
+  if (!localStorage.getItem('quarto-color-scheme')) {
+    localStorage.setItem('quarto-color-scheme', 'dark');
+  }
+</script>
 
   <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
   <script>document.addEventListener("DOMContentLoaded", function () {
@@ -337,11 +342,7 @@ window.Quarto = {
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./posts.html"> 
-<span class="menu-text">Posts</span></a>
-  </li>  
-  <li class="nav-item">
-    <a class="nav-link" href="./about.html"> 
+    <a class="nav-link" href="https://tranbahien.github.io"> 
 <span class="menu-text">About</span></a>
   </li>  
 </ul>
@@ -373,10 +374,19 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#latest-posts" id="toc-latest-posts" class="nav-link active" data-scroll-target="#latest-posts">Latest posts</a></li>
+  <li><a href="#topics" id="toc-topics" class="nav-link active" data-scroll-target="#topics">Topics</a>
+  <ul class="collapse">
+  <li><a href="#topic-1-decision-making-under-uncertainty" id="toc-topic-1-decision-making-under-uncertainty" class="nav-link" data-scroll-target="#topic-1-decision-making-under-uncertainty">Topic 1 — Decision-making under uncertainty</a></li>
+  <li><a href="#topic-2-policy-gradients" id="toc-topic-2-policy-gradients" class="nav-link" data-scroll-target="#topic-2-policy-gradients">Topic 2 — Policy gradients</a></li>
+  <li><a href="#topic-3-sampling-tool-use-planning" id="toc-topic-3-sampling-tool-use-planning" class="nav-link" data-scroll-target="#topic-3-sampling-tool-use-planning">Topic 3 — Sampling, tool use, planning</a></li>
+  <li><a href="#topic-4-memory-reflection-calibration" id="toc-topic-4-memory-reflection-calibration" class="nav-link" data-scroll-target="#topic-4-memory-reflection-calibration">Topic 4 — Memory, reflection, calibration</a></li>
+  <li><a href="#topic-5-putting-it-together" id="toc-topic-5-putting-it-together" class="nav-link" data-scroll-target="#topic-5-putting-it-together">Topic 5 — Putting it together</a></li>
+  </ul></li>
+  <li><a href="#who-this-is-for" id="toc-who-this-is-for" class="nav-link" data-scroll-target="#who-this-is-for">Who this is for</a></li>
+  <li><a href="#posts" id="toc-posts" class="nav-link" data-scroll-target="#posts">Posts</a></li>
   </ul>
 <div class="toc-actions"><ul><li><a href="https://github.com/tranbahien/nano-agents/edit/main/index.qmd" class="toc-action"><i class="bi bi-github"></i>Edit this page</a></li><li><a href="https://github.com/tranbahien/nano-agents/issues/new" class="toc-action"><i class="bi empty"></i>Report an issue</a></li></ul></div></nav>
-    </div>
+    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(16)</span></div><div class="category" data-category="YTJj">a2c <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YWN0b3ItY3JpdGlj">actor-critic <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YWdlbnRz">agents <span class="quarto-category-count">(3)</span></div><div class="category" data-category="YWxwaGF6ZXJv">alphazero <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YmFuZGl0cw==">bandits <span class="quarto-category-count">(2)</span></div><div class="category" data-category="YmF5ZXNpYW4=">bayesian <span class="quarto-category-count">(2)</span></div><div class="category" data-category="YmF5ZXNpYW4lMjBjb250cm9s">bayesian control <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YmF5ZXNpYW4lMjBpbmZlcmVuY2U=">bayesian inference <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YmVhbSUyMHNlYXJjaA==">beam search <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YmVsaWVmJTIwc3RhdGVz">belief states <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YmVsbG1hbg==">bellman <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Ymxy">blr <span class="quarto-category-count">(1)</span></div><div class="category" data-category="YnJhZGxleS10ZXJyeQ==">bradley-terry <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Y2FsaWJyYXRpb24=">calibration <span class="quarto-category-count">(3)</span></div><div class="category" data-category="Y2Fwc3RvbmU=">capstone <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Y2xpcHBlZCUyMHN1cnJvZ2F0ZQ==">clipped surrogate <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Y29uZG9yY2V0">condorcet <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Y29udGV4dHVhbA==">contextual <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Y29vcmRpbmF0aW9u">coordination <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZGViYXRl">debate <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZGVjaXNpb24tbWFraW5n">decision-making <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZGVjb2Rpbmc=">decoding <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZHBv">dpo <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZHluYW1pYyUyMHByb2dyYW1taW5n">dynamic programming <span class="quarto-category-count">(1)</span></div><div class="category" data-category="ZW1iZWRkaW5ncw==">embeddings <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Z2Fl">gae <span class="quarto-category-count">(1)</span></div><div class="category" data-category="Z3Jwbw==">grpo <span class="quarto-category-count">(1)</span></div><div class="category" data-category="a2wlMjBwZW5hbHR5">kl penalty <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bG9nLWRlcml2YXRpdmUlMjB0cmljaw==">log-derivative trick <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bWN0cw==">mcts <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bWRw">mdp <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bW9udGUlMjBjYXJsbw==">monte carlo <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bXVsdGktYWdlbnQ=">multi-agent <span class="quarto-category-count">(1)</span></div><div class="category" data-category="bXVsdGktaG9wJTIwcmVhc29uaW5n">multi-hop reasoning <span class="quarto-category-count">(1)</span></div><div class="category" data-category="b3JjaGVzdHJhdGlvbg==">orchestration <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cGxhbm5pbmc=">planning <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cG9saWN5JTIwZ3JhZGllbnQ=">policy gradient <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cG9tZHA=">pomdp <span class="quarto-category-count">(2)</span></div><div class="category" data-category="cHBv">ppo <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cS1sZWFybmluZw==">q-learning <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmFn">rag <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmVhY3Q=">react <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmVmZXJlbmNlJTIwaW1wbGVtZW50YXRpb24=">reference implementation <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmVmbGV4aW9u">reflexion <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmVpbmZvcmNl">reinforce <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmVsaWFiaWxpdHklMjBkaWFncmFt">reliability diagram <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmV0cmlldmFs">retrieval <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmV3YXJkJTIwbW9kZWw=">reward model <span class="quarto-category-count">(1)</span></div><div class="category" data-category="UkxIRg==">RLHF <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cmxoZg==">rlhf <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c2FtcGxpbmc=">sampling <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c2VhcmNo">search <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c2VsZi1jb25zaXN0ZW5jeQ==">self-consistency <span class="quarto-category-count">(1)</span></div><div class="category" data-category="c2VsZi1yZWZsZWN0aW9u">self-reflection <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dGQtbGVhcm5pbmc=">td-learning <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dGVtcGVyYXR1cmUlMjBzY2FsaW5n">temperature scaling <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dGVzdC10aW1lJTIwY29tcHV0ZQ==">test-time compute <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dG9vbCUyMHVzZQ==">tool use <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dHJlZSUyMG9mJTIwdGhvdWdodHM=">tree of thoughts <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dHJwbw==">trpo <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dHJ1c3QlMjByZWdpb24=">trust region <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dWN0">uct <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dW5jZXJ0YWludHk=">uncertainty <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dmFsdWUlMjBpdGVyYXRpb24=">value iteration <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dmFyaWFuY2UlMjByZWR1Y3Rpb24=">variance reduction <span class="quarto-category-count">(2)</span></div><div class="category" data-category="dmVyaWZpY2F0aW9u">verification <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dm90aW5n">voting <span class="quarto-category-count">(1)</span></div></div></div>
 <!-- main -->
 <main class="content column-page-left" id="quarto-document-content">
 
@@ -384,7 +394,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">nano-agents</h1>
-<p class="subtitle lead">Agentic AI from scratch, with a Bayesian lens</p>
+<p class="subtitle lead">Agentic AI from scratch, with a Bayesian lens. Every algorithm derived from first principles and implemented in &lt;500 lines.</p>
 </div>
 
 
@@ -401,75 +411,509 @@ window.Quarto = {
 </header>
 
 
-<div class="lead">
-<p>This is a self-study series and reference codebase building up the foundations of agentic AI — bandits, MDPs, RLHF, tool use, planning, retrieval, calibration — from the ground up.</p>
-</div>
-<p>Every algorithm is derived from first principles, implemented in under 500 lines of NumPy or PyTorch, and motivated through a <strong>probabilistic lens</strong>. Decision-making, exploration, retrieval, and reflection all turn out to be approximate inference problems in disguise; the series makes that explicit.</p>
-<p>If you’ve trained a neural network and read a few RL or Bayesian inference papers, you’re the target reader.</p>
-<p><a href="./posts.html" class="btn btn-primary">Browse all posts →</a> <a href="https://github.com/tranbahien/nano-agents" class="btn btn-outline-secondary">Code on GitHub →</a></p>
-<section id="latest-posts" class="level2">
-<h2 class="anchored" data-anchor-id="latest-posts">Latest posts</h2>
-<div id="listing-latest-posts" class="quarto-listing quarto-listing-container-default">
+<p><img src="assets/00-main.png" class="img-fluid"></p>
+<p>This is a personal learning series and reference codebase, written in my free time, building up the foundations of agentic AI — bandits, MDPs, RLHF, tool use, planning, retrieval, calibration — from the ground up. The unifying angle is <strong>probabilistic</strong>: I treat decision-making, exploration, retrieval, and reflection as approximate inference problems and look for the cleanest math underneath each one.</p>
+<p><em>Disclaimer: These are my personal study notes. All views, opinions, code, and errors are strictly my own.</em></p>
+<p>All materials — posts, notebooks, and experiments — are fully reproducible. Every figure in the series is generated by a standalone script in the companion repository.</p>
+<p><a href="https://github.com/tranbahien/nano-agents" class="btn btn-outline-secondary">Code on GitHub →</a></p>
+<section id="topics" class="level2">
+<h2 class="anchored" data-anchor-id="topics">Topics</h2>
+<section id="topic-1-decision-making-under-uncertainty" class="level3">
+<h3 class="anchored" data-anchor-id="topic-1-decision-making-under-uncertainty">Topic 1 — Decision-making under uncertainty</h3>
+<ul>
+<li><a href="posts/01a-multi-armed-bandits.html">1a — Multi-armed bandits</a></li>
+<li><a href="posts/01b-contextual-bandits.html">1b — Contextual bandits</a></li>
+<li><a href="posts/01c-mdps-and-bellman.html">1c — MDPs and Bellman equations</a></li>
+<li><a href="posts/01d-pomdps-and-q-learning.html">1d — POMDPs and Q-learning</a></li>
+</ul>
+</section>
+<section id="topic-2-policy-gradients" class="level3">
+<h3 class="anchored" data-anchor-id="topic-2-policy-gradients">Topic 2 — Policy gradients</h3>
+<ul>
+<li><a href="posts/02a-reinforce-and-policy-gradient.html">2a — REINFORCE and the policy gradient theorem</a></li>
+<li><a href="posts/02b-actor-critic.html">2b — Actor-critic and variance reduction</a></li>
+<li><a href="posts/02c-trpo-and-ppo.html">2c — TRPO and PPO (trust regions)</a></li>
+<li><a href="posts/02d-rlhf-dpo-grpo.html">2d — RLHF, DPO, and GRPO</a></li>
+</ul>
+</section>
+<section id="topic-3-sampling-tool-use-planning" class="level3">
+<h3 class="anchored" data-anchor-id="topic-3-sampling-tool-use-planning">Topic 3 — Sampling, tool use, planning</h3>
+<ul>
+<li><a href="posts/03a-decoding-as-inference.html">3a — Decoding as approximate inference</a></li>
+<li><a href="posts/03b-tool-use.html">3b — Tool use as actions (ReAct)</a></li>
+<li><a href="posts/03c-tree-of-thoughts.html">3c — Tree of Thoughts and MCTS for LLMs</a></li>
+</ul>
+</section>
+<section id="topic-4-memory-reflection-calibration" class="level3">
+<h3 class="anchored" data-anchor-id="topic-4-memory-reflection-calibration">Topic 4 — Memory, reflection, calibration</h3>
+<ul>
+<li><a href="posts/04a-rag-as-bayesian-conditioning.html">4a — Retrieval as Bayesian conditioning</a></li>
+<li><a href="posts/04b-self-reflection.html">4b — Self-reflection as Monte Carlo</a></li>
+<li><a href="posts/04c-calibration.html">4c — Calibration and uncertainty</a></li>
+</ul>
+</section>
+<section id="topic-5-putting-it-together" class="level3">
+<h3 class="anchored" data-anchor-id="topic-5-putting-it-together">Topic 5 — Putting it together</h3>
+<ul>
+<li><a href="posts/05a-multi-agent-systems.html">5a — Multi-agent systems</a></li>
+<li><a href="posts/05b-nanoagent.html">5b — nanoAgent: a clean reference implementation</a></li>
+</ul>
+</section>
+</section>
+<section id="who-this-is-for" class="level2">
+<h2 class="anchored" data-anchor-id="who-this-is-for">Who this is for</h2>
+<p>This series is written for people who already have machine learning fundamentals and want to understand agentic AI deeply rather than ship a framework integration. If you’ve trained a neural network and read a few RL or Bayesian inference papers, you’re the target reader.</p>
+<p>Each post derives the math, implements the algorithm from scratch, and points to experiments that build intuition. No frameworks, no LangChain — just NumPy, PyTorch, and a clear head.</p>
+</section>
+<section id="posts" class="level2">
+<h2 class="anchored" data-anchor-id="posts">Posts</h2>
+<div id="listing-all-posts" class="quarto-listing quarto-listing-container-default">
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="YWdlbnRzJTJDb3JjaGVzdHJhdGlvbiUyQ2JheWVzaWFuJTIwY29udHJvbCUyQ3JlZmVyZW5jZSUyMGltcGxlbWVudGF0aW9uJTJDY2Fwc3RvbmU=" data-listing-date-sort="1782259200000" data-listing-file-modified-sort="1779636533292" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="21" data-listing-word-count-sort="4159">
+<div class="quarto-post image-right" data-index="0" data-categories="YmFuZGl0cyUyQ2JheWVzaWFuJTJDZGVjaXNpb24tbWFraW5n" data-listing-date-sort="1779148800000" data-listing-file-modified-sort="1779643816639" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="33" data-listing-word-count-sort="6576">
+<div class="thumbnail"><a href="./posts/01a-multi-armed-bandits.html" class="no-external">
+
+<img loading="lazy" src="./assets/01a-multi-armed-bandits.png" class="thumbnail-image">
+
+</a></div>
 <div class="body">
 <h3 class="no-anchor listing-title">
-<a href="./posts/05b-nanoagent.html" class="no-external">nanoAgent: Wiring the Whole Curriculum into One Agent</a>
+<a href="./posts/01a-multi-armed-bandits.html" class="no-external">Multi-Armed Bandits: The Atom of Decision-Making</a>
 </h3>
-<div class="delink listing-description"><a href="./posts/05b-nanoagent.html" class="no-external">
-<p>Topic 5, post 2 of 2 — the finale. We build nanoAgent: a small, readable, from-scratch agent that plans, calls tools, retrieves, reflects, votes, and knows when it is unsure. Its control loop is a Bayes-consistent controller — it holds one calibrated belief and, at each step, takes the action whose expected gain beats its cost. Routing, adaptive compute, and graceful stopping all emerge from that single rule, and the controller literally reuses the analytic models we derived in earlier posts as its value estimates.</p>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmFuZGl0cw=='); return false;">bandits</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmF5ZXNpYW4='); return false;">bayesian</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGVjaXNpb24tbWFraW5n'); return false;">decision-making</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/01a-multi-armed-bandits.html" class="no-external">
+<p>Decision-making under uncertainty, from scratch — 1 of 4. ε-greedy, UCB1, and Thompson Sampling derived from first principles, with intuition, worked examples, and all three implemented in ~80 lines of NumPy.</p>
 </a></div>
 </div>
 <div class="metadata">
-<a href="./posts/05b-nanoagent.html" class="no-external">
+<a href="./posts/01a-multi-armed-bandits.html" class="no-external">
 <div class="listing-date">
-Jun 24, 2026
+May 19, 2026
 </div>
-<div class="listing-reading-time">21 min</div>
+<div class="listing-reading-time">33 min</div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="1" data-categories="bXVsdGktYWdlbnQlMkNkZWJhdGUlMkN2b3RpbmclMkNjb25kb3JjZXQlMkNjb29yZGluYXRpb24=" data-listing-date-sort="1781654400000" data-listing-file-modified-sort="1779636533291" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="26" data-listing-word-count-sort="5044">
+<div class="quarto-post image-right" data-index="1" data-categories="YmFuZGl0cyUyQ2JheWVzaWFuJTJDY29udGV4dHVhbCUyQ2JsciUyQ1JMSEY=" data-listing-date-sort="1779235200000" data-listing-file-modified-sort="1779643816640" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="32" data-listing-word-count-sort="6267">
+<div class="thumbnail"><a href="./posts/01b-contextual-bandits.html" class="no-external">
+
+<img loading="lazy" src="./assets/01b-contextual-bandits.png" class="thumbnail-image">
+
+</a></div>
 <div class="body">
 <h3 class="no-anchor listing-title">
-<a href="./posts/05a-multi-agent-systems.html" class="no-external">Multi-Agent Systems: When Do More Agents Help?</a>
+<a href="./posts/01b-contextual-bandits.html" class="no-external">Contextual Bandits: When the Best Action Depends on Who You’re Talking To</a>
 </h3>
-<div class="delink listing-description"><a href="./posts/05a-multi-agent-systems.html" class="no-external">
-<p>Topic 5, post 1 of 2. Several agents can vote, debate, specialize, or be orchestrated — but more agents means more cost and more ways for errors to compound. We frame multi-agent systems as the problem of combining noisy estimators, prove with the Condorcet jury theorem when voting works, show how correlated errors (shared base models, shared blind spots) cap the gains, and find the honest limits: diversity is the resource, debate can herd, and pipelines compound errors multiplicatively.</p>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmFuZGl0cw=='); return false;">bandits</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmF5ZXNpYW4='); return false;">bayesian</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y29udGV4dHVhbA=='); return false;">contextual</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Ymxy'); return false;">blr</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('UkxIRg=='); return false;">RLHF</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/01b-contextual-bandits.html" class="no-external">
+<p>Decision-making under uncertainty, from scratch — 2 of 4. We derive Bayesian linear regression from scratch (with Sherman-Morrison online updates and the variational view), then build LinUCB and Linear Thompson Sampling on top of it. The bridge to RLHF reward models and neural bandits.</p>
 </a></div>
 </div>
 <div class="metadata">
-<a href="./posts/05a-multi-agent-systems.html" class="no-external">
+<a href="./posts/01b-contextual-bandits.html" class="no-external">
 <div class="listing-date">
-Jun 17, 2026
+May 20, 2026
+</div>
+<div class="listing-reading-time">32 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="2" data-categories="bWRwJTJDZHluYW1pYyUyMHByb2dyYW1taW5nJTJDYmVsbG1hbiUyQ3ZhbHVlJTIwaXRlcmF0aW9u" data-listing-date-sort="1779235200000" data-listing-file-modified-sort="1779643816640" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="26" data-listing-word-count-sort="5197">
+<div class="thumbnail"><a href="./posts/01c-mdps-and-bellman.html" class="no-external">
+
+<img loading="lazy" src="./assets/01c-mdps-and-bellman.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/01c-mdps-and-bellman.html" class="no-external">MDPs and the Bellman Equations: When Actions Have Consequences</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('bWRw'); return false;">mdp</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZHluYW1pYyUyMHByb2dyYW1taW5n'); return false;">dynamic programming</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmVsbG1hbg=='); return false;">bellman</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dmFsdWUlMjBpdGVyYXRpb24='); return false;">value iteration</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/01c-mdps-and-bellman.html" class="no-external">
+<p>Decision-making under uncertainty, from scratch — 3 of 4. We derive the Bellman equations from first principles, prove value iteration converges via the contraction mapping theorem, and solve a gridworld with both VI and PI. The bridge from bandits to full sequential decision-making.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/01c-mdps-and-bellman.html" class="no-external">
+<div class="listing-date">
+May 20, 2026
 </div>
 <div class="listing-reading-time">26 min</div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="2" data-categories="Y2FsaWJyYXRpb24lMkN1bmNlcnRhaW50eSUyQ3RlbXBlcmF0dXJlJTIwc2NhbGluZyUyQ3JlbGlhYmlsaXR5JTIwZGlhZ3JhbSUyQ2FnZW50cw==" data-listing-date-sort="1781049600000" data-listing-file-modified-sort="1779636533291" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="26" data-listing-word-count-sort="5002">
+<div class="quarto-post image-right" data-index="3" data-categories="cG9tZHAlMkNxLWxlYXJuaW5nJTJDdGQtbGVhcm5pbmclMkNiZWxpZWYlMjBzdGF0ZXM=" data-listing-date-sort="1779321600000" data-listing-file-modified-sort="1779643816640" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="29" data-listing-word-count-sort="5637">
+<div class="thumbnail"><a href="./posts/01d-pomdps-and-q-learning.html" class="no-external">
+
+<img loading="lazy" src="./assets/01d-pomdps-and-q-learning.png" class="thumbnail-image">
+
+</a></div>
 <div class="body">
 <h3 class="no-anchor listing-title">
-<a href="./posts/04c-calibration.html" class="no-external">Calibration: Does the Model Know What It Doesn’t Know?</a>
+<a href="./posts/01d-pomdps-and-q-learning.html" class="no-external">POMDPs and Q-learning: Acting When You Can’t See and Can’t Plan</a>
 </h3>
-<div class="delink listing-description"><a href="./posts/04c-calibration.html" class="no-external">
-<p>Topic 4, post 3 of 3. Every agentic decision in this series — when to retrieve, when to reflect, when to act — has hinged on the model knowing when it is likely wrong. That property is calibration: does ‘the model is 90% confident’ mean it is right 90% of the time? We measure it with the reliability diagram and ECE, explain why neural networks are systematically overconfident, fix it with temperature scaling (the same temperature knob from decoding), and close the loop on confidence-gated agency. The honest twist: calibration is not the same as knowing which answers are right.</p>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('cG9tZHA='); return false;">pomdp</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cS1sZWFybmluZw=='); return false;">q-learning</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dGQtbGVhcm5pbmc='); return false;">td-learning</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmVsaWVmJTIwc3RhdGVz'); return false;">belief states</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/01d-pomdps-and-q-learning.html" class="no-external">
+<p>Decision-making under uncertainty, from scratch — 4 of 4. We add hidden state (POMDPs) and remove the model (Q-learning). Belief states, the Tiger problem, Bayesian belief updates, temporal-difference learning, and Watkins’ convergence theorem. The bridge to LLM agents.</p>
 </a></div>
 </div>
 <div class="metadata">
-<a href="./posts/04c-calibration.html" class="no-external">
+<a href="./posts/01d-pomdps-and-q-learning.html" class="no-external">
 <div class="listing-date">
-Jun 10, 2026
+May 21, 2026
+</div>
+<div class="listing-reading-time">29 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="4" data-categories="cG9saWN5JTIwZ3JhZGllbnQlMkNyZWluZm9yY2UlMkNsb2ctZGVyaXZhdGl2ZSUyMHRyaWNrJTJDdmFyaWFuY2UlMjByZWR1Y3Rpb24=" data-listing-date-sort="1779408000000" data-listing-file-modified-sort="1779643816640" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="24" data-listing-word-count-sort="4722">
+<div class="thumbnail"><a href="./posts/02a-reinforce-and-policy-gradient.html" class="no-external">
+
+<img loading="lazy" src="./assets/02a-reinforce-and-policy-gradient.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/02a-reinforce-and-policy-gradient.html" class="no-external">REINFORCE and the Policy Gradient Theorem</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('cG9saWN5JTIwZ3JhZGllbnQ='); return false;">policy gradient</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmVpbmZvcmNl'); return false;">reinforce</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('bG9nLWRlcml2YXRpdmUlMjB0cmljaw=='); return false;">log-derivative trick</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dmFyaWFuY2UlMjByZWR1Y3Rpb24='); return false;">variance reduction</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/02a-reinforce-and-policy-gradient.html" class="no-external">
+<p>Policy gradient methods, from scratch — 1 of 4. We derive the policy gradient theorem from first principles via the log-derivative trick, implement REINFORCE in clean NumPy, explore baselines and variance reduction, and demonstrate continuous-action policy gradient on a 1D bandit. The structural bridge from supervised learning to RLHF.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/02a-reinforce-and-policy-gradient.html" class="no-external">
+<div class="listing-date">
+May 22, 2026
+</div>
+<div class="listing-reading-time">24 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="5" data-categories="YWN0b3ItY3JpdGljJTJDZ2FlJTJDdmFyaWFuY2UlMjByZWR1Y3Rpb24lMkNhMmM=" data-listing-date-sort="1779494400000" data-listing-file-modified-sort="1779643816640" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="24" data-listing-word-count-sort="4782">
+<div class="thumbnail"><a href="./posts/02b-actor-critic.html" class="no-external">
+
+<img loading="lazy" src="./assets/02b-actor-critic.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/02b-actor-critic.html" class="no-external">Actor-Critic and Variance Reduction</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('YWN0b3ItY3JpdGlj'); return false;">actor-critic</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Z2Fl'); return false;">gae</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dmFyaWFuY2UlMjByZWR1Y3Rpb24='); return false;">variance reduction</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YTJj'); return false;">a2c</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/02b-actor-critic.html" class="no-external">
+<p>Policy gradient methods, from scratch — 2 of 4. We make the baseline learnable. Two networks — an actor and a critic — learn together, with the critic providing a low-variance baseline for the policy gradient. We derive GAE (Generalized Advantage Estimation), implement A2C in NumPy, and trace the bias-variance trade-off that governs every modern policy-gradient method.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/02b-actor-critic.html" class="no-external">
+<div class="listing-date">
+May 23, 2026
+</div>
+<div class="listing-reading-time">24 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="6" data-categories="cHBvJTJDdHJwbyUyQ3RydXN0JTIwcmVnaW9uJTJDY2xpcHBlZCUyMHN1cnJvZ2F0ZQ==" data-listing-date-sort="1779580800000" data-listing-file-modified-sort="1779643816641" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="26" data-listing-word-count-sort="5079">
+<div class="thumbnail"><a href="./posts/02c-trpo-and-ppo.html" class="no-external">
+
+<img loading="lazy" src="./assets/02c-trpo-and-ppo.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/02c-trpo-and-ppo.html" class="no-external">TRPO and PPO: Trust Regions for Stable Policy Gradient</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('cHBv'); return false;">ppo</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dHJwbw=='); return false;">trpo</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dHJ1c3QlMjByZWdpb24='); return false;">trust region</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y2xpcHBlZCUyMHN1cnJvZ2F0ZQ=='); return false;">clipped surrogate</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/02c-trpo-and-ppo.html" class="no-external">
+<p>Policy gradient methods, from scratch — 3 of 4. We add a trust-region constraint to fix the lr-sensitivity problem that wrecked vanilla policy gradient. From importance sampling to TRPO’s KL constraint to PPO’s clipped surrogate. The algorithm that made RL stable enough for LLM training.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/02c-trpo-and-ppo.html" class="no-external">
+<div class="listing-date">
+May 24, 2026
 </div>
 <div class="listing-reading-time">26 min</div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="3" data-categories="c2VsZi1yZWZsZWN0aW9uJTJDcmVmbGV4aW9uJTJDbW9udGUlMjBjYXJsbyUyQ3ZlcmlmaWNhdGlvbiUyQ2NhbGlicmF0aW9u" data-listing-date-sort="1780444800000" data-listing-file-modified-sort="1779636533291" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="24" data-listing-word-count-sort="4792">
+<div class="quarto-post image-right" data-index="7" data-categories="cmxoZiUyQ2RwbyUyQ2dycG8lMkNicmFkbGV5LXRlcnJ5JTJDcmV3YXJkJTIwbW9kZWwlMkNrbCUyMHBlbmFsdHk=" data-listing-date-sort="1779667200000" data-listing-file-modified-sort="1779643816641" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="24" data-listing-word-count-sort="4694">
+<div class="thumbnail"><a href="./posts/02d-rlhf-dpo-grpo.html" class="no-external">
+
+<img loading="lazy" src="./assets/02d-rlhf-dpo-grpo.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/02d-rlhf-dpo-grpo.html" class="no-external">RLHF, DPO, and GRPO: From Classical RL to LLM Post-Training</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmxoZg=='); return false;">rlhf</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZHBv'); return false;">dpo</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Z3Jwbw=='); return false;">grpo</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YnJhZGxleS10ZXJyeQ=='); return false;">bradley-terry</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmV3YXJkJTIwbW9kZWw='); return false;">reward model</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('a2wlMjBwZW5hbHR5'); return false;">kl penalty</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/02d-rlhf-dpo-grpo.html" class="no-external">
+<p>Policy gradient methods, from scratch — 4 of 4. We connect everything to LLM post-training. RLHF as PPO with a reward model trained on preferences. DPO as the algebraic bypass that skips both. GRPO as PPO without a critic. The full bridge from log-derivative trick (Post 2a) to ChatGPT/Claude/DeepSeek-R1.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/02d-rlhf-dpo-grpo.html" class="no-external">
+<div class="listing-date">
+May 25, 2026
+</div>
+<div class="listing-reading-time">24 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="8" data-categories="ZGVjb2RpbmclMkNzYW1wbGluZyUyQ2JlYW0lMjBzZWFyY2glMkNzZWxmLWNvbnNpc3RlbmN5JTJDdGVzdC10aW1lJTIwY29tcHV0ZQ==" data-listing-date-sort="1779753600000" data-listing-file-modified-sort="1779643816641" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="25" data-listing-word-count-sort="4960">
+<div class="thumbnail"><a href="./posts/03a-decoding-as-inference.html" class="no-external">
+
+<img loading="lazy" src="./assets/03a-decoding-as-inference.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/03a-decoding-as-inference.html" class="no-external">Decoding as Inference: Sampling, Search, and Test-Time Compute</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGVjb2Rpbmc='); return false;">decoding</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('c2FtcGxpbmc='); return false;">sampling</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmVhbSUyMHNlYXJjaA=='); return false;">beam search</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('c2VsZi1jb25zaXN0ZW5jeQ=='); return false;">self-consistency</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dGVzdC10aW1lJTIwY29tcHV0ZQ=='); return false;">test-time compute</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/03a-decoding-as-inference.html" class="no-external">
+<p>Topic 3, post 1 of 3. Once you have a trained language model, what should you do with it? We treat decoding — temperature, top-k, top-p, beam search, self-consistency, best-of-N — as approximate Bayesian inference, and see why test-time compute scales.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/03a-decoding-as-inference.html" class="no-external">
+<div class="listing-date">
+May 26, 2026
+</div>
+<div class="listing-reading-time">25 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="9" data-categories="dG9vbCUyMHVzZSUyQ3JlYWN0JTJDYWdlbnRzJTJDcG9tZHAlMkNtdWx0aS1ob3AlMjByZWFzb25pbmc=" data-listing-date-sort="1779840000000" data-listing-file-modified-sort="1779643816641" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="24" data-listing-word-count-sort="4758">
+<div class="thumbnail"><a href="./posts/03b-tool-use.html" class="no-external">
+
+<img loading="lazy" src="./assets/03b-tool-use.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/03b-tool-use.html" class="no-external">Tool Use as Actions: ReAct and the Agent Loop</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('dG9vbCUyMHVzZQ=='); return false;">tool use</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmVhY3Q='); return false;">react</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YWdlbnRz'); return false;">agents</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cG9tZHA='); return false;">pomdp</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('bXVsdGktaG9wJTIwcmVhc29uaW5n'); return false;">multi-hop reasoning</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/03b-tool-use.html" class="no-external">
+<p>Topic 3, post 2 of 3. When an LM can call tools, it becomes an agent acting in an extended MDP. We build the ReAct loop from scratch, frame tool use as a POMDP, derive when to call a tool, and watch errors compound over multi-hop chains.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/03b-tool-use.html" class="no-external">
+<div class="listing-date">
+May 27, 2026
+</div>
+<div class="listing-reading-time">24 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="10" data-categories="dHJlZSUyMG9mJTIwdGhvdWdodHMlMkNtY3RzJTJDdWN0JTJDc2VhcmNoJTJDcGxhbm5pbmclMkNhbHBoYXplcm8=" data-listing-date-sort="1779926400000" data-listing-file-modified-sort="1779643816641" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="29" data-listing-word-count-sort="5616">
+<div class="thumbnail"><a href="./posts/03c-tree-of-thoughts.html" class="no-external">
+
+<img loading="lazy" src="./assets/03c-tree-of-thoughts.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/03c-tree-of-thoughts.html" class="no-external">Tree of Thoughts and MCTS: Search Over Reasoning</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('dHJlZSUyMG9mJTIwdGhvdWdodHM='); return false;">tree of thoughts</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('bWN0cw=='); return false;">mcts</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dWN0'); return false;">uct</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('c2VhcmNo'); return false;">search</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cGxhbm5pbmc='); return false;">planning</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YWxwaGF6ZXJv'); return false;">alphazero</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/03c-tree-of-thoughts.html" class="no-external">
+<p>Topic 3, post 3 of 3. A ReAct path is a single trajectory; one bad step derails it. We turn reasoning into search over a tree — Tree of Thoughts (BFS/DFS) and MCTS with UCT — and use backtracking and exploration to recover from the errors that compound for a single path. Built from first principles, in the AlphaZero mould.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/03c-tree-of-thoughts.html" class="no-external">
+<div class="listing-date">
+May 28, 2026
+</div>
+<div class="listing-reading-time">29 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="11" data-categories="cmV0cmlldmFsJTJDcmFnJTJDYmF5ZXNpYW4lMjBpbmZlcmVuY2UlMkNjYWxpYnJhdGlvbiUyQ2VtYmVkZGluZ3M=" data-listing-date-sort="1780099200000" data-listing-file-modified-sort="1779643816642" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="25" data-listing-word-count-sort="4831">
+<div class="thumbnail"><a href="./posts/04a-rag-as-bayesian-conditioning.html" class="no-external">
+
+<img loading="lazy" src="./assets/04a-rag-as-bayesian-conditioning.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/04a-rag-as-bayesian-conditioning.html" class="no-external">Retrieval as Bayesian Conditioning: When and How to Augment</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmV0cmlldmFs'); return false;">retrieval</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmFn'); return false;">rag</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmF5ZXNpYW4lMjBpbmZlcmVuY2U='); return false;">bayesian inference</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y2FsaWJyYXRpb24='); return false;">calibration</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZW1iZWRkaW5ncw=='); return false;">embeddings</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/04a-rag-as-bayesian-conditioning.html" class="no-external">
+<p>Topic 4, post 1 of 3. What retrieval-augmented generation actually is — the embed, search, and read pipeline — and why it is Bayesian inference: parametric memory is a prior, retrieved documents are evidence, the answer is a posterior. We derive when retrieval helps, when it hurts, the optimal retrieval budget, and the confidence-gated policy that ties it all to calibration.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/04a-rag-as-bayesian-conditioning.html" class="no-external">
+<div class="listing-date">
+May 30, 2026
+</div>
+<div class="listing-reading-time">25 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="12" data-categories="c2VsZi1yZWZsZWN0aW9uJTJDcmVmbGV4aW9uJTJDbW9udGUlMjBjYXJsbyUyQ3ZlcmlmaWNhdGlvbiUyQ2NhbGlicmF0aW9u" data-listing-date-sort="1780444800000" data-listing-file-modified-sort="1779643816642" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="24" data-listing-word-count-sort="4792">
+<div class="thumbnail"><a href="./posts/04b-self-reflection.html" class="no-external">
+
+<img loading="lazy" src="./assets/04b-self-reflection.png" class="thumbnail-image">
+
+</a></div>
 <div class="body">
 <h3 class="no-anchor listing-title">
 <a href="./posts/04b-self-reflection.html" class="no-external">Self-Reflection as Monte Carlo: When Thinking Twice Helps</a>
 </h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('c2VsZi1yZWZsZWN0aW9u'); return false;">self-reflection</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmVmbGV4aW9u'); return false;">reflexion</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('bW9udGUlMjBjYXJsbw=='); return false;">monte carlo</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dmVyaWZpY2F0aW9u'); return false;">verification</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y2FsaWJyYXRpb24='); return false;">calibration</div>
+
+</div>
 <div class="delink listing-description"><a href="./posts/04b-self-reflection.html" class="no-external">
 <p>Topic 4, post 2 of 3. If retrieval brings in external evidence, self-reflection generates internal evidence — the model critiques and revises its own output. We frame reflection as sequential, adaptive sampling, derive in closed form exactly when it helps versus when it amplifies the model’s own bias, and connect it to best-of-N and self-consistency from Post 3a. The honest result: reflection only works across the generation–verification gap.</p>
 </a></div>
@@ -483,21 +927,111 @@ Jun 3, 2026
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="4" data-categories="cmV0cmlldmFsJTJDcmFnJTJDYmF5ZXNpYW4lMjBpbmZlcmVuY2UlMkNjYWxpYnJhdGlvbiUyQ2VtYmVkZGluZ3M=" data-listing-date-sort="1780099200000" data-listing-file-modified-sort="1779636533291" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="25" data-listing-word-count-sort="4831">
+<div class="quarto-post image-right" data-index="13" data-categories="Y2FsaWJyYXRpb24lMkN1bmNlcnRhaW50eSUyQ3RlbXBlcmF0dXJlJTIwc2NhbGluZyUyQ3JlbGlhYmlsaXR5JTIwZGlhZ3JhbSUyQ2FnZW50cw==" data-listing-date-sort="1781049600000" data-listing-file-modified-sort="1779643816642" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="26" data-listing-word-count-sort="5002">
+<div class="thumbnail"><a href="./posts/04c-calibration.html" class="no-external">
+
+<img loading="lazy" src="./assets/04c-calibration.png" class="thumbnail-image">
+
+</a></div>
 <div class="body">
 <h3 class="no-anchor listing-title">
-<a href="./posts/04a-rag-as-bayesian-conditioning.html" class="no-external">Retrieval as Bayesian Conditioning: When and How to Augment</a>
+<a href="./posts/04c-calibration.html" class="no-external">Calibration: Does the Model Know What It Doesn’t Know?</a>
 </h3>
-<div class="delink listing-description"><a href="./posts/04a-rag-as-bayesian-conditioning.html" class="no-external">
-<p>Topic 4, post 1 of 3. What retrieval-augmented generation actually is — the embed, search, and read pipeline — and why it is Bayesian inference: parametric memory is a prior, retrieved documents are evidence, the answer is a posterior. We derive when retrieval helps, when it hurts, the optimal retrieval budget, and the confidence-gated policy that ties it all to calibration.</p>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y2FsaWJyYXRpb24='); return false;">calibration</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dW5jZXJ0YWludHk='); return false;">uncertainty</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dGVtcGVyYXR1cmUlMjBzY2FsaW5n'); return false;">temperature scaling</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmVsaWFiaWxpdHklMjBkaWFncmFt'); return false;">reliability diagram</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YWdlbnRz'); return false;">agents</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/04c-calibration.html" class="no-external">
+<p>Topic 4, post 3 of 3. Every agentic decision in this series — when to retrieve, when to reflect, when to act — has hinged on the model knowing when it is likely wrong. That property is calibration: does ‘the model is 90% confident’ mean it is right 90% of the time? We measure it with the reliability diagram and ECE, explain why neural networks are systematically overconfident, fix it with temperature scaling (the same temperature knob from decoding), and close the loop on confidence-gated agency. The honest twist: calibration is not the same as knowing which answers are right.</p>
 </a></div>
 </div>
 <div class="metadata">
-<a href="./posts/04a-rag-as-bayesian-conditioning.html" class="no-external">
+<a href="./posts/04c-calibration.html" class="no-external">
 <div class="listing-date">
-May 30, 2026
+Jun 10, 2026
 </div>
-<div class="listing-reading-time">25 min</div>
+<div class="listing-reading-time">26 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="14" data-categories="bXVsdGktYWdlbnQlMkNkZWJhdGUlMkN2b3RpbmclMkNjb25kb3JjZXQlMkNjb29yZGluYXRpb24=" data-listing-date-sort="1781654400000" data-listing-file-modified-sort="1779643816642" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="26" data-listing-word-count-sort="5044">
+<div class="thumbnail"><a href="./posts/05a-multi-agent-systems.html" class="no-external">
+
+<img loading="lazy" src="./assets/05a-multi-agent-systems.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/05a-multi-agent-systems.html" class="no-external">Multi-Agent Systems: When Do More Agents Help?</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('bXVsdGktYWdlbnQ='); return false;">multi-agent</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGViYXRl'); return false;">debate</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('dm90aW5n'); return false;">voting</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y29uZG9yY2V0'); return false;">condorcet</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y29vcmRpbmF0aW9u'); return false;">coordination</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/05a-multi-agent-systems.html" class="no-external">
+<p>Topic 5, post 1 of 2. Several agents can vote, debate, specialize, or be orchestrated — but more agents means more cost and more ways for errors to compound. We frame multi-agent systems as the problem of combining noisy estimators, prove with the Condorcet jury theorem when voting works, show how correlated errors (shared base models, shared blind spots) cap the gains, and find the honest limits: diversity is the resource, debate can herd, and pipelines compound errors multiplicatively.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/05a-multi-agent-systems.html" class="no-external">
+<div class="listing-date">
+Jun 17, 2026
+</div>
+<div class="listing-reading-time">26 min</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="15" data-categories="YWdlbnRzJTJDb3JjaGVzdHJhdGlvbiUyQ2JheWVzaWFuJTIwY29udHJvbCUyQ3JlZmVyZW5jZSUyMGltcGxlbWVudGF0aW9uJTJDY2Fwc3RvbmU=" data-listing-date-sort="1782259200000" data-listing-file-modified-sort="1779643816642" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="21" data-listing-word-count-sort="4159">
+<div class="thumbnail"><a href="./posts/05b-nanoagent.html" class="no-external">
+
+<img loading="lazy" src="./assets/05b-nanoagent.png" class="thumbnail-image">
+
+</a></div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/05b-nanoagent.html" class="no-external">nanoAgent: Wiring the Whole Curriculum into One Agent</a>
+</h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('YWdlbnRz'); return false;">agents</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('b3JjaGVzdHJhdGlvbg=='); return false;">orchestration</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('YmF5ZXNpYW4lMjBjb250cm9s'); return false;">bayesian control</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('cmVmZXJlbmNlJTIwaW1wbGVtZW50YXRpb24='); return false;">reference implementation</div>
+
+<div class="listing-category" onclick="window.quartoListingCategory('Y2Fwc3RvbmU='); return false;">capstone</div>
+
+</div>
+<div class="delink listing-description"><a href="./posts/05b-nanoagent.html" class="no-external">
+<p>Topic 5, post 2 of 2 — the finale. We build nanoAgent: a small, readable, from-scratch agent that plans, calls tools, retrieves, reflects, votes, and knows when it is unsure. Its control loop is a Bayes-consistent controller — it holds one calibrated belief and, at each step, takes the action whose expected gain beats its cost. Routing, adaptive compute, and graceful stopping all emerge from that single rule, and the controller literally reuses the analytic models we derived in earlier posts as its value estimates.</p>
+</a></div>
+</div>
+<div class="metadata">
+<a href="./posts/05b-nanoagent.html" class="no-external">
+<div class="listing-date">
+Jun 24, 2026
+</div>
+<div class="listing-reading-time">21 min</div>
 </a>
 </div>
 </div>
