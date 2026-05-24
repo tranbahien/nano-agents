@@ -5485,7 +5485,7 @@ Have Consequences.”</span> May 20. <a href="https://tranbahien.github.io/nano-
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_ucb_bonus_shrinking.png" class="img-fluid figure-img"></p>
-<figcaption>UCB1 over time. The orange exploration bonus shrinks as each arm’s pull count grows; eventually the indices reflect empirical means and the best arm wins.</figcaption>
+<figcaption>UCB1 over time. The orange exploration bonus shrinks as each arm’s pull count grows; eventually the indices reflect empirical means and the best arm wins. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_ucb_bonus_shrinking.py"><code>experiments/01a_ucb_bonus_shrinking.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p>This figure shows what UCB1 is actually doing. At <img src="https://latex.codecogs.com/png.latex?t%20=%2050">, every arm has a large bonus on top of its empirical mean — the algorithm is deeply uncertain and the index is dominated by exploration. The best arms (<img src="https://latex.codecogs.com/png.latex?n_k%20=%2014,%2013">) already have shorter orange bars: pulling them shrinks their bonus, making them look less attractive on the next round, so the algorithm rotates.</p>
@@ -5652,7 +5652,7 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_beta_posterior_evolution.png" class="img-fluid figure-img"></p>
-<figcaption>Beta posteriors over time. By t=5000, the algorithm has identified Arm 3 (μ=0.7) as best. Arms 2 and 3 — the close competitors — are sampled most because they’re hardest to distinguish. Arm 1 is largely ignored once it’s clearly suboptimal, so its posterior stays wide.</figcaption>
+<figcaption>Beta posteriors over time. By t=5000, the algorithm has identified Arm 3 (μ=0.7) as best. Arms 2 and 3 — the close competitors — are sampled most because they’re hardest to distinguish. Arm 1 is largely ignored once it’s clearly suboptimal, so its posterior stays wide. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_beta_posterior_evolution.py"><code>experiments/01a_beta_posterior_evolution.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p>This figure is the heart of why Thompson Sampling works. Look at the posterior for Arm 1 (the worst, <img src="https://latex.codecogs.com/png.latex?%5Cmu%20=%200.3">) on the right panel. After 5000 steps, it has only been pulled 9 times. <strong>Its posterior is still wide.</strong> The algorithm hasn’t bothered tightening its estimate of arm 1’s mean because it doesn’t matter — arm 1 is clearly worse and we don’t need precision about <em>how much</em> worse.</p>
@@ -5669,7 +5669,7 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_probability_matching.png" class="img-fluid figure-img"></p>
-<figcaption>Probability matching. Each pair of bars shows analytical <img src="https://latex.codecogs.com/png.latex?P(%5Cmu_k%20=%20%5Cmax)"> vs the empirical frequency with which Thompson Sampling picks arm <img src="https://latex.codecogs.com/png.latex?k"> from 100,000 independent samples. They match to three decimal places.</figcaption>
+<figcaption>Probability matching. Each pair of bars shows analytical <img src="https://latex.codecogs.com/png.latex?P(%5Cmu_k%20=%20%5Cmax)"> vs the empirical frequency with which Thompson Sampling picks arm <img src="https://latex.codecogs.com/png.latex?k"> from 100,000 independent samples. They match to three decimal places. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_probability_matching.py"><code>experiments/01a_probability_matching.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p>The left panel shows four posteriors with overlapping support: <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BBeta%7D(8,%2012)">, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BBeta%7D(15,%2010)">, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BBeta%7D(5,%204)">, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BBeta%7D(3,%202)">. The right panel shows that the empirical pick frequencies from 100,000 Thompson trials match the analytical posterior optimality probabilities essentially exactly.</p>
@@ -5706,7 +5706,7 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_arm_pull_distribution.png" class="img-fluid figure-img"></p>
-<figcaption>Cumulative fraction of pulls allocated to each arm under each algorithm (averaged over 30 runs). The brightest band on top is the best arm (μ=0.8). ε-greedy keeps ~20% exploration forever. UCB1 explores aggressively then narrows but stays diffuse. Thompson concentrates fastest.</figcaption>
+<figcaption>Cumulative fraction of pulls allocated to each arm under each algorithm (averaged over 30 runs). The brightest band on top is the best arm (μ=0.8). ε-greedy keeps ~20% exploration forever. UCB1 explores aggressively then narrows but stays diffuse. Thompson concentrates fastest. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_arm_pull_distribution.py"><code>experiments/01a_arm_pull_distribution.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p>This figure tells the qualitative truth that the regret curves obscure.</p>
@@ -5719,7 +5719,7 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_regret_curves.png" class="img-fluid figure-img"></p>
-<figcaption>Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.</figcaption>
+<figcaption>Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_regret_curves.py"><code>experiments/01a_regret_curves.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p><strong>A small puzzle.</strong> UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?</p>
@@ -5824,12 +5824,12 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <section id="solutions" class="level2">
 <h2 class="anchored" data-anchor-id="solutions">9. Solutions</h2>
 <p>Try the experiments yourself first — most of the value is in struggling through them. Once you’ve done that, here are reference solutions and discussions. Each is a runnable script in <code>experiments/</code>; the figures are reproducible by running it.</p>
-<section id="gap-sensitivity-experiments01a_sol1_gap_sensitivity.py" class="level3">
-<h3 class="anchored" data-anchor-id="gap-sensitivity-experiments01a_sol1_gap_sensitivity.py">9.1 Gap sensitivity — <code>experiments/01a_sol1_gap_sensitivity.py</code></h3>
+<section id="gap-sensitivity-1" class="level3">
+<h3 class="anchored" data-anchor-id="gap-sensitivity-1">9.1 Gap sensitivity</h3>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_sol1_gap_sensitivity.png" class="img-fluid figure-img"></p>
-<figcaption>Gap sensitivity: the same three algorithms on an easy bandit (left) and a hard one (right). Note the very different y-axis scales — the hard bandit’s regret is ~5× smaller in absolute terms.</figcaption>
+<figcaption>Gap sensitivity: the same three algorithms on an easy bandit (left) and a hard one (right). Note the very different y-axis scales — the hard bandit’s regret is ~5× smaller in absolute terms. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol1_gap_sensitivity.py"><code>experiments/01a_sol1_gap_sensitivity.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p><strong>What you should see.</strong> On the easy problem with arm probabilities <img src="https://latex.codecogs.com/png.latex?%5B0.1,%200.5,%200.9%5D">, the three algorithms separate cleanly: Thompson hugs <img src="https://latex.codecogs.com/png.latex?%5Csim%206"> at <img src="https://latex.codecogs.com/png.latex?T=5000">, UCB1 sits at <img src="https://latex.codecogs.com/png.latex?%5Csim%2050">, and ε-greedy grows linearly to <img src="https://latex.codecogs.com/png.latex?%5Csim%20210">. On the hard problem with <img src="https://latex.codecogs.com/png.latex?%5B0.50,%200.51,%200.52%5D">, all three are clustered near <img src="https://latex.codecogs.com/png.latex?30">–<img src="https://latex.codecogs.com/png.latex?45">, with Thompson narrowly winning.</p>
@@ -5841,12 +5841,12 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <p>Net effect: the <em>relative</em> regret (regret / oracle reward) gets worse with small gaps, but the <em>absolute</em> regret can stay small because each mistake is tiny. ε-greedy looks deceptively close to UCB1 on the hard problem only because there isn’t enough horizon to expose the linear-vs-logarithmic difference. At <img src="https://latex.codecogs.com/png.latex?T%20=%20100%7B,%7D000"> that gap will be glaring.</p>
 <p><strong>The deeper lesson.</strong> When algorithm rankings flip between regimes, look at the <em>rate</em> of growth, not the absolute numbers. UCB1 is sublinear on both problems; ε-greedy is linear on both. The relative ordering at <img src="https://latex.codecogs.com/png.latex?T%20=%205000"> is a snapshot, not the story.</p>
 </section>
-<section id="non-stationary-rewards-experiments01a_sol2_nonstationary.py" class="level3">
-<h3 class="anchored" data-anchor-id="non-stationary-rewards-experiments01a_sol2_nonstationary.py">9.2 Non-stationary rewards — <code>experiments/01a_sol2_nonstationary.py</code></h3>
+<section id="non-stationary-rewards-1" class="level3">
+<h3 class="anchored" data-anchor-id="non-stationary-rewards-1">9.2 Non-stationary rewards</h3>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_sol2_nonstationary.png" class="img-fluid figure-img"></p>
-<figcaption>Non-stationary bandit. Top: cumulative regret over 8000 steps as the true arm means drift sinusoidally (bottom). UCB1 — counter-intuitively — handles drift best of the three.</figcaption>
+<figcaption>Non-stationary bandit. Top: cumulative regret over 8000 steps as the true arm means drift sinusoidally (bottom). UCB1 — counter-intuitively — handles drift best of the three. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol2_nonstationary.py"><code>experiments/01a_ucb_bonus_shrinking.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p><strong>What you should see.</strong> The setup is three arms with means oscillating between <img src="https://latex.codecogs.com/png.latex?%5Csim%200.15"> and <img src="https://latex.codecogs.com/png.latex?%5Csim%200.85"> on a period of <img src="https://latex.codecogs.com/png.latex?2500"> steps, phase-shifted so a different arm is best at different times. All three algorithms accumulate regret in step-like increments around every transition (visible as the upward jumps in the regret curve). But <strong>UCB1 ends up at <img src="https://latex.codecogs.com/png.latex?%5Csim%20570"> regret while ε-greedy and Thompson both reach <img src="https://latex.codecogs.com/png.latex?%5Csim%201800"></strong> — roughly <img src="https://latex.codecogs.com/png.latex?3%5Ctimes"> worse.</p>
@@ -5860,12 +5860,12 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <p><strong>The deeper lesson.</strong> UCB1’s “weakness” — that it keeps probing arms it should be confident about — turns into a virtue under non-stationarity. Algorithms have implicit assumptions about the world; when those assumptions break, the algorithm with the most robustly-pessimistic posture often wins. This is a general lesson worth carrying into RL and agent design: <em>be suspicious of your own confidence</em>.</p>
 <p><strong>What you should build next.</strong> The principled fix is to add discounting or a sliding window. <em>Discounted UCB1</em> uses an exponentially-weighted mean and bonus: replace <img src="https://latex.codecogs.com/png.latex?n_k"> with <img src="https://latex.codecogs.com/png.latex?%5Csum_t%20%5Cgamma%5E%7Bt-t'%7D%20%5Cmathbf%7B1%7D%5Ba_%7Bt'%7D%20=%20k%5D"> for <img src="https://latex.codecogs.com/png.latex?%5Cgamma%20%5Cin%20(0,%201)">. <em>Sliding-window UCB1</em> only considers the last <img src="https://latex.codecogs.com/png.latex?W"> observations. Both have <img src="https://latex.codecogs.com/png.latex?%5Ctilde%20O(%5Csqrt%7BT%7D)"> regret against switching environments. Try implementing one and see whether it beats vanilla UCB1 on this problem.</p>
 </section>
-<section id="gaussian-rewards-experiments01a_sol3_gaussian_rewards.py" class="level3">
-<h3 class="anchored" data-anchor-id="gaussian-rewards-experiments01a_sol3_gaussian_rewards.py">9.3 Gaussian rewards — <code>experiments/01a_sol3_gaussian_rewards.py</code></h3>
+<section id="gaussian-rewards-1" class="level3">
+<h3 class="anchored" data-anchor-id="gaussian-rewards-1">9.3 Gaussian rewards</h3>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_sol3_gaussian_rewards.png" class="img-fluid figure-img"></p>
-<figcaption>Gaussian bandit with means [0.0, 0.5, 1.0, 1.2, 1.5] and σ=1.0. Gaussian UCB and NIG-Thompson both achieve sublinear regret; ε-greedy with the same configuration is markedly worse.</figcaption>
+<figcaption>Gaussian bandit with means [0.0, 0.5, 1.0, 1.2, 1.5] and σ=1.0. Gaussian UCB and NIG-Thompson both achieve sublinear regret; ε-greedy with the same configuration is markedly worse. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol3_gaussian_rewards.py"><code>experiments/01a_sol3_gaussian_rewards.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p><strong>What you should see.</strong> Gaussian UCB and the Normal-Inverse-Gamma Thompson Sampling reach <img src="https://latex.codecogs.com/png.latex?%5Csim%2070">–<img src="https://latex.codecogs.com/png.latex?77"> cumulative regret at <img src="https://latex.codecogs.com/png.latex?T%20=%203000">; ε-greedy reaches <img src="https://latex.codecogs.com/png.latex?%5Csim%20280">. NIG Thompson edges out Gaussian UCB by a small margin, mirroring the Bernoulli case.</p>
@@ -5875,12 +5875,12 @@ font-style: inherit;">-</span> r</span></code></pre></div></div>
 <p><strong>Why this is worth doing.</strong> The Beta-Bernoulli case is uniquely elegant but also uniquely simple: each arm’s parameter is scalar. The NIG-Gaussian case forces you to track <em>two</em> parameters per arm (mean and variance) and to sample from a hierarchical posterior. This is the natural transition to high-dimensional posteriors (next post: 2D, then <img src="https://latex.codecogs.com/png.latex?d">-dimensional), and the Welford trick is exactly what you’d use in production code for any streaming statistic.</p>
 <p>If you’re rusty on conjugate priors, this is the cleanest place to refresh. Bishop §3 or Murphy §3 cover it definitively.</p>
 </section>
-<section id="prior-sensitivity-for-thompson-experiments01a_sol4_prior_sensitivity.py" class="level3">
-<h3 class="anchored" data-anchor-id="prior-sensitivity-for-thompson-experiments01a_sol4_prior_sensitivity.py">9.4 Prior sensitivity for Thompson — <code>experiments/01a_sol4_prior_sensitivity.py</code></h3>
+<section id="prior-sensitivity-for-thompson" class="level3">
+<h3 class="anchored" data-anchor-id="prior-sensitivity-for-thompson">9.4 Prior sensitivity for Thompson</h3>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="https://tranbahien.github.io/nano-agents/figures/01a_sol4_prior_sensitivity.png" class="img-fluid figure-img"></p>
-<figcaption>Prior sensitivity. Strong miscalibrated priors (Beta(100,100), red) force linear regret because the algorithm can’t update beliefs away from 0.5 fast enough. Weak priors and uniform priors are essentially equivalent.</figcaption>
+<figcaption>Prior sensitivity. Strong miscalibrated priors (Beta(100,100), red) force linear regret because the algorithm can’t update beliefs away from 0.5 fast enough. Weak priors and uniform priors are essentially equivalent. <em>(Code to reproduce: <a href="https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol4_prior_sensitivity.py"><code>experiments/01a_sol4_prior_sensitivity.py</code></a>).</em></figcaption>
 </figure>
 </div>
 <p><strong>What you should see.</strong> Beta(0.5, 0.5), Beta(1, 1), and Beta(10, 10) all reach <img src="https://latex.codecogs.com/png.latex?%5Csim%2042">–<img src="https://latex.codecogs.com/png.latex?48"> cumulative regret — they’re essentially equivalent at <img src="https://latex.codecogs.com/png.latex?T%20=%205000">. Beta(100, 100) is dramatically worse, reaching nearly <img src="https://latex.codecogs.com/png.latex?100"> and growing roughly linearly. The right panel shows why: Beta(100, 100) concentrates almost all its prior mass between 0.4 and 0.6, so updating to a true mean of <img src="https://latex.codecogs.com/png.latex?0.8"> requires fighting through a <em>lot</em> of pseudocounts.</p>
