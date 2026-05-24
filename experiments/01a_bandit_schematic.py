@@ -13,6 +13,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
+
 def main() -> None:
     np.random.seed(7)
 
@@ -21,7 +31,7 @@ def main() -> None:
     sample_counts = [12, 9, 6, 14, 8]
     samples = [np.random.binomial(1, mu, n) for mu, n in zip(true_mus, sample_counts)]
 
-    fig, ax = plt.subplots(figsize=(11, 4.5))
+    fig, ax = plt.subplots(figsize=(9, 3.5))
 
     box_w, box_h, gap = 1.6, 3.2, 0.4
     for i, (s, n) in enumerate(zip(samples, sample_counts)):

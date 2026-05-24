@@ -20,6 +20,15 @@ from nano_agents.bandits import (
 )
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
 def run_track_pulls(agent, bandit, T):
     """Run one episode and return cumulative pull counts per arm over time."""
     K = bandit.K
@@ -54,12 +63,12 @@ def main() -> None:
         return BernoulliBandit(true_mus)
 
     configs = [
-        ("ε-greedy (0.1)", lambda: EpsilonGreedy(K, eps=0.1)),
-        ("UCB1", lambda: UCB1(K)),
-        ("Thompson", lambda: ThompsonSampling(K)),
+        (r"$\epsilon$-greedy (0.1)", lambda: EpsilonGreedy(K, eps=0.1)),
+        (r"UCB1", lambda: UCB1(K)),
+        (r"Thompson", lambda: ThompsonSampling(K)),
     ]
 
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(8, 3), sharey=True)
     colors = plt.cm.viridis(np.linspace(0.15, 0.85, K))
     t_axis = np.arange(1, T + 1)
 
@@ -81,7 +90,7 @@ def main() -> None:
 
     fig.suptitle(
         "Cumulative pull fractions per arm. Best arm (top, brightest) is arm 5.\n"
-        "ε-greedy keeps exploring forever; UCB1 and Thompson concentrate on the best arm.",
+        r"$\epsilon$-greedy keeps exploring forever; UCB1 and Thompson concentrate on the best arm.",
         fontsize=12, y=1.06,
     )
     fig.tight_layout()

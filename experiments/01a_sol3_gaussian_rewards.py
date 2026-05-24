@@ -22,6 +22,16 @@ from nano_agents.bandits import (
 )
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
+
 def run(agent, bandit, T):
     regret = np.zeros(T)
     cum = 0.0
@@ -41,9 +51,9 @@ def main() -> None:
     sigma = 1.0
 
     agents = {
-        "ε-greedy (0.1)": lambda: EpsilonGreedy(K, 0.1),
-        "Gaussian UCB (σ known)": lambda: GaussianUCB(K, sigma=sigma),
-        "Gaussian TS (NIG)": lambda: GaussianThompsonSampling(
+        r"$\epsilon$-greedy (0.1)": lambda: EpsilonGreedy(K, 0.1),
+        r"Gaussian UCB ($\sigma$ known)": lambda: GaussianUCB(K, sigma=sigma),
+        r"Gaussian TS (NIG)": lambda: GaussianThompsonSampling(
             K, rng=np.random.default_rng()),
     }
 
@@ -54,7 +64,7 @@ def main() -> None:
             bandit = GaussianBandit(means, sigma=sigma)
             results[name] += run(ctor(), bandit, T) / n_runs
 
-    fig, ax = plt.subplots(figsize=(8.5, 5))
+    fig, ax = plt.subplots(figsize=(6.5, 3))
     for name, r in results.items():
         ax.plot(r, label=name, linewidth=2)
     ax.set_xlabel("t")

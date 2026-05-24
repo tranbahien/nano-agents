@@ -13,6 +13,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
 def main() -> None:
     # Fix a set of posteriors that are partially overlapping — interesting case.
     # Arm 1: Beta(8, 12)  → mean 0.40, narrow-ish
@@ -39,7 +48,7 @@ def main() -> None:
     analytical = np.bincount(gt_picks, minlength=K) / gt_picks.size
 
     # Plot
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 4.2),
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 3),
                                     gridspec_kw={"width_ratios": [1.1, 1]})
 
     # Left panel: the posteriors themselves

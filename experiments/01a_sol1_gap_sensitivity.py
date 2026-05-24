@@ -21,6 +21,16 @@ from nano_agents.bandits import (
 )
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
+
 def main() -> None:
     T, n_runs = 5000, 200
     K = 3
@@ -30,14 +40,14 @@ def main() -> None:
         "Hard gaps: [0.50, 0.51, 0.52]": [0.50, 0.51, 0.52],
     }
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 4.5))
+    fig, axes = plt.subplots(1, 2, figsize=(7.5, 3))
 
     for ax, (title, probs) in zip(axes, configs.items()):
         def bf(probs=probs):
             return BernoulliBandit(probs)
 
         agents = {
-            "ε-greedy (0.1)": lambda: EpsilonGreedy(K, 0.1),
+            r"$\epsilon$-greedy (0.1)": lambda: EpsilonGreedy(K, 0.1),
             "UCB1": lambda: UCB1(K),
             "Thompson": lambda: ThompsonSampling(K),
         }

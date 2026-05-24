@@ -19,6 +19,16 @@ from nano_agents.bandits import (
 )
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
+
 def run_track(agent, bandit, T):
     regret = np.zeros(T)
     actions = np.zeros(T, dtype=int)
@@ -48,7 +58,7 @@ def main() -> None:
             base=[0.5, 0.5, 0.5], amplitude=0.35, period=2500.0, seed=42)
 
     agents = {
-        "ε-greedy (0.1)": lambda: EpsilonGreedy(K, 0.1),
+        r"$\epsilon$-greedy (0.1)": lambda: EpsilonGreedy(K, 0.1),
         "UCB1": lambda: UCB1(K),
         "Thompson": lambda: ThompsonSampling(K),
     }
@@ -70,7 +80,7 @@ def main() -> None:
         best_over_time[t] = int(np.argmax(m))
         means_over_time[t] = m
 
-    fig, axes = plt.subplots(2, 1, figsize=(11, 6.5),
+    fig, axes = plt.subplots(2, 1, figsize=(7, 4.5),
                              gridspec_kw={"height_ratios": [1.5, 1.0]},
                              sharex=True)
 
@@ -89,8 +99,8 @@ def main() -> None:
     colors_arm = ["#888888", "#3a7ebf", "#55a467"]
     for k in range(K):
         ax.plot(means_over_time[:, k], color=colors_arm[k], linewidth=1.0,
-                linestyle="--", alpha=0.7, label=f"Arm {k+1} true μ" if True else None)
-    ax.set_ylabel("true μ over time")
+                linestyle="--", alpha=0.7, label=fr"Arm {k+1} true $\mu$" if True else None)
+    ax.set_ylabel(r"true $\mu$ over time")
     ax.set_xlabel("t")
     ax.legend(loc="upper left", fontsize=9)
     ax.grid(alpha=0.3)

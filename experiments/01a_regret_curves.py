@@ -19,6 +19,16 @@ from nano_agents.bandits import (
 )
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
+
 def main() -> None:
     T, n_runs = 5000, 100
 
@@ -27,14 +37,14 @@ def main() -> None:
 
     K = 5
     agents = {
-        "ε-greedy (0.1)": lambda: EpsilonGreedy(K, eps=0.1),
+        r"$\epsilon$-greedy (0.1)": lambda: EpsilonGreedy(K, eps=0.1),
         "UCB1": lambda: UCB1(K),
         "Thompson": lambda: ThompsonSampling(K),
     }
 
     results = run_many(agents, bandit_factory, T, n_runs=n_runs, seed=0)
 
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(4.5, 3))
     for name, regret in results.items():
         ax.plot(regret, label=name, linewidth=2)
     ax.set_xlabel("t")

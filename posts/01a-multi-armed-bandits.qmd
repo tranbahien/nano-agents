@@ -168,7 +168,7 @@ This is **UCB1**.[^2] The first term is exploitation (high if the arm looked goo
 
 ### 4.2 Visualizing the mechanism
 
-![UCB1 over time. The orange exploration bonus shrinks as each arm's pull count grows; eventually the indices reflect empirical means and the best arm wins.](../figures/01a_ucb_bonus_shrinking.png)
+![UCB1 over time. The orange exploration bonus shrinks as each arm's pull count grows; eventually the indices reflect empirical means and the best arm wins. *(Code to reproduce: [`experiments/01a_ucb_bonus_shrinking.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_ucb_bonus_shrinking.py)).*](../figures/01a_ucb_bonus_shrinking.png)
 
 This figure shows what UCB1 is actually doing. At $t = 50$, every arm has a large bonus on top of its empirical mean — the algorithm is deeply uncertain and the index is dominated by exploration. The best arms ($n_k = 14, 13$) already have shorter orange bars: pulling them shrinks their bonus, making them look less attractive on the next round, so the algorithm rotates.
 
@@ -262,7 +262,7 @@ Eleven lines. No bonus terms, no schedules, no hyperparameters. Just sample and 
 
 ### 5.3 Why this works — uncertainty as exploration
 
-![Beta posteriors over time. By t=5000, the algorithm has identified Arm 3 (μ=0.7) as best. Arms 2 and 3 — the close competitors — are sampled most because they're hardest to distinguish. Arm 1 is largely ignored once it's clearly suboptimal, so its posterior stays wide.](../figures/01a_beta_posterior_evolution.png)
+![Beta posteriors over time. By t=5000, the algorithm has identified Arm 3 (μ=0.7) as best. Arms 2 and 3 — the close competitors — are sampled most because they're hardest to distinguish. Arm 1 is largely ignored once it's clearly suboptimal, so its posterior stays wide. *(Code to reproduce: [`experiments/01a_beta_posterior_evolution.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_beta_posterior_evolution.py)).*](../figures/01a_beta_posterior_evolution.png)
 
 This figure is the heart of why Thompson Sampling works. Look at the posterior for Arm 1 (the worst, $\mu = 0.3$) on the right panel. After 5000 steps, it has only been pulled 9 times. **Its posterior is still wide.** The algorithm hasn't bothered tightening its estimate of arm 1's mean because it doesn't matter — arm 1 is clearly worse and we don't need precision about *how much* worse.
 
@@ -284,7 +284,7 @@ This is called **probability matching** or **posterior sampling**. The proof is 
 
 Let's verify it empirically.
 
-![Probability matching. Each pair of bars shows analytical $P(\mu_k = \max)$ vs the empirical frequency with which Thompson Sampling picks arm $k$ from 100,000 independent samples. They match to three decimal places.](../figures/01a_probability_matching.png)
+![Probability matching. Each pair of bars shows analytical $P(\mu_k = \max)$ vs the empirical frequency with which Thompson Sampling picks arm $k$ from 100,000 independent samples. They match to three decimal places. *(Code to reproduce: [`experiments/01a_probability_matching.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_probability_matching.py)).*](../figures/01a_probability_matching.png)
 
 The left panel shows four posteriors with overlapping support: $\mathrm{Beta}(8, 12)$, $\mathrm{Beta}(15, 10)$, $\mathrm{Beta}(5, 4)$, $\mathrm{Beta}(3, 2)$. The right panel shows that the empirical pick frequencies from 100,000 Thompson trials match the analytical posterior optimality probabilities essentially exactly.
 
@@ -323,7 +323,7 @@ Note how arm 3's posterior is already very concentrated near 1 (one failure, fou
 
 We've now built all three algorithms. Time to compare them at the qualitative level.
 
-![Cumulative fraction of pulls allocated to each arm under each algorithm (averaged over 30 runs). The brightest band on top is the best arm (μ=0.8). ε-greedy keeps ~20% exploration forever. UCB1 explores aggressively then narrows but stays diffuse. Thompson concentrates fastest.](../figures/01a_arm_pull_distribution.png)
+![Cumulative fraction of pulls allocated to each arm under each algorithm (averaged over 30 runs). The brightest band on top is the best arm (μ=0.8). ε-greedy keeps ~20% exploration forever. UCB1 explores aggressively then narrows but stays diffuse. Thompson concentrates fastest. *(Code to reproduce: [`experiments/01a_arm_pull_distribution.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_arm_pull_distribution.py)).*](../figures/01a_arm_pull_distribution.png)
 
 This figure tells the qualitative truth that the regret curves obscure.
 
@@ -333,7 +333,7 @@ This figure tells the qualitative truth that the regret curves obscure.
 
 And here's the regret figure again, in case you forgot what we were optimizing:
 
-![Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure.](../figures/01a_regret_curves.png)
+![Cumulative regret of three classical bandit algorithms on a 5-arm Bernoulli problem. We will derive each of these from scratch and end with this exact figure. *(Code to reproduce: [`experiments/01a_regret_curves.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_regret_curves.py)).*](../figures/01a_regret_curves.png)
 
 **A small puzzle.** UCB1 looks worse than ε-greedy here. But UCB1 has provably better asymptotic regret. What gives?
 
@@ -408,9 +408,8 @@ The lesson is general: **a stronger prior is more informative but harder to upda
 
 Try the experiments yourself first — most of the value is in struggling through them. Once you've done that, here are reference solutions and discussions. Each is a runnable script in `experiments/`; the figures are reproducible by running it.
 
-### 9.1 Gap sensitivity — `experiments/01a_sol1_gap_sensitivity.py`
-
-![Gap sensitivity: the same three algorithms on an easy bandit (left) and a hard one (right). Note the very different y-axis scales — the hard bandit's regret is ~5× smaller in absolute terms.](../figures/01a_sol1_gap_sensitivity.png)
+### 9.1 Gap sensitivity
+![Gap sensitivity: the same three algorithms on an easy bandit (left) and a hard one (right). Note the very different y-axis scales — the hard bandit's regret is ~5× smaller in absolute terms. *(Code to reproduce: [`experiments/01a_sol1_gap_sensitivity.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol1_gap_sensitivity.py)).*](../figures/01a_sol1_gap_sensitivity.png)
 
 **What you should see.** On the easy problem with arm probabilities $[0.1, 0.5, 0.9]$, the three algorithms separate cleanly: Thompson hugs $\sim 6$ at $T=5000$, UCB1 sits at $\sim 50$, and ε-greedy grows linearly to $\sim 210$. On the hard problem with $[0.50, 0.51, 0.52]$, all three are clustered near $30$–$45$, with Thompson narrowly winning.
 
@@ -423,9 +422,9 @@ Net effect: the *relative* regret (regret / oracle reward) gets worse with small
 
 **The deeper lesson.** When algorithm rankings flip between regimes, look at the *rate* of growth, not the absolute numbers. UCB1 is sublinear on both problems; ε-greedy is linear on both. The relative ordering at $T = 5000$ is a snapshot, not the story.
 
-### 9.2 Non-stationary rewards — `experiments/01a_sol2_nonstationary.py`
+### 9.2 Non-stationary rewards
 
-![Non-stationary bandit. Top: cumulative regret over 8000 steps as the true arm means drift sinusoidally (bottom). UCB1 — counter-intuitively — handles drift best of the three.](../figures/01a_sol2_nonstationary.png)
+![Non-stationary bandit. Top: cumulative regret over 8000 steps as the true arm means drift sinusoidally (bottom). UCB1 — counter-intuitively — handles drift best of the three. *(Code to reproduce: [`experiments/01a_ucb_bonus_shrinking.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol2_nonstationary.py)).*](../figures/01a_sol2_nonstationary.png)
 
 **What you should see.** The setup is three arms with means oscillating between $\sim 0.15$ and $\sim 0.85$ on a period of $2500$ steps, phase-shifted so a different arm is best at different times. All three algorithms accumulate regret in step-like increments around every transition (visible as the upward jumps in the regret curve). But **UCB1 ends up at $\sim 570$ regret while ε-greedy and Thompson both reach $\sim 1800$** — roughly $3\times$ worse.
 
@@ -443,9 +442,9 @@ This is the opposite of what naive intuition says ("Thompson is always best"). I
 
 **What you should build next.** The principled fix is to add discounting or a sliding window. *Discounted UCB1* uses an exponentially-weighted mean and bonus: replace $n_k$ with $\sum_t \gamma^{t-t'} \mathbf{1}[a_{t'} = k]$ for $\gamma \in (0, 1)$. *Sliding-window UCB1* only considers the last $W$ observations. Both have $\tilde O(\sqrt{T})$ regret against switching environments. Try implementing one and see whether it beats vanilla UCB1 on this problem.
 
-### 9.3 Gaussian rewards — `experiments/01a_sol3_gaussian_rewards.py`
+### 9.3 Gaussian rewards
 
-![Gaussian bandit with means [0.0, 0.5, 1.0, 1.2, 1.5] and σ=1.0. Gaussian UCB and NIG-Thompson both achieve sublinear regret; ε-greedy with the same configuration is markedly worse.](../figures/01a_sol3_gaussian_rewards.png)
+![Gaussian bandit with means [0.0, 0.5, 1.0, 1.2, 1.5] and σ=1.0. Gaussian UCB and NIG-Thompson both achieve sublinear regret; ε-greedy with the same configuration is markedly worse. *(Code to reproduce: [`experiments/01a_sol3_gaussian_rewards.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol3_gaussian_rewards.py)).*](../figures/01a_sol3_gaussian_rewards.png)
 
 **What you should see.** Gaussian UCB and the Normal-Inverse-Gamma Thompson Sampling reach $\sim 70$–$77$ cumulative regret at $T = 3000$; ε-greedy reaches $\sim 280$. NIG Thompson edges out Gaussian UCB by a small margin, mirroring the Bernoulli case.
 
@@ -464,9 +463,9 @@ The marginal posterior for $\mu$ is Student-$t_{2\alpha_n}(\mu_n, \beta_n / (\al
 
 If you're rusty on conjugate priors, this is the cleanest place to refresh. Bishop §3 or Murphy §3 cover it definitively.
 
-### 9.4 Prior sensitivity for Thompson — `experiments/01a_sol4_prior_sensitivity.py`
+### 9.4 Prior sensitivity for Thompson
 
-![Prior sensitivity. Strong miscalibrated priors (Beta(100,100), red) force linear regret because the algorithm can't update beliefs away from 0.5 fast enough. Weak priors and uniform priors are essentially equivalent.](../figures/01a_sol4_prior_sensitivity.png)
+![Prior sensitivity. Strong miscalibrated priors (Beta(100,100), red) force linear regret because the algorithm can't update beliefs away from 0.5 fast enough. Weak priors and uniform priors are essentially equivalent. *(Code to reproduce: [`experiments/01a_sol4_prior_sensitivity.py`](https://github.com/tranbahien/nano-agents/blob/main/experiments/01a_sol4_prior_sensitivity.py)).*](../figures/01a_sol4_prior_sensitivity.png)
 
 **What you should see.** Beta(0.5, 0.5), Beta(1, 1), and Beta(10, 10) all reach $\sim 42$–$48$ cumulative regret — they're essentially equivalent at $T = 5000$. Beta(100, 100) is dramatically worse, reaching nearly $100$ and growing roughly linearly. The right panel shows why: Beta(100, 100) concentrates almost all its prior mass between 0.4 and 0.6, so updating to a true mean of $0.8$ requires fighting through a *lot* of pseudocounts.
 

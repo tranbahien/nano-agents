@@ -19,6 +19,15 @@ import numpy as np
 from nano_agents.bandits import BernoulliBandit, ThompsonSampling, run_many
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
 def main() -> None:
     T, n_runs = 5000, 200
     K = 5
@@ -29,7 +38,7 @@ def main() -> None:
 
     agents = {
         "Beta(0.5, 0.5)": lambda: ThompsonSampling(K, alpha=0.5, beta=0.5),
-        "Beta(1, 1) — uniform": lambda: ThompsonSampling(K, alpha=1.0, beta=1.0),
+        "Beta(1, 1) - uniform": lambda: ThompsonSampling(K, alpha=1.0, beta=1.0),
         "Beta(10, 10)": lambda: ThompsonSampling(K, alpha=10.0, beta=10.0),
         "Beta(100, 100)": lambda: ThompsonSampling(K, alpha=100.0, beta=100.0),
     }
@@ -37,7 +46,7 @@ def main() -> None:
 
     results = run_many(agents, bf, T, n_runs=n_runs, seed=0)
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 4.5),
+    fig, axes = plt.subplots(1, 2, figsize=(7.5, 3),
                               gridspec_kw={"width_ratios": [1.2, 1]})
 
     # Left: regret curves

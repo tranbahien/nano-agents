@@ -15,6 +15,16 @@ from scipy.stats import beta
 from nano_agents.bandits import BernoulliBandit, ThompsonSampling
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
+
 def run_to_time(T_targets, true_mus, seed=0):
     """Run Thompson Sampling and snapshot (alpha, beta) at each T_target."""
     np.random.seed(seed)
@@ -40,7 +50,7 @@ def main() -> None:
 
     snaps = run_to_time(T_targets, true_mus, seed=0)
 
-    fig, axes = plt.subplots(1, 4, figsize=(14, 3.6), sharey=True)
+    fig, axes = plt.subplots(1, 4, figsize=(10, 3), sharey=True)
     x = np.linspace(0, 1, 500)
 
     for ax, T in zip(axes, T_targets):

@@ -14,6 +14,16 @@ import numpy as np
 from nano_agents.bandits import BernoulliBandit, UCB1
 
 
+# Update matplotlib configuration
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"], 
+    "mathtext.fontset": "cm",
+    "axes.formatter.use_mathtext": True 
+})
+
+
+
 def run_and_snapshot(T_targets, true_mus, seed=0):
     """Run UCB1 and snapshot the state at each T_target."""
     np.random.seed(seed)
@@ -38,7 +48,7 @@ def main() -> None:
 
     snaps = run_and_snapshot(T_targets, true_mus, seed=0)
 
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
     arms = np.arange(K)
 
     for ax, T in zip(axes, T_targets):
@@ -72,7 +82,7 @@ def main() -> None:
     axes[0].legend(loc="upper left", fontsize=9, framealpha=0.95)
 
     fig.suptitle(
-        "UCB1 in action: the exploration bonus shrinks as $n_k$ grows. "
+        "UCB1 in action: the exploration bonus shrinks as $n_k$ grows.\n"
         "By t=5000, the bonuses are nearly zero and decisions track empirical means.",
         fontsize=12, y=1.02,
     )
