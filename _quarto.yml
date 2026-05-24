@@ -19,10 +19,8 @@ website:
     left:
       - text: "Home"
         href: index.qmd
-      - text: "Posts"
-        href: posts.qmd
       - text: "About"
-        href: about.qmd
+        href: https://tranbahien.github.io
     right:
       - icon: github
         href: https://github.com/tranbahien/nano-agents
@@ -43,6 +41,13 @@ format:
       light: cosmo
       dark: darkly
     css: styles.css
+    include-in-header:
+      text: |
+        <script>
+          if (!localStorage.getItem('quarto-color-scheme')) {
+            localStorage.setItem('quarto-color-scheme', 'dark');
+          }
+        </script>
     toc: true
     toc-depth: 3
     code-copy: true

@@ -29,6 +29,11 @@ pre {
   font-weight: 600;
 }
 
+.quarto-listing-default .listing-image img {
+  object-fit: contain;
+  background: transparent;
+}
+
 /* Slightly more breathing room around figures */
 figure {
   margin: 2rem auto;

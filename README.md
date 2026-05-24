@@ -15,30 +15,30 @@ The companion blog is at **[tranbahien.github.io/nano-agents](https://tranbahien
 ## Posts
 
 ### Topic 1 — Decision-making under uncertainty
-- [1a — Multi-armed bandits](posts/01a-multi-armed-bandits.qmd) ✅
-- [1b — Contextual bandits](posts/01b-contextual-bandits.qmd) ✅
-- [1c — MDPs and Bellman equations](posts/01c-mdps-and-bellman.qmd) ✅
-- [1d — POMDPs and Q-learning](posts/01d-pomdps-and-q-learning.qmd) ✅
+- [1a — Multi-armed bandits](posts/01a-multi-armed-bandits.qmd)
+- [1b — Contextual bandits](posts/01b-contextual-bandits.qmd)
+- [1c — MDPs and Bellman equations](posts/01c-mdps-and-bellman.qmd)
+- [1d — POMDPs and Q-learning](posts/01d-pomdps-and-q-learning.qmd)
 
 ### Topic 2 — Policy gradients
-- [2a — REINFORCE and the policy gradient theorem](posts/02a-reinforce-and-policy-gradient.qmd) ✅
-- [2b — Actor-critic and variance reduction](posts/02b-actor-critic.qmd) ✅
-- [2c — TRPO and PPO (trust regions)](posts/02c-trpo-and-ppo.qmd) ✅
-- [2d — RLHF, DPO, and GRPO](posts/02d-rlhf-dpo-grpo.qmd) ✅
+- [2a — REINFORCE and the policy gradient theorem](posts/02a-reinforce-and-policy-gradient.qmd)
+- [2b — Actor-critic and variance reduction](posts/02b-actor-critic.qmd)
+- [2c — TRPO and PPO (trust regions)](posts/02c-trpo-and-ppo.qmd)
+- [2d — RLHF, DPO, and GRPO](posts/02d-rlhf-dpo-grpo.qmd)
 
 ### Topic 3 — Sampling, tool use, planning
-- [3a — Decoding as approximate inference](posts/03a-decoding-as-inference.qmd) ✅
-- [3b — Tool use as actions (ReAct)](posts/03b-tool-use.qmd) ✅
-- [3c — Tree of Thoughts and MCTS for LLMs](posts/03c-tree-of-thoughts.qmd) ✅
+- [3a — Decoding as approximate inference](posts/03a-decoding-as-inference.qmd)
+- [3b — Tool use as actions (ReAct)](posts/03b-tool-use.qmd)
+- [3c — Tree of Thoughts and MCTS for LLMs](posts/03c-tree-of-thoughts.qmd)
 
 ### Topic 4 — Memory, reflection, calibration
-- [4a — Retrieval as Bayesian conditioning](posts/04a-rag-as-bayesian-conditioning.qmd) ✅
-- [4b — Self-reflection as Monte Carlo](posts/04b-self-reflection.qmd) ✅
-- [4c — Calibration and uncertainty](posts/04c-calibration.qmd) ✅
+- [4a — Retrieval as Bayesian conditioning](posts/04a-rag-as-bayesian-conditioning.qmd)
+- [4b — Self-reflection as Monte Carlo](posts/04b-self-reflection.qmd)
+- [4c — Calibration and uncertainty](posts/04c-calibration.qmd)
 
 ### Topic 5 — Putting it together
-- [5a — Multi-agent systems](posts/05a-multi-agent-systems.qmd) ✅
-- [5b — nanoAgent: a clean reference implementation](posts/05b-nanoagent.qmd) ✅
+- [5a — Multi-agent systems](posts/05a-multi-agent-systems.qmd)
+- [5b — nanoAgent: a clean reference implementation](posts/05b-nanoagent.qmd)
 
 ## Quickstart
 
