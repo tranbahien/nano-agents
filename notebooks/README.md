@@ -59,24 +59,7 @@ the top, work down. Total runtime ≈ 1–3 minutes per notebook.
 | Notebook                                       | Companion post                                                                          |
 | ---------------------------------------------- | --------------------------------------------------------------------------------------- |
 | [`04a-rag.ipynb`](04a-rag.ipynb)               | [Post 4a: Retrieval as Bayesian Conditioning](../posts/04a-rag-as-bayesian-conditioning.qmd) |
-
-More notebooks coming as Topic 4 progresses.
-
-More notebooks coming with Topic 4 (memory, retrieval, and reflection).
-
-## Building your own
-
-Each notebook is generated programmatically by a `build_notebook_*.py`
-script at the repo root. The scripts use `nbformat` to assemble cells —
-easier to maintain than hand-editing JSON. To add a notebook for a new
-post, copy any existing build script and adapt.
-
-To rebuild and re-verify everything:
-
-```bash
-for f in build_notebook_*.py; do python "$f"; done
-for nb in notebooks/*.ipynb; do
-  jupyter nbconvert --to notebook --execute "$nb" --output _check.ipynb
-  rm notebooks/_check.ipynb
-done
-```
+| [`04b-self-reflection.ipynb`](04b-self-reflection.ipynb) | [Post 4b: Self-Reflection as Monte Carlo](../posts/04b-self-reflection.qmd) |
+| [`04c-calibration.ipynb`](04c-calibration.ipynb) | [Post 4c: Calibration and Uncertainty](../posts/04c-calibration.qmd) |
+| [`05a-multi-agent-systems.ipynb`](05a-multi-agent-systems.ipynb) | [Post 5a: Multi-Agent Systems](../posts/05a-multi-agent-systems.qmd) |
+| [`05b-nanoagent.ipynb`](05b-nanoagent.ipynb) | [Post 5b: nanoAgent reference implementation](../posts/05b-nanoagent.qmd) |

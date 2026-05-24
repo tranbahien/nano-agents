@@ -9,7 +9,6 @@ citation: true
 
 ![](../assets/04c-calibration.png)
 
-
 > *Topic 4, post 3 of 3 — and the close of the topic.*
 
 Twice now a decision has come down to the model knowing when it is likely wrong. In [Post 4a](04a-rag-as-bayesian-conditioning.qmd), confidence-gated retrieval beat both always- and never-retrieving — *if* the model's confidence tracked its accuracy. In [Post 4b](04b-self-reflection.qmd), "reflect on the hard problems, not the easy ones" needed the model to recognize which problems were hard. Both policies rest on a single property we kept deferring: **calibration**. Does "the model is 90% confident" actually mean it is right 90% of the time?
@@ -157,6 +156,10 @@ $$
 
 If the fallback is a strong retriever ($q = 0.9$) costing a little ($c = 0.05$), defer whenever confidence drops below $0.85$. This rule is only correct when $\hat p$ is a *real probability of correctness* — i.e. when the model is calibrated. Feed it an overconfident model's inflated $\hat p$ and the comparison $\hat p > q - c$ fires on answers that are not actually that likely to be right, and the agent keeps them instead of deferring. Calibration is the precondition that turns this clean decision rule from wishful arithmetic into a policy that behaves as derived.
 
+It is worth naming what this rule actually is, because it is the same object that has been quietly recurring since Topic 3. Comparing $\hat p$ against $q - c$ is an **expected-utility decision**: the agent holds a *belief* about a latent quantity (is my answer correct?), attaches *utilities* to outcomes (a right answer is worth more than the cost of checking), and takes the action with the highest expected value. Deferring "when the expected improvement from the fallback outweighs its cost" is exactly a **value-of-information** calculation — act on what you have unless gathering more is worth the price. And this same shape governed every agentic decision in the series: the tool-call threshold of [Post 3b §4](03b-tool-use.qmd) ($P_{\text{tool}} - \lambda > P_{\text{internal}}$), the confidence-gated retrieval of [Post 4a](04a-rag-as-bayesian-conditioning.qmd), and the reflect-when-uncertain policy of [Post 4b](04b-self-reflection.qmd) are all the same expected-utility comparison over a belief about the agent's own reliability.
+
+That is the Bayesian thread of the whole curriculum surfacing at the control layer. We met Bayesian *belief* explicitly in the posterior of [Post 1b](01b-contextual-bandits.qmd) and the conditioning of [Post 4a](04a-rag-as-bayesian-conditioning.qmd); here it becomes Bayesian *decision-making* — a controller that maintains a calibrated posterior over task-relevant quantities and chooses actions to maximize expected utility. A recent position paper (Papamarkou et al., 2026) argues precisely that the orchestration layer of an agentic system — the logic that decides which tool to call, which expert to consult, when to stop — is where Bayesian principles should govern, even while the underlying LLM stays a black-box predictor. Our series arrives at the same place from the bottom up: calibration (this post) is what makes the controller's beliefs trustworthy, and expected-utility action selection is what makes its choices coherent. Topic 5's orchestration, and the nanoAgent of Post 5b, are this controller made concrete.
+
 The synthesis for Topic 4: an agent's competence is bounded not only by what it knows (parametric memory), what it can look up (retrieval, 4a), and what it can reconsider (reflection, 4b), but by **whether it knows which of those it needs** — and that meta-knowledge is calibration. A perfectly knowledgeable model with broken calibration makes the same catastrophic move as an ignorant one: it acts when it should have checked. Knowing what you don't know is not a nicety on top of agency; it is the control signal that makes agency work.
 
 ---
@@ -238,6 +241,7 @@ Grow an ensemble of independent predictors and track ECE. How far does averaging
 - **OpenAI, "GPT-4 Technical Report" (2023), calibration section.** The pretrained model is well-calibrated on multiple choice; RLHF makes it worse. The empirical basis for §1's LLM twist.
 - **Lakshminarayanan et al., "Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles" (NeurIPS 2017).** Ensembles as a calibration-and-accuracy method; the basis for §8.4.
 - **Ovadia et al., "Can You Trust Your Model's Uncertainty?" (NeurIPS 2019).** How calibration degrades under distribution shift — the §6 caveat, measured.
+- **Papamarkou et al., "Position: Agentic AI Orchestration Should Be Bayes-Consistent" (2026).** A recent position paper arguing that an agent's control layer should maintain calibrated beliefs over latent task quantities and choose actions by expected utility / value of information — the orchestration-level view of the decision rule in §5, and a frame Topic 5 builds on.
 
 ---
 

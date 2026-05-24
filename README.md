@@ -37,8 +37,8 @@ The companion blog is at **[tranbahien.github.io/nano-agents](https://tranbahien
 - [4c — Calibration and uncertainty](posts/04c-calibration.qmd) ✅
 
 ### Topic 5 — Putting it together
-- 5a — Multi-agent systems
-- 5b — nanoAgent: a clean reference implementation
+- [5a — Multi-agent systems](posts/05a-multi-agent-systems.qmd) ✅
+- [5b — nanoAgent: a clean reference implementation](posts/05b-nanoagent.qmd) ✅
 
 ## Quickstart
 
